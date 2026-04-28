@@ -1,0 +1,170 @@
+import {
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  ClipboardCheck,
+  ClipboardList,
+  FileText,
+  Flashlight,
+  GraduationCap,
+  Home,
+  Settings,
+  ShieldCheck,
+  Star,
+  Trophy,
+  UserRound,
+  WalletCards,
+} from "lucide-react";
+
+import type {
+  DashboardMenuItem,
+  MobileNavItem,
+  MobileStatistic,
+  RecentVocabulary,
+  StudyShortcutCard,
+  StudyStatistic,
+} from "@/types/dashboard";
+
+export const dashboardMenuItems: DashboardMenuItem[] = [
+  { icon: Home, label: "Home", href: "/", active: true },
+  { icon: BookOpen, label: "Vocabulary", href: "/vocabulary", active: false },
+  { icon: GraduationCap, label: "Grammar", href: "/grammar", active: false },
+  { icon: Flashlight, label: "Flashcard", href: "/flashcard", active: false },
+  { icon: Trophy, label: "Quiz", href: "/quiz", active: false },
+  { icon: ClipboardList, label: "Mock Test", href: "/mock-test", active: false },
+  { icon: FileText, label: "Exam Bank", href: "/exam-bank", active: false },
+  { icon: BarChart3, label: "Statistics", href: "/statistics", active: false },
+  { icon: Settings, label: "Settings", href: "/settings", active: false },
+];
+
+export const mobileNavItems: MobileNavItem[] = [
+  { icon: Home, label: "Home", href: "/", active: true },
+  { icon: BookOpen, label: "Vocab", href: "/vocabulary", active: false },
+  { icon: WalletCards, label: "Flashcard", href: "/flashcard", active: false },
+  { icon: Trophy, label: "Quiz", href: "/quiz", active: false },
+  { icon: UserRound, label: "Profile", href: "/profile", active: false },
+];
+
+export const studyShortcutCards: StudyShortcutCard[] = [
+  {
+    icon: BookOpen,
+    title: "Vocabulary",
+    description: "Học từ vựng mới mỗi ngày",
+    iconClassName: "from-pink-300 to-rose-400 text-white",
+    cardClassName: "from-pink-50 to-white",
+  },
+  {
+    icon: GraduationCap,
+    title: "Grammar",
+    description: "Nắm vững ngữ pháp cơ bản và nâng cao",
+    iconClassName: "from-violet-300 to-indigo-400 text-white",
+    cardClassName: "from-violet-50 to-white",
+  },
+  {
+    icon: Star,
+    title: "Flashcard",
+    description: "Ghi nhớ nhanh với flashcard thông minh",
+    iconClassName: "from-rose-300 to-pink-400 text-white",
+    cardClassName: "from-rose-50 to-white",
+  },
+  {
+    icon: Trophy,
+    title: "Quiz",
+    description: "Luyện tập với câu hỏi thú vị",
+    iconClassName: "from-amber-200 to-orange-300 text-white",
+    cardClassName: "from-amber-50 to-white",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Mock Test",
+    description: "Kiểm tra trình độ như thi thật",
+    iconClassName: "from-emerald-200 to-green-400 text-white",
+    cardClassName: "from-emerald-50 to-white",
+  },
+];
+
+export const recentVocabularies: RecentVocabulary[] = [
+  {
+    kanji: "学生",
+    hiragana: "がくせい",
+    meaning: "học sinh, sinh viên",
+    level: "N5",
+    correctCount: 8,
+    wrongCount: 1,
+    difficulty: 1,
+  },
+  {
+    kanji: "先生",
+    hiragana: "せんせい",
+    meaning: "giáo viên",
+    level: "N5",
+    correctCount: 12,
+    wrongCount: 0,
+    difficulty: 1,
+  },
+  {
+    kanji: "学校",
+    hiragana: "がっこう",
+    meaning: "trường học",
+    level: "N5",
+    correctCount: 9,
+    wrongCount: 2,
+    difficulty: 2,
+  },
+  {
+    kanji: "日本",
+    hiragana: "にほん",
+    meaning: "Nhật Bản",
+    level: "N5",
+    correctCount: 15,
+    wrongCount: 1,
+    difficulty: 1,
+  },
+  {
+    kanji: "時間",
+    hiragana: "じかん",
+    meaning: "thời gian",
+    level: "N5",
+    correctCount: 7,
+    wrongCount: 3,
+    difficulty: 2,
+  },
+];
+
+export const studyStatistics: StudyStatistic[] = [
+  {
+    label: "Từ vựng đã học",
+    value: "487",
+    icon: BookOpen,
+    iconClassName: "bg-pink-50 text-pink-500",
+    chartClassName: "from-pink-200 via-pink-50 to-pink-100",
+  },
+  {
+    label: "Ngữ pháp đã học",
+    value: "128",
+    icon: CalendarDays,
+    iconClassName: "bg-violet-50 text-violet-500",
+    chartClassName: "from-violet-200 via-violet-50 to-violet-100",
+  },
+  {
+    label: "Bài kiểm tra",
+    value: "32",
+    icon: ClipboardList,
+    iconClassName: "bg-amber-50 text-amber-500",
+    chartClassName: "from-amber-200 via-amber-50 to-amber-100",
+  },
+  {
+    label: "Tỷ lệ đúng",
+    value: "92%",
+    icon: ShieldCheck,
+    iconClassName: "bg-blue-50 text-blue-500",
+    chartClassName: "from-blue-200 via-blue-50 to-blue-100",
+  },
+];
+
+export const mobileStatistics: MobileStatistic[] = [
+  { label: "Accuracy", value: "82%", trend: "↗" },
+  { label: "Words learned", value: "124", trend: "↗" },
+  { label: "Difficult words", value: "18", trend: "↘" },
+  { label: "Streak", value: "7 ngày", trend: "↗" },
+];

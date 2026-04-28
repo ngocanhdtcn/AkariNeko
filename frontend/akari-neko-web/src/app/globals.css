@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  font-family:
+    "Segoe UI",
+    "Noto Sans",
+    "Noto Sans JP",
+    "Yu Gothic",
+    "Hiragino Sans",
+    Arial,
+    sans-serif;
+}

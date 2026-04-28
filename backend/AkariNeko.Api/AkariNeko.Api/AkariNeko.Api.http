@@ -1,0 +1,6 @@
+@AkariNeko.Api_HostAddress = http://localhost:5139
+
+GET {{AkariNeko.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
