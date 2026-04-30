@@ -10,9 +10,12 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { parseVocabularyHtml } from "@/lib/htmlVocabularyParser";
+import { HtmlFilePreviewGrid } from "./import/HtmlFilePreviewGrid";
+import { VocabularyPreviewGrid } from "./import/VocabularyPreviewGrid";
 // import { importVocabularies } from "@/services/vocabularyImportService";
 
 import type {
+  ImportMetadataField,
   ImportPreviewRow,
   ImportSourceType,
   ImportStep,
@@ -32,6 +35,12 @@ type ImportResult = {
   importedCount: number;
   duplicateCount: number;
   errorCount: number;
+};
+
+type ImportValidationError = {
+  filePath: string;
+  fileName: string;
+  message: string;
 };
 
 import {
@@ -110,8 +119,35 @@ export function ImportVocabularyModal({
     }
   }
 
+  function handleMetadataChange(
+    filePath: string,
+    field: ImportMetadataField,
+    value: string,
+  ) {
+    setSelectedFiles((currentFiles) =>
+      currentFiles.map((file) =>
+        file.path === filePath
+          ? {
+            ...file,
+            [field]: value,
+          }
+          : file,
+      ),
+    );
+
+    setPreviewRows([]);
+    setPreviewItems([]);
+    setParsedImportFiles([]);
+    setImportResult(null);
+    setImportStep("select");
+  }
+
   async function handlePreviewImport() {
     if (selectedFiles.length === 0) {
+      return;
+    }
+
+    if (getMetadataValidationErrors().length > 0) {
       return;
     }
 
@@ -130,8 +166,45 @@ export function ImportVocabularyModal({
         }),
       );
 
-      const nextPreviewRows: ImportPreviewRow[] = parsedResults.map(
-        ({ selectedFile, parsedItems }) => ({
+      const globalDuplicateMap = new Set<string>();
+
+      const normalizedParsedResults = parsedResults.map(
+        ({ selectedFile, parsedItems }) => {
+          const uniqueItems: typeof parsedItems = [];
+          const duplicateItems: typeof parsedItems = [];
+
+          parsedItems.forEach((item) => {
+            const duplicateKey = [
+              selectedFile.book,
+              selectedFile.level,
+              selectedFile.chapter,
+              item.kanji,
+              item.hiragana,
+            ]
+              .join("|")
+              .replace(/\s+/g, "")
+              .toLowerCase();
+
+            if (globalDuplicateMap.has(duplicateKey)) {
+              duplicateItems.push(item);
+              return;
+            }
+
+            globalDuplicateMap.add(duplicateKey);
+            uniqueItems.push(item);
+          });
+
+          return {
+            selectedFile,
+            parsedItems,
+            uniqueItems,
+            duplicateItems,
+          };
+        },
+      );
+
+      const nextPreviewRows: ImportPreviewRow[] = normalizedParsedResults.map(
+        ({ selectedFile, parsedItems, uniqueItems, duplicateItems }) => ({
           fileName: selectedFile.name,
           filePath: selectedFile.path,
           level: selectedFile.level,
@@ -139,39 +212,37 @@ export function ImportVocabularyModal({
           chapter: selectedFile.chapter,
           size: formatFileSize(selectedFile.size),
           totalRows: parsedItems.length,
-          newRows: parsedItems.length,
-          duplicateRows: 0,
+          newRows: uniqueItems.length,
+          duplicateRows: duplicateItems.length,
           errorRows: parsedItems.length === 0 ? 1 : 0,
         }),
       );
 
-      const nextParsedImportFiles: ParsedImportFile[] = parsedResults.map(
-        ({ selectedFile, parsedItems }) => ({
+      const nextParsedImportFiles: ParsedImportFile[] =
+        normalizedParsedResults.map(({ selectedFile, uniqueItems }) => ({
           fileName: selectedFile.name,
           filePath: selectedFile.path,
           level: selectedFile.level,
           book: selectedFile.book,
           chapter: selectedFile.chapter,
-          vocabularies: parsedItems,
-        }),
-      );
+          vocabularies: uniqueItems,
+        }));
 
-      const nextPreviewItems: VocabularyPreviewItem[] = parsedResults.flatMap(
-        ({ selectedFile, parsedItems }) => {
+      const nextPreviewItems: VocabularyPreviewItem[] =
+        normalizedParsedResults.flatMap(({ selectedFile, uniqueItems }) => {
           const importGroupName = buildImportGroupName(
             selectedFile.book,
             selectedFile.level,
             selectedFile.chapter,
           );
 
-          return parsedItems.slice(0, 10).map((item) => ({
+          return uniqueItems.slice(0, 10).map((item) => ({
             importGroupName,
             kanji: item.kanji,
             hiragana: item.hiragana,
             meaning: item.meaning,
           }));
-        },
-      );
+        });
 
       setPreviewRows(nextPreviewRows);
       setPreviewItems(nextPreviewItems);
@@ -194,6 +265,9 @@ export function ImportVocabularyModal({
       return;
     }
 
+    if (getMetadataValidationErrors().length > 0) {
+      return;
+    }
     const payload = buildImportPayload();
 
     if (payload.files.length === 0) {
@@ -223,9 +297,15 @@ export function ImportVocabularyModal({
         0,
       );
 
+      const duplicateCount = previewRows.reduce(
+        (total, row) =>
+          total + (typeof row.duplicateRows === "number" ? row.duplicateRows : 0),
+        0,
+      );
+
       setImportResult({
         importedCount,
-        duplicateCount: 0,
+        duplicateCount,
         errorCount,
       });
 
@@ -247,6 +327,38 @@ export function ImportVocabularyModal({
     onClose();
   }
 
+  function getMetadataValidationErrors(): ImportValidationError[] {
+    return selectedFiles.flatMap((file) => {
+      const errors: ImportValidationError[] = [];
+
+      if (!file.level || file.level === "Unknown") {
+        errors.push({
+          filePath: file.path,
+          fileName: file.name,
+          message: "JLPT level chưa được chọn.",
+        });
+      }
+
+      if (!file.book.trim()) {
+        errors.push({
+          filePath: file.path,
+          fileName: file.name,
+          message: "Book chưa được nhập.",
+        });
+      }
+
+      if (!file.chapter.trim()) {
+        errors.push({
+          filePath: file.path,
+          fileName: file.name,
+          message: "Chapter chưa được nhập.",
+        });
+      }
+
+      return errors;
+    });
+  }
+
   const totalFiles = selectedFiles.length;
   const totalSize = selectedFiles.reduce((total, file) => total + file.size, 0);
 
@@ -254,17 +366,17 @@ export function ImportVocabularyModal({
     previewRows.length > 0
       ? previewRows
       : selectedFiles.map((file) => ({
-          fileName: file.name,
-          filePath: file.path,
-          level: file.level,
-          book: file.book,
-          chapter: file.chapter,
-          size: formatFileSize(file.size),
-          totalRows: "-",
-          newRows: "-",
-          duplicateRows: "-",
-          errorRows: "-",
-        }));
+        fileName: file.name,
+        filePath: file.path,
+        level: file.level,
+        book: file.book,
+        chapter: file.chapter,
+        size: formatFileSize(file.size),
+        totalRows: "-",
+        newRows: "-",
+        duplicateRows: "-",
+        errorRows: "-",
+      }));
 
   const parsedRowsCount = previewRows.reduce(
     (total, row) =>
@@ -275,6 +387,9 @@ export function ImportVocabularyModal({
   const validFilesCount = parsedImportFiles.filter(
     (file) => file.vocabularies.length > 0,
   ).length;
+
+  const metadataValidationErrors = getMetadataValidationErrors();
+  const hasMetadataValidationError = metadataValidationErrors.length > 0;
 
   return (
     <AnimatePresence>
@@ -374,11 +489,10 @@ export function ImportVocabularyModal({
                 ].map(([step, label, active]) => (
                   <div
                     key={String(step)}
-                    className={`rounded-2xl border px-4 py-3 ${
-                      active
-                        ? "border-pink-100 bg-pink-50 text-pink-600"
-                        : "border-slate-100 bg-white text-slate-400"
-                    }`}
+                    className={`rounded-2xl border px-4 py-3 ${active
+                      ? "border-pink-100 bg-pink-50 text-pink-600"
+                      : "border-slate-100 bg-white text-slate-400"
+                      }`}
                   >
                     <p className="text-xs font-bold uppercase tracking-[0.14em]">
                       {step}
@@ -438,114 +552,38 @@ export function ImportVocabularyModal({
                     </p>
                   </button>
 
-                  <div className="mt-5 overflow-hidden rounded-2xl border border-pink-50">
-                    <div className="overflow-x-auto lg:overflow-x-visible">
-                      <div className="min-w-[980px] lg:min-w-0">
-                        <div className="grid grid-cols-[240px_80px_120px_160px_90px_70px_70px_110px_70px] bg-pink-50/80 px-4 py-3 text-sm font-bold text-slate-500 lg:grid-cols-[minmax(0,1.5fr)_0.5fr_0.8fr_1fr_0.6fr_0.5fr_0.5fr_0.8fr_0.5fr]">
-                          <div>HTML file</div>
-                          <div>Level</div>
-                          <div>Book</div>
-                          <div>Chapter</div>
-                          <div>Size</div>
-                          <div>Total</div>
-                          <div>New</div>
-                          <div>Duplicate</div>
-                          <div>Error</div>
-                        </div>
+                  <HtmlFilePreviewGrid
+                    rows={displayFileRows}
+                    onMetadataChange={handleMetadataChange}
+                  />
 
-                        {displayFileRows.length > 0 ? (
-                          displayFileRows.map((row) => (
-                            <div
-                              key={row.filePath}
-                              className="grid grid-cols-[240px_80px_120px_160px_90px_70px_70px_110px_70px] border-t border-pink-50 px-4 py-3 text-sm text-slate-600 lg:grid-cols-[minmax(0,1.5fr)_0.5fr_0.8fr_1fr_0.6fr_0.5fr_0.5fr_0.8fr_0.5fr]"
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate font-bold text-slate-800">
-                                  {row.fileName}
-                                </p>
-                                <p className="truncate text-xs text-slate-400">
-                                  {row.filePath}
-                                </p>
-                              </div>
+                  {hasMetadataValidationError ? (
+                    <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                      <p className="text-sm font-black text-amber-700">
+                        Cần kiểm tra lại thông tin import
+                      </p>
 
-                              <div>
-                                <span className="rounded-xl bg-pink-100 px-2 py-1 text-xs font-bold text-pink-500">
-                                  {row.level}
-                                </span>
-                              </div>
+                      <div className="mt-2 grid gap-1">
+                        {metadataValidationErrors.slice(0, 4).map((error) => (
+                          <p
+                            key={`${error.filePath}-${error.message}`}
+                            className="text-sm font-medium text-amber-600"
+                          >
+                            {error.fileName}: {error.message}
+                          </p>
+                        ))}
 
-                              <div className="truncate font-semibold text-slate-700">
-                                {row.book}
-                              </div>
-
-                              <div className="truncate">{row.chapter}</div>
-
-                              <div>{row.size}</div>
-                              <div>{row.totalRows}</div>
-                              <div className="font-bold text-emerald-600">
-                                {row.newRows}
-                              </div>
-                              <div className="font-bold text-amber-500">
-                                {row.duplicateRows}
-                              </div>
-                              <div className="font-bold text-rose-500">
-                                {row.errorRows}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="border-t border-pink-50 px-4 py-8 text-center text-sm font-medium text-slate-400">
-                            Chưa chọn file HTML nào.
-                          </div>
-                        )}
+                        {metadataValidationErrors.length > 4 ? (
+                          <p className="text-sm font-bold text-amber-600">
+                            +{metadataValidationErrors.length - 4} lỗi khác
+                          </p>
+                        ) : null}
                       </div>
                     </div>
-                  </div>
+                  ) : null}
 
                   {previewItems.length > 0 ? (
-                    <div className="mt-5 overflow-hidden rounded-2xl border border-pink-50">
-                      <div className="flex items-center justify-between bg-pink-50/80 px-4 py-3">
-                        <h4 className="text-sm font-black text-slate-700">
-                          Vocabulary preview
-                        </h4>
-
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-pink-500">
-                          {previewItems.length} dòng xem trước
-                        </span>
-                      </div>
-
-                      <div className="overflow-x-auto lg:overflow-x-visible">
-                        <div className="min-w-[760px] lg:min-w-0">
-                          <div className="grid grid-cols-[190px_140px_140px_290px] bg-white px-4 py-3 text-sm font-bold text-slate-500 lg:grid-cols-[1.2fr_1fr_1fr_1.8fr]">
-                            <div>Import group</div>
-                            <div>Kanji</div>
-                            <div>Hiragana</div>
-                            <div>Meaning</div>
-                          </div>
-
-                          {previewItems.map((item, index) => (
-                            <div
-                              key={`${item.importGroupName}-${item.kanji}-${item.hiragana}-${index}`}
-                              className="grid grid-cols-[190px_140px_140px_290px] border-t border-pink-50 px-4 py-3 text-sm text-slate-600 lg:grid-cols-[1.2fr_1fr_1fr_1.8fr]"
-                            >
-                              <div className="truncate font-bold text-slate-800">
-                                {item.importGroupName}
-                              </div>
-
-                              <div className="font-semibold text-slate-700">
-                                {item.kanji}
-                              </div>
-
-                              <div>{item.hiragana}</div>
-
-                              <div className="whitespace-normal leading-6">
-                                {item.meaning}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    <VocabularyPreviewGrid items={previewItems} />
                   ) : selectedFiles.length > 0 && previewRows.length > 0 ? (
                     <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-600">
                       Không có dữ liệu preview để hiển thị.
@@ -663,18 +701,22 @@ export function ImportVocabularyModal({
                         <span className="text-slate-500">Status</span>
                         <b
                           className={
-                            importStep === "completed"
-                              ? "text-emerald-600"
-                              : selectedFiles.length > 0
+                            hasMetadataValidationError
+                              ? "text-amber-500"
+                              : importStep === "completed"
                                 ? "text-emerald-600"
-                                : "text-slate-400"
+                                : selectedFiles.length > 0
+                                  ? "text-emerald-600"
+                                  : "text-slate-400"
                           }
                         >
-                          {importStep === "completed"
-                            ? "Completed"
-                            : selectedFiles.length > 0
-                              ? "Ready"
-                              : "Waiting"}
+                          {hasMetadataValidationError
+                            ? "Need check"
+                            : importStep === "completed"
+                              ? "Completed"
+                              : selectedFiles.length > 0
+                                ? "Ready"
+                                : "Waiting"}
                         </b>
                       </div>
 
@@ -739,7 +781,7 @@ export function ImportVocabularyModal({
 
                     <button
                       type="button"
-                      disabled={isImporting || parsedRowsCount === 0}
+                      disabled={isImporting || parsedRowsCount === 0 || hasMetadataValidationError}
                       className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                       onClick={handleConfirmImport}
                     >
@@ -749,7 +791,9 @@ export function ImportVocabularyModal({
                 ) : (
                   <button
                     type="button"
-                    disabled={selectedFiles.length === 0 || isPreviewing}
+                    disabled={
+                      selectedFiles.length === 0 || isPreviewing || hasMetadataValidationError
+                    }
                     className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                     onClick={handlePreviewImport}
                   >

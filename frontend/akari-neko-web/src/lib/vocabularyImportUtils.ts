@@ -1,3 +1,4 @@
+import type { ParsedVocabularyItem } from "@/lib/htmlVocabularyParser";
 import type { SelectedHtmlFile } from "@/types/vocabularyImport";
 
 export function formatFileSize(size: number) {
@@ -117,4 +118,56 @@ export function mapSelectedFiles(
   });
 
   return Array.from(uniqueFileMap.values());
+}
+
+function normalizeVocabularyKeyPart(value: string) {
+  return value.replace(/\s+/g, "").trim().toLowerCase();
+}
+
+export function buildVocabularyDuplicateKey(
+  book: string,
+  level: string,
+  chapter: string,
+  vocabulary: ParsedVocabularyItem,
+) {
+  return [
+    normalizeVocabularyKeyPart(book),
+    normalizeVocabularyKeyPart(level),
+    normalizeVocabularyKeyPart(chapter),
+    normalizeVocabularyKeyPart(vocabulary.kanji),
+    normalizeVocabularyKeyPart(vocabulary.hiragana),
+  ].join("|");
+}
+
+export function splitUniqueVocabularies(
+  items: Array<{
+    book: string;
+    level: string;
+    chapter: string;
+    vocabulary: ParsedVocabularyItem;
+  }>,
+) {
+  const uniqueMap = new Map<string, ParsedVocabularyItem>();
+  const duplicateItems: ParsedVocabularyItem[] = [];
+
+  items.forEach((item) => {
+    const key = buildVocabularyDuplicateKey(
+      item.book,
+      item.level,
+      item.chapter,
+      item.vocabulary,
+    );
+
+    if (uniqueMap.has(key)) {
+      duplicateItems.push(item.vocabulary);
+      return;
+    }
+
+    uniqueMap.set(key, item.vocabulary);
+  });
+
+  return {
+    uniqueItems: Array.from(uniqueMap.values()),
+    duplicateItems,
+  };
 }

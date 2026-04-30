@@ -4,6 +4,8 @@ export type ImportSourceType = "file" | "folder";
 
 export type ImportStep = "select" | "preview" | "completed";
 
+export type ImportMetadataField = "level" | "book" | "chapter";
+
 export type SelectedHtmlFile = {
   file: File;
   name: string;
