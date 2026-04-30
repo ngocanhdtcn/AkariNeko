@@ -3,6 +3,7 @@ import type { ImportStep } from "@/types/vocabularyImport";
 type ImportModalFooterProps = {
     importStep: ImportStep;
     hasPreviewData: boolean;
+    hasValidationError: boolean;
     selectedFileCount: number;
     parsedRowsCount: number;
     isPreviewing: boolean;
@@ -15,6 +16,7 @@ type ImportModalFooterProps = {
 export function ImportModalFooter({
     importStep,
     hasPreviewData,
+    hasValidationError,
     selectedFileCount,
     parsedRowsCount,
     isPreviewing,
@@ -56,7 +58,7 @@ export function ImportModalFooter({
 
                     <button
                         type="button"
-                        disabled={isImporting || parsedRowsCount === 0}
+                        disabled={isImporting || parsedRowsCount === 0 || hasValidationError}
                         className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                         onClick={onConfirmImport}
                     >
@@ -66,7 +68,7 @@ export function ImportModalFooter({
             ) : (
                 <button
                     type="button"
-                    disabled={selectedFileCount === 0 || isPreviewing}
+                    disabled={selectedFileCount === 0 || isPreviewing || hasValidationError}
                     className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                     onClick={onPreviewImport}
                 >
