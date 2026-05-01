@@ -13,10 +13,12 @@ import {
 import { motion } from "motion/react";
 import { SoftPanel } from "../ui/SoftPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal";
 import {
   deleteVocabulary,
   getVocabularies,
   getVocabularyFilterOptions,
+  updateVocabulary,
   type VocabularyListItem,
 } from "@/services/vocabularyService";
 import { ImportVocabularyModal } from "./ImportVocabularyModal";
@@ -293,6 +295,35 @@ export function VocabularyPage() {
     }
   }
 
+  const [editingVocabulary, setEditingVocabulary] =
+    useState<VocabularyListItem | null>(null);
+  const [isSavingVocabulary, setIsSavingVocabulary] = useState(false);
+
+  async function handleSaveVocabulary(vocabulary: VocabularyListItem) {
+    setIsSavingVocabulary(true);
+
+    try {
+      await updateVocabulary({
+        id: vocabulary.id,
+        book: vocabulary.book,
+        level: vocabulary.level,
+        chapter: vocabulary.chapter,
+        kanji: vocabulary.kanji,
+        hiragana: vocabulary.hiragana,
+        meaning: vocabulary.meaning,
+      });
+
+      setEditingVocabulary(null);
+      await loadVocabularies(currentPage);
+      await loadVocabularyFilterOptions();
+    } catch (error) {
+      console.error("Failed to update vocabulary:", error);
+      setVocabularyLoadError("Không thể cập nhật từ vựng. Vui lòng thử lại.");
+    } finally {
+      setIsSavingVocabulary(false);
+    }
+  }
+
   return (
     <>
       <div className="grid gap-4">
@@ -484,14 +515,24 @@ export function VocabularyPage() {
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={deletingVocabularyId === vocabulary.id}
-                      className="rounded-xl border border-rose-100 bg-white px-3 py-2 text-xs font-bold text-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={() => void handleDeleteVocabulary(vocabulary)}
-                    >
-                      {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"
+                        onClick={() => setEditingVocabulary(vocabulary)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={deletingVocabularyId === vocabulary.id}
+                        className="flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => void handleDeleteVocabulary(vocabulary)}
+                      >
+                        {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -503,7 +544,7 @@ export function VocabularyPage() {
           </div>
 
           <div className="hidden overflow-hidden rounded-[22px] border border-pink-50 md:block">
-            <div className="grid grid-cols-[1fr_1fr_1.6fr_0.7fr_0.8fr_0.8fr_0.9fr] bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-sm font-bold text-slate-500">
+            <div className="grid grid-cols-[1fr_1fr_1.6fr_0.7fr_0.8fr_0.8fr_1.2fr] bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-sm font-bold text-slate-500">
               <div>Kanji</div>
               <div>Hiragana</div>
               <div>Meaning</div>
@@ -521,7 +562,7 @@ export function VocabularyPage() {
               displayVocabularies.map((vocabulary) => (
                 <div
                   key={`${vocabulary.id}-vocab`}
-                  className="grid grid-cols-[1fr_1fr_1.6fr_0.7fr_0.8fr_0.8fr_0.9fr] items-center border-t border-pink-50 px-4 py-3 text-sm text-slate-600 transition hover:bg-pink-50/45"
+                  className="grid grid-cols-[1fr_1fr_1.6fr_0.7fr_0.8fr_0.8fr_1.2fr] items-center border-t border-pink-50 px-4 py-3 text-sm text-slate-600 transition hover:bg-pink-50/45"
                 >
                   <div className="text-base font-black text-slate-800">
                     {vocabulary.kanji}
@@ -547,7 +588,15 @@ export function VocabularyPage() {
                     {vocabulary.wrongCount}
                   </div>
 
-                  <div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"
+                      onClick={() => setEditingVocabulary(vocabulary)}
+                    >
+                      Edit
+                    </button>
+
                     <button
                       type="button"
                       disabled={deletingVocabularyId === vocabulary.id}
@@ -658,6 +707,13 @@ export function VocabularyPage() {
           void loadVocabularies(1);
           void loadVocabularyFilterOptions();
         }}
+      />
+
+      <EditVocabularyModal
+        vocabulary={editingVocabulary}
+        isSaving={isSavingVocabulary}
+        onClose={() => setEditingVocabulary(null)}
+        onSave={(vocabulary) => void handleSaveVocabulary(vocabulary)}
       />
     </>
   );

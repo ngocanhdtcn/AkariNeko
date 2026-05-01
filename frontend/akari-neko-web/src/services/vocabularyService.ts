@@ -163,3 +163,32 @@ export async function deleteVocabulary(vocabularyId: string): Promise<void> {
         throw error;
     }
 }
+
+export type UpdateVocabularyInput = {
+    id: string;
+    book: string;
+    level: string;
+    chapter: string;
+    kanji: string;
+    hiragana: string;
+    meaning: string;
+};
+
+export async function updateVocabulary(input: UpdateVocabularyInput): Promise<void> {
+    const { error } = await supabase
+        .from("vocabularies")
+        .update({
+            book: input.book,
+            level: input.level,
+            chapter: input.chapter,
+            kanji: input.kanji,
+            hiragana: input.hiragana,
+            meaning: input.meaning,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", input.id);
+
+    if (error) {
+        throw error;
+    }
+}
