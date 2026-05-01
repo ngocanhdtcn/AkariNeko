@@ -23,6 +23,7 @@ import {
   getVocabularies,
   getVocabularyFilterOptions,
   updateVocabulary,
+  updateVocabularyDifficulty,
   type CreateVocabularyInput,
   type VocabularyListItem,
 } from "@/services/vocabularyService";
@@ -145,6 +146,10 @@ export function VocabularyPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importSourceType, setImportSourceType] = useState<"file" | "folder">(
     "file",
+  );
+
+  const [updatingDifficultyId, setUpdatingDifficultyId] = useState<string | null>(
+    null,
   );
 
   function openImportModal(sourceType: "file" | "folder") {
@@ -370,6 +375,42 @@ export function VocabularyPage() {
     }
   }
 
+  async function handleToggleVocabularyDifficulty(vocabulary: VocabularyListItem) {
+    setUpdatingDifficultyId(vocabulary.id);
+    setVocabularyLoadError(null);
+    const nextIsDifficult = !vocabulary.isDifficult;
+
+    setVocabularies((currentVocabularies) =>
+      currentVocabularies.map((currentVocabulary) =>
+        currentVocabulary.id === vocabulary.id
+          ? {
+            ...currentVocabulary,
+            isDifficult: nextIsDifficult,
+          }
+          : currentVocabulary,
+      ),
+    );
+
+    try {
+      await updateVocabularyDifficulty(vocabulary.id, nextIsDifficult);
+    } catch (error) {
+      console.error("Failed to update vocabulary difficulty:", error);
+      setVocabularies((currentVocabularies) =>
+        currentVocabularies.map((currentVocabulary) =>
+          currentVocabulary.id === vocabulary.id
+            ? {
+              ...currentVocabulary,
+              isDifficult: vocabulary.isDifficult,
+            }
+            : currentVocabulary,
+        ),
+      );
+      setVocabularyLoadError("Không thể cập nhật trạng thái từ khó.");
+    } finally {
+      setUpdatingDifficultyId(null);
+    }
+  }
+
   return (
     <>
       <div className="grid gap-4">
@@ -568,6 +609,22 @@ export function VocabularyPage() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
+                        disabled={updatingDifficultyId === vocabulary.id}
+                        className={`mt-3 rounded-xl border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50 ${vocabulary.isDifficult
+                          ? "border-amber-100 bg-amber-50 text-amber-500"
+                          : "border-pink-100 bg-white text-slate-500"
+                          }`}
+                        onClick={() => void handleToggleVocabularyDifficulty(vocabulary)}
+                      >
+                        {updatingDifficultyId === vocabulary.id
+                          ? "..."
+                          : vocabulary.isDifficult
+                            ? "Bỏ từ khó"
+                            : "Đánh dấu từ khó"}
+                      </button>
+
+                      <button
+                        type="button"
                         className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"
                         onClick={() => {
                           setEditVocabularyError(null);
@@ -597,7 +654,7 @@ export function VocabularyPage() {
           </div>
 
           <div className="hidden overflow-hidden rounded-[22px] border border-pink-50 md:block">
-            <div className="grid grid-cols-[1fr_1fr_1.6fr_0.7fr_0.8fr_0.8fr_1.2fr] bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-sm font-bold text-slate-500">
+            <div className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-sm font-bold text-slate-500">
               <div>Kanji</div>
               <div>Hiragana</div>
               <div>Meaning</div>
@@ -615,10 +672,16 @@ export function VocabularyPage() {
               displayVocabularies.map((vocabulary) => (
                 <div
                   key={`${vocabulary.id}-vocab`}
-                  className="grid grid-cols-[1fr_1fr_1.6fr_0.7fr_0.8fr_0.8fr_1.2fr] items-center border-t border-pink-50 px-4 py-3 text-sm text-slate-600 transition hover:bg-pink-50/45"
+                  className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] items-center border-t border-pink-50 px-4 py-3 text-sm text-slate-600 transition hover:bg-pink-50/45"
                 >
-                  <div className="text-base font-black text-slate-800">
-                    {vocabulary.kanji}
+                  <div className="flex items-center gap-2 text-base font-black text-slate-800">
+                    <span>{vocabulary.kanji}</span>
+
+                    {vocabulary.isDifficult ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-500">
+                        Hard
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="font-semibold text-slate-700">
@@ -642,6 +705,22 @@ export function VocabularyPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={updatingDifficultyId === vocabulary.id}
+                      className={`flex h-8 min-w-20 items-center justify-center rounded-xl border px-3 text-xs font-bold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${vocabulary.isDifficult
+                        ? "border-amber-100 bg-amber-50 text-amber-500 hover:bg-amber-100/70"
+                        : "border-pink-100 bg-white text-slate-500 hover:bg-pink-50"
+                        }`}
+                      onClick={() => void handleToggleVocabularyDifficulty(vocabulary)}
+                    >
+                      {updatingDifficultyId === vocabulary.id
+                        ? "..."
+                        : vocabulary.isDifficult
+                          ? "Difficult"
+                          : "Mark"}
+                    </button>
+
                     <button
                       type="button"
                       className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"

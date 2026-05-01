@@ -292,3 +292,20 @@ export async function getRecentVocabularies(
 
     return ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow);
 }
+
+export async function updateVocabularyDifficulty(
+    vocabularyId: string,
+    isDifficult: boolean,
+): Promise<void> {
+    const { error } = await supabase
+        .from("vocabularies")
+        .update({
+            is_difficult: isDifficult,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", vocabularyId);
+
+    if (error) {
+        throw error;
+    }
+}
