@@ -14,14 +14,18 @@ import { motion } from "motion/react";
 import { SoftPanel } from "../ui/SoftPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal";
+import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
+import { ImportVocabularyModal } from "./ImportVocabularyModal";
 import {
+  createVocabulary,
   deleteVocabulary,
+  DuplicateVocabularyError,
   getVocabularies,
   getVocabularyFilterOptions,
   updateVocabulary,
+  type CreateVocabularyInput,
   type VocabularyListItem,
 } from "@/services/vocabularyService";
-import { ImportVocabularyModal } from "./ImportVocabularyModal";
 
 function SelectBox({
   label,
@@ -298,9 +302,14 @@ export function VocabularyPage() {
   const [editingVocabulary, setEditingVocabulary] =
     useState<VocabularyListItem | null>(null);
   const [isSavingVocabulary, setIsSavingVocabulary] = useState(false);
+  const [editVocabularyError, setEditVocabularyError] = useState<string | null>(
+    null,
+  );
 
   async function handleSaveVocabulary(vocabulary: VocabularyListItem) {
     setIsSavingVocabulary(true);
+    setEditVocabularyError(null);
+    setVocabularyLoadError(null);
 
     try {
       await updateVocabulary({
@@ -318,9 +327,46 @@ export function VocabularyPage() {
       await loadVocabularyFilterOptions();
     } catch (error) {
       console.error("Failed to update vocabulary:", error);
+      setEditVocabularyError(
+        error instanceof DuplicateVocabularyError
+          ? "Từ vựng này đã tồn tại trong cùng Book / Level / Chapter."
+          : "Không thể cập nhật từ vựng. Vui lòng thử lại.",
+      );
       setVocabularyLoadError("Không thể cập nhật từ vựng. Vui lòng thử lại.");
+      setVocabularyLoadError(null);
     } finally {
       setIsSavingVocabulary(false);
+    }
+  }
+
+  const [isAddVocabularyOpen, setIsAddVocabularyOpen] = useState(false);
+  const [isCreatingVocabulary, setIsCreatingVocabulary] = useState(false);
+  const [createVocabularyError, setCreateVocabularyError] = useState<string | null>(
+    null,
+  );
+
+  async function handleCreateVocabulary(vocabulary: CreateVocabularyInput) {
+    setIsCreatingVocabulary(true);
+    setCreateVocabularyError(null);
+    setVocabularyLoadError(null);
+
+    try {
+      await createVocabulary(vocabulary);
+
+      setIsAddVocabularyOpen(false);
+      setCurrentPage(1);
+
+      await loadVocabularies(1);
+      await loadVocabularyFilterOptions();
+    } catch (error) {
+      console.error("Failed to create vocabulary:", error);
+      setCreateVocabularyError(
+        error instanceof DuplicateVocabularyError
+          ? "Từ vựng này đã tồn tại trong cùng Book / Level / Chapter."
+          : "Không thể thêm từ vựng. Vui lòng thử lại.",
+      );
+    } finally {
+      setIsCreatingVocabulary(false);
     }
   }
 
@@ -363,6 +409,10 @@ export function VocabularyPage() {
               <button
                 type="button"
                 className="flex h-12 items-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                onClick={() => {
+                  setCreateVocabularyError(null);
+                  setIsAddVocabularyOpen(true);
+                }}
               >
                 <Plus size={18} />
                 Thêm từ vựng
@@ -519,7 +569,10 @@ export function VocabularyPage() {
                       <button
                         type="button"
                         className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"
-                        onClick={() => setEditingVocabulary(vocabulary)}
+                        onClick={() => {
+                          setEditVocabularyError(null);
+                          setEditingVocabulary(vocabulary);
+                        }}
                       >
                         Edit
                       </button>
@@ -592,7 +645,10 @@ export function VocabularyPage() {
                     <button
                       type="button"
                       className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"
-                      onClick={() => setEditingVocabulary(vocabulary)}
+                      onClick={() => {
+                        setEditVocabularyError(null);
+                        setEditingVocabulary(vocabulary);
+                      }}
                     >
                       Edit
                     </button>
@@ -712,8 +768,23 @@ export function VocabularyPage() {
       <EditVocabularyModal
         vocabulary={editingVocabulary}
         isSaving={isSavingVocabulary}
-        onClose={() => setEditingVocabulary(null)}
+        errorMessage={editVocabularyError}
+        onClose={() => {
+          setEditVocabularyError(null);
+          setEditingVocabulary(null);
+        }}
         onSave={(vocabulary) => void handleSaveVocabulary(vocabulary)}
+      />
+
+      <AddVocabularyModal
+        isOpen={isAddVocabularyOpen}
+        isSaving={isCreatingVocabulary}
+        errorMessage={createVocabularyError}
+        onClose={() => {
+          setCreateVocabularyError(null);
+          setIsAddVocabularyOpen(false);
+        }}
+        onSave={(vocabulary) => void handleCreateVocabulary(vocabulary)}
       />
     </>
   );

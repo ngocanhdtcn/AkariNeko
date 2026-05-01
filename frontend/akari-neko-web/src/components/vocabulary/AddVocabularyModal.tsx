@@ -3,56 +3,67 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import type { VocabularyListItem } from "@/services/vocabularyService";
+import type { CreateVocabularyInput } from "@/services/vocabularyService";
 
 const jlptLevelOptions = ["N5", "N4", "N3", "N2", "N1"];
 
-type EditVocabularyModalProps = {
-    vocabulary: VocabularyListItem | null;
+const defaultVocabulary: CreateVocabularyInput = {
+    book: "JTest",
+    level: "N2",
+    chapter: "",
+    kanji: "",
+    hiragana: "",
+    meaning: "",
+};
+
+type AddVocabularyModalProps = {
+    isOpen: boolean;
     isSaving: boolean;
     errorMessage?: string | null;
     onClose: () => void;
-    onSave: (vocabulary: VocabularyListItem) => void;
+    onSave: (vocabulary: CreateVocabularyInput) => void;
 };
 
-export function EditVocabularyModal({
-    vocabulary,
+export function AddVocabularyModal({
+    isOpen,
     isSaving,
     errorMessage,
     onClose,
     onSave,
-}: EditVocabularyModalProps) {
-    const [editingVocabulary, setEditingVocabulary] =
-        useState<VocabularyListItem | null>(null);
+}: AddVocabularyModalProps) {
+    const [vocabulary, setVocabulary] =
+        useState<CreateVocabularyInput>(defaultVocabulary);
 
     useEffect(() => {
-        // Keep the editable draft in sync when a different row is selected.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setEditingVocabulary(vocabulary);
-    }, [vocabulary]);
+        if (isOpen) {
+            // Reset the form draft each time the add modal opens.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setVocabulary(defaultVocabulary);
+        }
+    }, [isOpen]);
 
-    if (!editingVocabulary) {
-        return null;
+    function updateField(field: keyof CreateVocabularyInput, value: string) {
+        setVocabulary((current) => ({
+            ...current,
+            [field]: value,
+        }));
     }
 
-    function updateField(field: keyof VocabularyListItem, value: string) {
-        setEditingVocabulary((current) =>
-            current
-                ? {
-                    ...current,
-                    [field]: value,
-                }
-                : current,
-        );
-    }
+    const canSave =
+        vocabulary.book.trim() &&
+        vocabulary.level.trim() &&
+        vocabulary.chapter.trim() &&
+        vocabulary.kanji.trim() &&
+        vocabulary.hiragana.trim() &&
+        vocabulary.meaning.trim();
 
     return (
         <AnimatePresence>
-            {vocabulary ? (
+            {isOpen ? (
                 <div className="fixed inset-0 z-[110] grid place-items-center px-4">
                     <motion.button
                         type="button"
-                        aria-label="Close edit modal overlay"
+                        aria-label="Close add modal overlay"
                         className="absolute inset-0 bg-slate-900/25 backdrop-blur-sm"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -73,10 +84,10 @@ export function EditVocabularyModal({
                         <div className="flex items-start justify-between gap-4 border-b border-pink-50 bg-gradient-to-r from-pink-50 to-violet-50 px-6 py-5">
                             <div>
                                 <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
-                                    Edit vocabulary
+                                    Add vocabulary
                                 </p>
                                 <h2 className="mt-1 text-2xl font-black text-slate-800">
-                                    Sửa từ vựng
+                                    Thêm từ vựng thủ công
                                 </h2>
                             </div>
 
@@ -102,9 +113,11 @@ export function EditVocabularyModal({
                                         Kanji
                                     </span>
                                     <input
-                                        value={editingVocabulary.kanji}
+                                        value={vocabulary.kanji}
                                         className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-                                        onChange={(event) => updateField("kanji", event.target.value)}
+                                        onChange={(event) =>
+                                            updateField("kanji", event.target.value)
+                                        }
                                     />
                                 </label>
 
@@ -113,7 +126,7 @@ export function EditVocabularyModal({
                                         Hiragana
                                     </span>
                                     <input
-                                        value={editingVocabulary.hiragana}
+                                        value={vocabulary.hiragana}
                                         className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
                                         onChange={(event) =>
                                             updateField("hiragana", event.target.value)
@@ -127,10 +140,12 @@ export function EditVocabularyModal({
                                     Meaning
                                 </span>
                                 <textarea
-                                    value={editingVocabulary.meaning}
+                                    value={vocabulary.meaning}
                                     rows={4}
                                     className="resize-none rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-                                    onChange={(event) => updateField("meaning", event.target.value)}
+                                    onChange={(event) =>
+                                        updateField("meaning", event.target.value)
+                                    }
                                 />
                             </label>
 
@@ -140,9 +155,11 @@ export function EditVocabularyModal({
                                         Level
                                     </span>
                                     <select
-                                        value={editingVocabulary.level}
+                                        value={vocabulary.level}
                                         className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-                                        onChange={(event) => updateField("level", event.target.value)}
+                                        onChange={(event) =>
+                                            updateField("level", event.target.value)
+                                        }
                                     >
                                         {jlptLevelOptions.map((level) => (
                                             <option key={level} value={level}>
@@ -157,9 +174,11 @@ export function EditVocabularyModal({
                                         Book
                                     </span>
                                     <input
-                                        value={editingVocabulary.book}
+                                        value={vocabulary.book}
                                         className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-                                        onChange={(event) => updateField("book", event.target.value)}
+                                        onChange={(event) =>
+                                            updateField("book", event.target.value)
+                                        }
                                     />
                                 </label>
 
@@ -168,7 +187,7 @@ export function EditVocabularyModal({
                                         Chapter
                                     </span>
                                     <input
-                                        value={editingVocabulary.chapter}
+                                        value={vocabulary.chapter}
                                         className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
                                         onChange={(event) =>
                                             updateField("chapter", event.target.value)
@@ -188,11 +207,11 @@ export function EditVocabularyModal({
 
                                 <button
                                     type="button"
-                                    disabled={isSaving}
+                                    disabled={isSaving || !canSave}
                                     className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
-                                    onClick={() => onSave(editingVocabulary)}
+                                    onClick={() => onSave(vocabulary)}
                                 >
-                                    {isSaving ? "Saving..." : "Save changes"}
+                                    {isSaving ? "Saving..." : "Add word"}
                                 </button>
                             </div>
                         </div>

@@ -48,6 +48,13 @@ export type VocabularyFilterOptions = {
     chapters: string[];
 };
 
+export class DuplicateVocabularyError extends Error {
+    constructor() {
+        super("Vocabulary already exists in the selected Book / Level / Chapter.");
+        this.name = "DuplicateVocabularyError";
+    }
+}
+
 function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
     return {
         id: row.id,
@@ -175,18 +182,81 @@ export type UpdateVocabularyInput = {
 };
 
 export async function updateVocabulary(input: UpdateVocabularyInput): Promise<void> {
+    const { data: existingVocabulary, error: duplicateCheckError } = await supabase
+        .from("vocabularies")
+        .select("id")
+        .eq("book", input.book.trim())
+        .eq("level", input.level.trim())
+        .eq("chapter", input.chapter.trim())
+        .eq("kanji", input.kanji.trim())
+        .eq("hiragana", input.hiragana.trim())
+        .neq("id", input.id)
+        .maybeSingle();
+
+    if (duplicateCheckError) {
+        throw duplicateCheckError;
+    }
+
+    if (existingVocabulary) {
+        throw new DuplicateVocabularyError();
+    }
+
     const { error } = await supabase
         .from("vocabularies")
         .update({
-            book: input.book,
-            level: input.level,
-            chapter: input.chapter,
-            kanji: input.kanji,
-            hiragana: input.hiragana,
-            meaning: input.meaning,
+            book: input.book.trim(),
+            level: input.level.trim(),
+            chapter: input.chapter.trim(),
+            kanji: input.kanji.trim(),
+            hiragana: input.hiragana.trim(),
+            meaning: input.meaning.trim(),
             updated_at: new Date().toISOString(),
         })
         .eq("id", input.id);
+
+    if (error) {
+        throw error;
+    }
+}
+
+export type CreateVocabularyInput = {
+    book: string;
+    level: string;
+    chapter: string;
+    kanji: string;
+    hiragana: string;
+    meaning: string;
+};
+
+export async function createVocabulary(
+    input: CreateVocabularyInput,
+): Promise<void> {
+    const { data: existingVocabulary, error: duplicateCheckError } = await supabase
+        .from("vocabularies")
+        .select("id")
+        .eq("book", input.book.trim())
+        .eq("level", input.level.trim())
+        .eq("chapter", input.chapter.trim())
+        .eq("kanji", input.kanji.trim())
+        .eq("hiragana", input.hiragana.trim())
+        .maybeSingle();
+
+    if (duplicateCheckError) {
+        throw duplicateCheckError;
+    }
+
+    if (existingVocabulary) {
+        throw new DuplicateVocabularyError();
+    }
+
+    const { error } = await supabase.from("vocabularies").insert({
+        book: input.book.trim(),
+        level: input.level.trim(),
+        chapter: input.chapter.trim(),
+        kanji: input.kanji.trim(),
+        hiragana: input.hiragana.trim(),
+        meaning: input.meaning.trim(),
+    });
 
     if (error) {
         throw error;
