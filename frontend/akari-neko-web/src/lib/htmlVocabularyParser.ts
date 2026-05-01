@@ -52,7 +52,7 @@ function isBadUiText(value: string) {
     text.includes("trang chủ") ||
     text.includes("bài viết") ||
     text.includes("jtest.net") ||
-    text.includes("jlpt") && text.includes("từ vựng")
+    (text.includes("jlpt") && text.includes("từ vựng"))
   );
 }
 
@@ -138,6 +138,39 @@ function buildVocabularyItem(cells: string[]): ParsedVocabularyItem | null {
   };
 }
 
+function buildVocabularyItemFromColumns(
+  cells: string[],
+): ParsedVocabularyItem | null {
+  const [kanjiCell, hiraganaCell, meaningCell] = cells.map(normalizeText);
+
+  if (!kanjiCell || !hiraganaCell || !meaningCell) {
+    return null;
+  }
+
+  if (
+    isBadUiText(kanjiCell) ||
+    isBadUiText(hiraganaCell) ||
+    isBadUiText(meaningCell) ||
+    isHeaderRow(cells)
+  ) {
+    return null;
+  }
+
+  if (!containsJapanese(kanjiCell) || !containsKana(hiraganaCell)) {
+    return null;
+  }
+
+  if (!isValidMeaning(meaningCell)) {
+    return null;
+  }
+
+  return {
+    kanji: kanjiCell,
+    hiragana: hiraganaCell,
+    meaning: cleanMeaning(meaningCell),
+  };
+}
+
 function parseInlineVocabularyLine(line: string): ParsedVocabularyItem | null {
   const normalizedLine = normalizeText(line);
 
@@ -216,14 +249,57 @@ function removeNonContentElements(document: Document) {
     .forEach((element) => element.remove());
 }
 
+function parseJTestVocabularyItems(document: Document) {
+  const wordElements = Array.from(document.querySelectorAll("[id^='word']"));
+
+  return wordElements
+    .map((wordElement) => {
+      const id = wordElement.id;
+      const suffix = id.replace(/^word/, "");
+
+      if (!suffix || !/^\d+$/.test(suffix)) {
+        return null;
+      }
+
+      const furiganaElement = document.getElementById(`furigana${suffix}`);
+      const meaningElement = document.getElementById(`meaning${suffix}`);
+      const kanji = normalizeText(wordElement.textContent ?? "");
+      const hiragana = normalizeText(furiganaElement?.textContent ?? kanji);
+      const meaning = cleanMeaning(meaningElement?.textContent ?? "");
+
+      if (
+        !kanji ||
+        !hiragana ||
+        !meaning ||
+        !containsJapanese(kanji) ||
+        !containsKana(hiragana) ||
+        !isValidMeaning(meaning)
+      ) {
+        return null;
+      }
+
+      return {
+        kanji,
+        hiragana,
+        meaning,
+      };
+    })
+    .filter((item): item is ParsedVocabularyItem => item !== null);
+}
+
 function parseTableRows(document: Document) {
   const rows = Array.from(document.querySelectorAll("tr"));
 
   return rows
     .map((row) => {
-      const cells = Array.from(row.querySelectorAll("td, th"))
+      const cells = Array.from(row.children)
+        .filter((child) => ["TD", "TH"].includes(child.tagName))
         .map((cell) => normalizeText(cell.textContent ?? ""))
         .filter(Boolean);
+
+      if (cells.length >= 3) {
+        return buildVocabularyItemFromColumns(cells) ?? buildVocabularyItem(cells);
+      }
 
       return buildVocabularyItem(cells);
     })
@@ -301,11 +377,19 @@ export function parseVocabularyHtml(htmlText: string): ParsedVocabularyItem[] {
 
   removeNonContentElements(document);
 
-  const parsedItems = [
-    ...parseTableRows(document),
-    ...parseTextElements(document),
-    ...parseTextLines(document),
-  ];
+  const jTestItems = uniqueVocabularyItems(parseJTestVocabularyItems(document));
+
+  if (jTestItems.length > 0) {
+    return jTestItems;
+  }
+
+  const tableItems = uniqueVocabularyItems(parseTableRows(document));
+
+  if (tableItems.length > 0) {
+    return tableItems;
+  }
+
+  const parsedItems = [...parseTextElements(document), ...parseTextLines(document)];
 
   return uniqueVocabularyItems(parsedItems);
 }

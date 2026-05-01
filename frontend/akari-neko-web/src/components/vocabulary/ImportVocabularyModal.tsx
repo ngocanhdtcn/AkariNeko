@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { HtmlFilePreviewGrid } from "./import/HtmlFilePreviewGrid";
 import { VocabularyPreviewGrid } from "./import/VocabularyPreviewGrid";
 import { ImportDropzone } from "./import/ImportDropzone";
@@ -13,20 +13,20 @@ import { ImportStepIndicator } from "./import/ImportStepIndicator";
 import { useVocabularyImport } from "@/hooks/useVocabularyImport";
 // import { importVocabularies } from "@/services/vocabularyImportService";
 
-import type {
-  ImportSourceType,
-} from "@/types/vocabularyImport";
+import type { ImportSourceType } from "@/types/vocabularyImport";
 
 type ImportVocabularyModalProps = {
   isOpen: boolean;
   sourceType: ImportSourceType;
   onClose: () => void;
+  onImportCompleted?: () => void;
 };
 
 export function ImportVocabularyModal({
   isOpen,
   sourceType,
   onClose,
+  onImportCompleted,
 }: ImportVocabularyModalProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
@@ -243,7 +243,10 @@ export function ImportVocabularyModal({
                 isImporting={isImporting}
                 onClose={handleClose}
                 onPreviewImport={handlePreviewImport}
-                onConfirmImport={handleConfirmImport}
+                onConfirmImport={async () => {
+                  await handleConfirmImport();
+                  onImportCompleted?.();
+                }}
               />
             </div>
           </motion.section>
