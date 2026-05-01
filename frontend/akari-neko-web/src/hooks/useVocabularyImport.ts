@@ -16,6 +16,8 @@ import type {
     VocabularyPreviewItem,
 } from "@/types/vocabularyImport";
 
+import { importVocabularies } from "@/services/vocabularyImportService";
+
 type ImportResult = {
     importedCount: number;
     duplicateCount: number;
@@ -231,35 +233,14 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
         setIsImporting(true);
 
         try {
-            // TODO: Sau này thay đoạn giả lập này bằng API:
-            // await importVocabularies(payload);
             console.log("Import vocabulary payload:", payload);
 
-            await new Promise((resolve) => {
-                window.setTimeout(resolve, 650);
-            });
-
-            const importedCount = payload.files.reduce(
-                (total, file) => total + file.vocabularies.length,
-                0,
-            );
-
-            const duplicateCount = previewRows.reduce(
-                (total, row) =>
-                    total + (typeof row.duplicateRows === "number" ? row.duplicateRows : 0),
-                0,
-            );
-
-            const errorCount = previewRows.reduce(
-                (total, row) =>
-                    total + (typeof row.errorRows === "number" ? row.errorRows : 0),
-                0,
-            );
+            const result = await importVocabularies(payload);
 
             setImportResult({
-                importedCount,
-                duplicateCount,
-                errorCount,
+                importedCount: result.importedCount,
+                duplicateCount: result.duplicateCount,
+                errorCount: result.errorCount,
             });
 
             setImportStep("completed");
