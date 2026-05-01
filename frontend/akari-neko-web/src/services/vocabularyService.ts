@@ -262,3 +262,33 @@ export async function createVocabulary(
         throw error;
     }
 }
+
+export async function getRecentVocabularies(
+    limitCount = 5,
+): Promise<VocabularyListItem[]> {
+    const { data, error } = await supabase
+        .from("vocabularies")
+        .select(
+            [
+                "id",
+                "book",
+                "level",
+                "chapter",
+                "kanji",
+                "hiragana",
+                "meaning",
+                "correct_count",
+                "wrong_count",
+                "is_difficult",
+                "created_at",
+            ].join(","),
+        )
+        .order("created_at", { ascending: false })
+        .limit(limitCount);
+
+    if (error) {
+        throw error;
+    }
+
+    return ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow);
+}

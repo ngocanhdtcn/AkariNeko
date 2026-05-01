@@ -11,8 +11,37 @@ import { StatisticCard } from "./StatisticCard";
 import { IconBadge } from "../ui/IconBadge";
 import { SoftPanel } from "../ui/SoftPanel";
 import { studyStatistics } from "@/data/dashboardData";
+import type { DashboardStats } from "@/services/dashboardStatsService";
 
-export function RightStatsPanel() {
+type RightStatsPanelProps = {
+  dashboardStats: DashboardStats | null;
+  isLoading: boolean;
+  errorMessage: string | null;
+  onRefresh: () => void;
+};
+
+export function RightStatsPanel({
+  dashboardStats,
+  isLoading,
+  errorMessage,
+  onRefresh,
+}: RightStatsPanelProps) {
+
+  const totalVocabularyCount = dashboardStats?.totalVocabularyCount ?? 0;
+  const difficultVocabularyCount = dashboardStats?.difficultVocabularyCount ?? 0;
+  const recentImportCount = dashboardStats?.recentImportBatches.length ?? 0;
+
+  const displayStudyStatistics = studyStatistics.map((statistic) => {
+    if (statistic.label === "Từ vựng đã học") {
+      return {
+        ...statistic,
+        value: isLoading ? "..." : String(totalVocabularyCount),
+      };
+    }
+
+    return statistic;
+  });
+
   return (
     <aside className="hidden gap-4 xl:grid xl:content-start">
       <SoftPanel className="p-5">
@@ -62,10 +91,18 @@ export function RightStatsPanel() {
           <h3 className="text-xl font-black text-slate-800">
             Thống kê học tập
           </h3>
+
+          <button
+            type="button"
+            className="ml-auto rounded-2xl border border-pink-100 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+            onClick={onRefresh}
+          >
+            Refresh
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {studyStatistics.map((statistic) => (
+          {displayStudyStatistics.map((statistic) => (
             <StatisticCard
               key={statistic.label}
               label={statistic.label}
