@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   BookOpen,
@@ -14,6 +14,7 @@ import { motion } from "motion/react";
 import { SoftPanel } from "../ui/SoftPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppSelect } from "@/components/ui/AppSelect";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal";
 import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
 import { ImportVocabularyModal } from "./ImportVocabularyModal";
@@ -68,7 +69,7 @@ function ImportButton({
   }
 
   return (
-    <div ref={importMenuRef} className="relative z-50">
+    <div ref={importMenuRef} className="relative z-[80]">
       <button
         type="button"
         className="flex h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-4 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105"
@@ -84,7 +85,7 @@ function ImportButton({
       </button>
 
       {isImportMenuOpen ? (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 rounded-3xl border border-pink-100 bg-white/95 p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] backdrop-blur-xl">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-[90] w-64 rounded-3xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)]">
           <button
             type="button"
             className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold text-slate-600 transition hover:bg-pink-50 hover:text-pink-500"
@@ -112,6 +113,8 @@ export function VocabularyPage() {
   const [deletingVocabularyId, setDeletingVocabularyId] = useState<string | null>(
     null,
   );
+  const [vocabularyPendingDelete, setVocabularyPendingDelete] =
+    useState<VocabularyListItem | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importSourceType, setImportSourceType] = useState<"file" | "folder">(
     "file",
@@ -280,19 +283,16 @@ export function VocabularyPage() {
     void loadVocabularyFilterOptions(selectedLevel, selectedBook);
   }, [selectedLevel, selectedBook, loadVocabularyFilterOptions]);
 
-  async function handleDeleteVocabulary(vocabulary: VocabularyListItem) {
-    const confirmed = window.confirm(
-      `Xóa từ "${vocabulary.kanji}" (${vocabulary.hiragana}) khỏi danh sách?`,
-    );
-
-    if (!confirmed) {
+  async function handleConfirmDeleteVocabulary() {
+    if (!vocabularyPendingDelete) {
       return;
     }
 
-    setDeletingVocabularyId(vocabulary.id);
+    setDeletingVocabularyId(vocabularyPendingDelete.id);
 
     try {
-      await deleteVocabulary(vocabulary.id);
+      await deleteVocabulary(vocabularyPendingDelete.id);
+      setVocabularyPendingDelete(null);
       await loadVocabularies(currentPage);
     } catch (error) {
       console.error("Failed to delete vocabulary:", error);
@@ -301,7 +301,6 @@ export function VocabularyPage() {
       setDeletingVocabularyId(null);
     }
   }
-
   const [editingVocabulary, setEditingVocabulary] =
     useState<VocabularyListItem | null>(null);
   const [isSavingVocabulary, setIsSavingVocabulary] = useState(false);
@@ -419,7 +418,7 @@ export function VocabularyPage() {
             duration: 0.24,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="relative overflow-visible rounded-[30px] border border-pink-100/80 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_45%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]"
+          className="relative z-40 overflow-visible rounded-[30px] border border-pink-100/80 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_45%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]"
         >
           <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-200/35 blur-3xl" />
           <div className="pointer-events-none absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-pink-200/35 blur-3xl" />
@@ -651,7 +650,7 @@ export function VocabularyPage() {
                         type="button"
                         disabled={deletingVocabularyId === vocabulary.id}
                         className="flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        onClick={() => void handleDeleteVocabulary(vocabulary)}
+                        onClick={() => setVocabularyPendingDelete(vocabulary)}
                       >
                         {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
                       </button>
@@ -749,7 +748,7 @@ export function VocabularyPage() {
                       type="button"
                       disabled={deletingVocabularyId === vocabulary.id}
                       className="flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={() => void handleDeleteVocabulary(vocabulary)}
+                      onClick={() => setVocabularyPendingDelete(vocabulary)}
                     >
                       {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
                     </button>
@@ -877,6 +876,25 @@ export function VocabularyPage() {
           setIsAddVocabularyOpen(false);
         }}
         onSave={(vocabulary) => void handleCreateVocabulary(vocabulary)}
+      />
+
+      <ConfirmDialog
+        isOpen={vocabularyPendingDelete !== null}
+        title="Xóa từ vựng?"
+        description={
+          vocabularyPendingDelete
+            ? `Xóa từ "${vocabularyPendingDelete.kanji}" (${vocabularyPendingDelete.hiragana}) khỏi danh sách? Hành động này không thể hoàn tác.`
+            : ""
+        }
+        confirmText="Xóa từ vựng"
+        cancelText="Giữ lại"
+        isConfirming={deletingVocabularyId !== null}
+        onClose={() => {
+          if (!deletingVocabularyId) {
+            setVocabularyPendingDelete(null);
+          }
+        }}
+        onConfirm={() => void handleConfirmDeleteVocabulary()}
       />
     </>
   );

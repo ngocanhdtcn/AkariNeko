@@ -1,0 +1,359 @@
+﻿"use client";
+
+import { RefreshCcw, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import {
+    deleteStudyHistory,
+    getStudyHistories,
+    type StudyHistoryItem,
+} from "@/services/studyHistoryService";
+
+const STUDY_HISTORY_PAGE_SIZE = 15;
+
+function formatStudyDate(value: string) {
+    return new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(new Date(value));
+}
+
+function getStudyScopeLabel(history: StudyHistoryItem) {
+    const scopes = [
+        history.level ?? "All levels",
+        history.book ?? "All books",
+        history.chapter ?? "All chapters",
+    ];
+
+    return scopes.join(" • ");
+}
+
+function getAccuracyPercent(history: StudyHistoryItem) {
+    if (history.reviewedCount === 0) {
+        return 0;
+    }
+
+    return Math.round((history.rememberedCount / history.reviewedCount) * 100);
+}
+
+function getVisiblePageNumbers(currentPage: number, totalPages: number) {
+    const maxVisiblePages = 5;
+    const halfVisiblePages = Math.floor(maxVisiblePages / 2);
+
+    let startPage = Math.max(1, currentPage - halfVisiblePages);
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    return Array.from(
+        { length: endPage - startPage + 1 },
+        (_, index) => startPage + index,
+    );
+}
+
+export function StudyHistoryPage() {
+    const [histories, setHistories] = useState<StudyHistoryItem[]>([]);
+    const [totalHistoryCount, setTotalHistoryCount] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isLoadingHistories, setIsLoadingHistories] = useState(false);
+    const [historyLoadError, setHistoryLoadError] = useState<string | null>(null);
+    const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(
+        null,
+    );
+    const [historyPendingDelete, setHistoryPendingDelete] =
+        useState<StudyHistoryItem | null>(null);
+
+    const totalPages = Math.max(
+        1,
+        Math.ceil(totalHistoryCount / STUDY_HISTORY_PAGE_SIZE),
+    );
+
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+
+    const visiblePageNumbers = getVisiblePageNumbers(
+        safeCurrentPage,
+        totalPages,
+    );
+
+    const summary = useMemo(
+        () =>
+            histories.reduce(
+                (total, history) => ({
+                    reviewedCount: total.reviewedCount + history.reviewedCount,
+                    rememberedCount: total.rememberedCount + history.rememberedCount,
+                    forgotCount: total.forgotCount + history.forgotCount,
+                }),
+                {
+                    reviewedCount: 0,
+                    rememberedCount: 0,
+                    forgotCount: 0,
+                },
+            ),
+        [histories],
+    );
+
+    async function loadStudyHistories(page = currentPage) {
+        setIsLoadingHistories(true);
+        setHistoryLoadError(null);
+
+        try {
+            const result = await getStudyHistories({
+                page,
+                pageSize: STUDY_HISTORY_PAGE_SIZE,
+            });
+
+            setHistories(result.items);
+            setTotalHistoryCount(result.totalCount);
+        } catch (error) {
+            console.error("Failed to load study histories:", error);
+            setHistoryLoadError("Không thể tải lịch sử học.");
+        } finally {
+            setIsLoadingHistories(false);
+        }
+    }
+
+    async function handleConfirmDeleteStudyHistory() {
+        if (!historyPendingDelete) {
+            return;
+        }
+
+        setDeletingHistoryId(historyPendingDelete.id);
+
+        try {
+            await deleteStudyHistory(historyPendingDelete.id);
+            setHistoryPendingDelete(null);
+            await loadStudyHistories(safeCurrentPage);
+        } catch (error) {
+            console.error("Failed to delete study history:", error);
+            setHistoryLoadError("Không thể xoá phiên học. Vui lòng thử lại.");
+        } finally {
+            setDeletingHistoryId(null);
+        }
+    }
+    useEffect(() => {
+        void loadStudyHistories(currentPage);
+    }, [currentPage]);
+
+    return (
+        <>
+        <div className="grid gap-5">
+            <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div>
+                        <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
+                            Study History
+                        </p>
+                        <h1 className="mt-1 text-3xl font-black text-slate-800">
+                            Lịch sử học Flashcard
+                        </h1>
+                        <p className="mt-2 text-sm text-slate-500">
+                            Theo dõi các phiên học đã lưu từ Flashcard.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                        onClick={() => void loadStudyHistories(safeCurrentPage)}
+                    >
+                        <RefreshCcw size={16} />
+                        Refresh
+                    </button>
+                </div>
+            </section>
+
+            <section className="grid gap-4 xl:grid-cols-3">
+                <div className="rounded-[26px] border border-pink-100 bg-white/85 p-5 shadow-sm">
+                    <p className="text-sm font-bold text-slate-500">Reviewed</p>
+                    <p className="mt-2 text-3xl font-black text-slate-800">
+                        {summary.reviewedCount}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">Trong trang hiện tại</p>
+                </div>
+
+                <div className="rounded-[26px] border border-emerald-100 bg-emerald-50/80 p-5 shadow-sm">
+                    <p className="text-sm font-bold text-emerald-600">Remembered</p>
+                    <p className="mt-2 text-3xl font-black text-emerald-700">
+                        {summary.rememberedCount}
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-600/75">
+                        Tổng số từ đã nhớ
+                    </p>
+                </div>
+
+                <div className="rounded-[26px] border border-rose-100 bg-rose-50/80 p-5 shadow-sm">
+                    <p className="text-sm font-bold text-rose-500">Forgot</p>
+                    <p className="mt-2 text-3xl font-black text-rose-600">
+                        {summary.forgotCount}
+                    </p>
+                    <p className="mt-1 text-sm text-rose-500/75">
+                        Tổng số từ đã quên
+                    </p>
+                </div>
+            </section>
+
+            <section className="rounded-[32px] border border-pink-100 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
+                <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div>
+                        <h2 className="text-xl font-black text-slate-800">
+                            Danh sách phiên học
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-500">
+                            {totalHistoryCount} phiên học đã lưu.
+                        </p>
+                    </div>
+                </div>
+
+                {historyLoadError ? (
+                    <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-500">
+                        {historyLoadError}
+                    </div>
+                ) : null}
+
+                <div className="overflow-hidden rounded-2xl border border-pink-50">
+                    <div className="overflow-x-auto">
+                        <div className="min-w-[980px]">
+                            <div className="grid grid-cols-[190px_250px_100px_110px_100px_100px_120px] gap-x-4 bg-pink-50/80 px-4 py-3 text-sm font-bold text-slate-500">
+                                <div>Time</div>
+                                <div>Scope</div>
+                                <div>Reviewed</div>
+                                <div>Remember</div>
+                                <div>Forgot</div>
+                                <div>Accuracy</div>
+                                <div>Action</div>
+                            </div>
+
+                            {isLoadingHistories ? (
+                                <div className="border-t border-pink-50 px-4 py-8 text-center text-sm font-bold text-slate-400">
+                                    Đang tải lịch sử học...
+                                </div>
+                            ) : histories.length > 0 ? (
+                                histories.map((history) => (
+                                    <div
+                                        key={history.id}
+                                        className="grid grid-cols-[190px_250px_100px_110px_100px_100px_120px] gap-x-4 border-t border-pink-50 px-4 py-3 text-sm text-slate-600 transition hover:bg-pink-50/45"
+                                    >
+                                        <div className="font-bold text-slate-700">
+                                            {formatStudyDate(history.createdAt)}
+                                        </div>
+
+                                        <div>
+                                            <p className="font-bold text-slate-700">
+                                                {getStudyScopeLabel(history)}
+                                            </p>
+
+                                            {history.onlyDifficult ? (
+                                                <p className="mt-1 text-xs font-bold text-amber-500">
+                                                    Only difficult
+                                                </p>
+                                            ) : null}
+                                        </div>
+
+                                        <div className="font-black text-slate-800">
+                                            {history.reviewedCount}
+                                        </div>
+
+                                        <div className="font-black text-emerald-600">
+                                            {history.rememberedCount}
+                                        </div>
+
+                                        <div className="font-black text-rose-500">
+                                            {history.forgotCount}
+                                        </div>
+
+                                        <div className="font-black text-pink-500">
+                                            {getAccuracyPercent(history)}%
+                                        </div>
+
+                                        <div>
+                                            <button
+                                                type="button"
+                                                disabled={deletingHistoryId === history.id}
+                                                className="flex h-8 min-w-16 items-center justify-center gap-2 rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                onClick={() => setHistoryPendingDelete(history)}
+                                            >
+                                                <Trash2 size={14} />
+                                                {deletingHistoryId === history.id ? "..." : "Delete"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="border-t border-pink-50 px-4 py-8 text-center text-sm font-medium text-slate-400">
+                                    Chưa có phiên học nào. Hãy học Flashcard rồi bấm End session.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {totalHistoryCount > 0 ? (
+                    <div className="mt-4 flex flex-col gap-3 border-t border-pink-50 pt-4 xl:flex-row xl:items-center xl:justify-between">
+                        <p className="text-sm font-bold text-slate-500">
+                            Trang {safeCurrentPage} / {totalPages} • Hiển thị{" "}
+                            {histories.length} / {totalHistoryCount} phiên
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                disabled={safeCurrentPage <= 1}
+                                className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
+                                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                            >
+                                Prev
+                            </button>
+
+                            {visiblePageNumbers.map((pageNumber) => (
+                                <button
+                                    key={pageNumber}
+                                    type="button"
+                                    className={`h-10 min-w-10 rounded-2xl border px-3 text-sm font-bold shadow-sm transition ${pageNumber === safeCurrentPage
+                                            ? "border-pink-200 bg-pink-500 text-white"
+                                            : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                                        }`}
+                                    onClick={() => setCurrentPage(pageNumber)}
+                                >
+                                    {pageNumber}
+                                </button>
+                            ))}
+
+                            <button
+                                type="button"
+                                disabled={safeCurrentPage >= totalPages}
+                                className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
+                                onClick={() =>
+                                    setCurrentPage((page) => Math.min(totalPages, page + 1))
+                                }
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
+            </section>
+        </div>
+
+        <ConfirmDialog
+            isOpen={historyPendingDelete !== null}
+            title="Xóa phiên học?"
+            description={
+                historyPendingDelete
+                    ? `Xóa phiên học ngày ${formatStudyDate(historyPendingDelete.createdAt)}? Hành động này không thể hoàn tác.`
+                    : ""
+            }
+            confirmText="Xóa phiên học"
+            cancelText="Giữ lại"
+            isConfirming={deletingHistoryId !== null}
+            onClose={() => {
+                if (!deletingHistoryId) {
+                    setHistoryPendingDelete(null);
+                }
+            }}
+            onConfirm={() => void handleConfirmDeleteStudyHistory()}
+        />
+        </>
+    );
+}

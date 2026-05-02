@@ -16,14 +16,12 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
 
   return (
     <aside
-      className={`hidden h-full min-h-0 rounded-[30px] border border-pink-100/80 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.10)] backdrop-blur-xl transition-all duration-300 ease-out lg:grid lg:grid-rows-[auto_minmax(0,1fr)_auto] ${
-        isCollapsed ? "px-4" : "px-5"
-      }`}
+      className={`hidden h-full min-h-0 rounded-[30px] border border-pink-100/80 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.10)] backdrop-blur-xl transition-all duration-300 ease-out lg:grid lg:grid-rows-[auto_minmax(0,1fr)_auto] ${isCollapsed ? "px-4" : "px-5"
+        }`}
     >
       <div
-        className={`shrink-0 pb-6 pt-2 transition-all duration-300 ${
-          isCollapsed ? "px-0 text-center" : "px-2"
-        }`}
+        className={`shrink-0 pb-6 pt-2 transition-all duration-300 ${isCollapsed ? "px-0 text-center" : "px-2"
+          }`}
       >
         {isCollapsed ? (
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-100 to-violet-100 text-2xl shadow-sm">
@@ -56,20 +54,17 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
                 <Link
                   href={item.href}
                   title={isCollapsed ? item.label : undefined}
-                  className={`flex w-full items-center rounded-2xl text-sm font-bold ${
-                    isCollapsed
+                  className={`flex w-full items-center rounded-2xl text-sm font-bold ${isCollapsed
                       ? "justify-center px-0 py-3"
                       : "gap-3 px-4 py-2.5 text-left"
-                  } ${
-                    isActive
+                    } ${isActive
                       ? "bg-gradient-to-r from-pink-100 to-rose-50 text-pink-600 shadow-sm"
                       : "text-slate-600 hover:bg-pink-50 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${
-                      isActive ? "bg-pink-500 text-white" : "text-slate-400"
-                    }`}
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${isActive ? "bg-pink-500 text-white" : "text-slate-400"
+                      }`}
                   >
                     <Icon size={17} strokeWidth={2.3} />
                   </span>
@@ -86,11 +81,10 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
         <button
           type="button"
           title="Dark mode"
-          className={`flex w-full items-center rounded-2xl border border-pink-100 bg-white text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 ${
-            isCollapsed
+          className={`flex w-full items-center rounded-2xl border border-pink-100 bg-white text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 ${isCollapsed
               ? "justify-center px-0 py-3"
               : "justify-between px-4 py-3"
-          }`}
+            }`}
         >
           <span className="flex items-center gap-3">
             <Moon size={18} className="text-amber-400" />
@@ -106,9 +100,8 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
 
         <div className="rounded-[24px] border border-pink-100 bg-gradient-to-br from-white to-pink-50 p-3 shadow-sm">
           <div
-            className={`flex items-center ${
-              isCollapsed ? "justify-center" : "gap-3"
-            }`}
+            className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"
+              }`}
           >
             <div className={isCollapsed ? "text-3xl" : "text-4xl"}>🐱</div>
 
