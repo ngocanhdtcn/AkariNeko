@@ -20,6 +20,18 @@ export function FlashcardPage() {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isReviewing, setIsReviewing] = useState(false);
 
+    type FlashcardSessionStats = {
+        reviewedCount: number;
+        rememberedCount: number;
+        forgotCount: number;
+    };
+
+    const [sessionStats, setSessionStats] = useState<FlashcardSessionStats>({
+        reviewedCount: 0,
+        rememberedCount: 0,
+        forgotCount: 0,
+    });
+
     const [selectedLevel, setSelectedLevel] = useState("All");
     const [selectedBook, setSelectedBook] = useState("All");
     const [selectedChapter, setSelectedChapter] = useState("All");
@@ -55,6 +67,12 @@ export function FlashcardPage() {
             setVocabularies(data);
             setCurrentIndex(0);
             setIsFlipped(false);
+
+            setSessionStats({
+                reviewedCount: 0,
+                rememberedCount: 0,
+                forgotCount: 0,
+            });
         } catch (error) {
             console.error("Failed to load flashcards:", error);
             setLoadError("Không thể tải flashcard.");
@@ -167,6 +185,18 @@ export function FlashcardPage() {
         );
     }
 
+    function updateSessionStats(result: ReviewFlashcardResult) {
+        setSessionStats((current) => ({
+            reviewedCount: current.reviewedCount + 1,
+            rememberedCount:
+                result === "remember"
+                    ? current.rememberedCount + 1
+                    : current.rememberedCount,
+            forgotCount:
+                result === "forgot" ? current.forgotCount + 1 : current.forgotCount,
+        }));
+    }
+
     async function handleReviewFlashcard(result: ReviewFlashcardResult) {
         if (!currentVocabulary || isReviewing) {
             return;
@@ -179,6 +209,7 @@ export function FlashcardPage() {
             await reviewFlashcard(currentVocabulary, result);
 
             updateReviewedVocabularyLocally(currentVocabulary.id, result);
+            updateSessionStats(result);
             handleNextCard();
         } catch (error) {
             console.error("Failed to review flashcard:", error);
@@ -186,6 +217,17 @@ export function FlashcardPage() {
         } finally {
             setIsReviewing(false);
         }
+    }
+
+    function handleResetSession() {
+        setSessionStats({
+            reviewedCount: 0,
+            rememberedCount: 0,
+            forgotCount: 0,
+        });
+
+        setCurrentIndex(0);
+        setIsFlipped(false);
     }
 
     return (
@@ -410,6 +452,56 @@ export function FlashcardPage() {
                             >
                                 Next
                             </button>
+                        </div>
+
+                        <div className="rounded-[26px] border border-pink-50 bg-white px-5 py-4">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                <div>
+                                    <h3 className="text-base font-black text-slate-800">
+                                        Session summary
+                                    </h3>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Theo dõi nhanh kết quả ôn tập trong phiên hiện tại.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                                    onClick={handleResetSession}
+                                >
+                                    Reset session
+                                </button>
+                            </div>
+
+                            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-2xl bg-pink-50 px-4 py-3">
+                                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-pink-400">
+                                        Reviewed
+                                    </p>
+                                    <p className="mt-1 text-2xl font-black text-slate-800">
+                                        {sessionStats.reviewedCount}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-emerald-50 px-4 py-3">
+                                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-500">
+                                        Remember
+                                    </p>
+                                    <p className="mt-1 text-2xl font-black text-emerald-600">
+                                        {sessionStats.rememberedCount}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-rose-50 px-4 py-3">
+                                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-rose-400">
+                                        Forgot
+                                    </p>
+                                    <p className="mt-1 text-2xl font-black text-rose-500">
+                                        {sessionStats.forgotCount}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : (
