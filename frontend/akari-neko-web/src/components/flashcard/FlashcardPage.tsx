@@ -1,7 +1,8 @@
 "use client";
 
 import { RotateCcw, Shuffle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppSelect } from "@/components/ui/AppSelect";
 import {
     getFlashcardVocabularies,
     reviewFlashcard,
@@ -17,8 +18,11 @@ export function FlashcardPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingFilterOptions, setIsLoadingFilterOptions] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isReviewing, setIsReviewing] = useState(false);
+    const flashcardsRequestIdRef = useRef(0);
+    const filterOptionsRequestIdRef = useRef(0);
 
     type FlashcardSessionStats = {
         reviewedCount: number;
@@ -51,7 +55,9 @@ export function FlashcardPage() {
         return `${currentIndex + 1} / ${vocabularies.length}`;
     }, [currentIndex, vocabularies.length]);
 
-    async function loadFlashcards() {
+    const loadFlashcards = useCallback(async () => {
+        const requestId = flashcardsRequestIdRef.current + 1;
+        flashcardsRequestIdRef.current = requestId;
         setIsLoading(true);
         setLoadError(null);
 
@@ -63,6 +69,10 @@ export function FlashcardPage() {
                 onlyDifficult,
                 limitCount: 100,
             });
+
+            if (flashcardsRequestIdRef.current !== requestId) {
+                return;
+            }
 
             setVocabularies(data);
             setCurrentIndex(0);
@@ -77,9 +87,11 @@ export function FlashcardPage() {
             console.error("Failed to load flashcards:", error);
             setLoadError("Không thể tải flashcard.");
         } finally {
-            setIsLoading(false);
+            if (flashcardsRequestIdRef.current === requestId) {
+                setIsLoading(false);
+            }
         }
-    }
+    }, [selectedLevel, selectedBook, selectedChapter, onlyDifficult]);
 
     function handleNextCard() {
         if (vocabularies.length === 0) {
@@ -101,44 +113,65 @@ export function FlashcardPage() {
         setIsFlipped(false);
     }
 
+    function getFlashcardPriorityScore(vocabulary: VocabularyListItem) {
+        const difficultScore = vocabulary.isDifficult ? 100 : 0;
+        const wrongScore = vocabulary.wrongCount * 10;
+        const correctPenalty = vocabulary.correctCount * 2;
+        const randomScore = Math.random() * 5;
+
+        return difficultScore + wrongScore - correctPenalty + randomScore;
+    }
+
     function handleShuffle() {
-        setVocabularies((current) => {
-            const shuffled = [...current];
-
-            for (let index = shuffled.length - 1; index > 0; index -= 1) {
-                const randomIndex = Math.floor(Math.random() * (index + 1));
-                [shuffled[index], shuffled[randomIndex]] = [
-                    shuffled[randomIndex],
-                    shuffled[index],
-                ];
-            }
-
-            return shuffled;
-        });
+        setVocabularies((current) =>
+            [...current].sort(
+                (firstVocabulary, secondVocabulary) =>
+                    getFlashcardPriorityScore(secondVocabulary) -
+                    getFlashcardPriorityScore(firstVocabulary),
+            ),
+        );
 
         setCurrentIndex(0);
         setIsFlipped(false);
     }
 
-    async function loadFilterOptions() {
+    const loadFilterOptions = useCallback(async (
+        level = selectedLevel,
+        book = selectedBook,
+    ) => {
+        const requestId = filterOptionsRequestIdRef.current + 1;
+        filterOptionsRequestIdRef.current = requestId;
+        setIsLoadingFilterOptions(true);
+
         try {
-            const options = await getVocabularyFilterOptions();
+            const options = await getVocabularyFilterOptions({
+                level,
+                book,
+            });
+
+            if (filterOptionsRequestIdRef.current !== requestId) {
+                return;
+            }
 
             setAvailableLevels(options.levels);
             setAvailableBooks(options.books);
             setAvailableChapters(options.chapters);
         } catch (error) {
             console.error("Failed to load flashcard filter options:", error);
+        } finally {
+            if (filterOptionsRequestIdRef.current === requestId) {
+                setIsLoadingFilterOptions(false);
+            }
         }
-    }
+    }, [selectedLevel, selectedBook]);
 
     useEffect(() => {
-        void loadFilterOptions();
-    }, []);
+        void loadFilterOptions(selectedLevel, selectedBook);
+    }, [selectedLevel, selectedBook, loadFilterOptions]);
 
     useEffect(() => {
         void loadFlashcards();
-    }, [selectedLevel, selectedBook, selectedChapter, onlyDifficult]);
+    }, [loadFlashcards]);
 
     const levelOptions = ["All", ...availableLevels];
     const bookOptions = ["All", ...availableBooks];
@@ -147,11 +180,13 @@ export function FlashcardPage() {
     function handleLevelChange(level: string) {
         setSelectedLevel(level);
         setSelectedChapter("All");
+        setAvailableChapters([]);
     }
 
     function handleBookChange(book: string) {
         setSelectedBook(book);
         setSelectedChapter("All");
+        setAvailableChapters([]);
     }
 
     function updateReviewedVocabularyLocally(
@@ -230,6 +265,20 @@ export function FlashcardPage() {
         setIsFlipped(false);
     }
 
+    const hasActiveFilter =
+        selectedLevel !== "All" ||
+        selectedBook !== "All" ||
+        selectedChapter !== "All" ||
+        onlyDifficult;
+
+    function handleClearFilters() {
+        setSelectedLevel("All");
+        setSelectedBook("All");
+        setSelectedChapter("All");
+        setOnlyDifficult(false);
+        void loadFilterOptions("All", "All");
+    }
+
     return (
         <div className="grid gap-5">
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
@@ -242,7 +291,8 @@ export function FlashcardPage() {
                             Ôn từ vựng bằng thẻ
                         </h1>
                         <p className="mt-2 text-sm text-slate-500">
-                            Dữ liệu được lấy trực tiếp từ Supabase.
+                            Dữ liệu được lấy trực tiếp từ Supabase. Smart shuffle sẽ ưu tiên từ khó và từ
+                            sai nhiều.
                         </p>
                     </div>
 
@@ -263,67 +313,39 @@ export function FlashcardPage() {
                             onClick={handleShuffle}
                         >
                             <Shuffle size={16} className="mr-2 inline" />
-                            Shuffle
+                            Smart shuffle
                         </button>
                     </div>
                 </div>
             </section>
 
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                <div className="grid gap-4 xl:grid-cols-[160px_190px_190px_1fr_auto] xl:items-end">
-                    <label className="grid gap-2">
-                        <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                            JLPT Level
-                        </span>
-                        <select
-                            value={selectedLevel}
-                            className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-                            onChange={(event) => handleLevelChange(event.target.value)}
-                        >
-                            {levelOptions.map((level) => (
-                                <option key={level} value={level}>
-                                    {level}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto] xl:items-end">
+                    <AppSelect
+                        label="JLPT Level"
+                        items={levelOptions}
+                        value={selectedLevel}
+                        onChange={handleLevelChange}
+                    />
 
-                    <label className="grid gap-2">
-                        <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                            Book
-                        </span>
-                        <select
-                            value={selectedBook}
-                            className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-                            onChange={(event) => handleBookChange(event.target.value)}
-                        >
-                            {bookOptions.map((book) => (
-                                <option key={book} value={book}>
-                                    {book}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    <AppSelect
+                        label="Book"
+                        items={bookOptions}
+                        value={selectedBook}
+                        onChange={handleBookChange}
+                    />
 
-                    <label className="grid gap-2">
-                        <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                            Chapter
-                        </span>
-                        <select
-                            value={selectedChapter}
-                            className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-                            onChange={(event) => setSelectedChapter(event.target.value)}
-                        >
-                            {chapterOptions.map((chapter) => (
-                                <option key={chapter} value={chapter}>
-                                    {chapter}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    <AppSelect
+                        label="Chapter"
+                        items={chapterOptions}
+                        value={selectedChapter}
+                        onChange={setSelectedChapter}
+                        disabled={isLoadingFilterOptions}
+                        isLoading={isLoadingFilterOptions}
+                    />
 
                     <div className="rounded-2xl bg-pink-50 px-4 py-3 text-sm font-bold text-pink-500">
-                        {vocabularies.length} flashcard
+                        {isLoading ? "Đang tải..." : `${vocabularies.length} flashcard`}
                     </div>
 
                     <button
@@ -337,6 +359,18 @@ export function FlashcardPage() {
                         {onlyDifficult ? "Only difficult: ON" : "Only difficult"}
                     </button>
                 </div>
+
+                {hasActiveFilter ? (
+                    <div className="mt-4 flex justify-end">
+                        <button
+                            type="button"
+                            className="rounded-2xl border border-pink-100 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                            onClick={handleClearFilters}
+                        >
+                            Clear filter
+                        </button>
+                    </div>
+                ) : null}
             </section>
 
             {loadError ? (

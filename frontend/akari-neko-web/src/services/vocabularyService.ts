@@ -146,22 +146,52 @@ export async function getVocabularies({
     };
 }
 
-export async function getVocabularyFilterOptions(): Promise<VocabularyFilterOptions> {
-    const { data, error } = await supabase
-        .from("vocabularies")
-        .select("level, book, chapter");
+export type GetVocabularyFilterOptionsParams = {
+    level?: string;
+    book?: string;
+};
 
-    if (error) {
-        throw error;
+export async function getVocabularyFilterOptions({
+    level = "All",
+    book = "All",
+}: GetVocabularyFilterOptionsParams = {}): Promise<VocabularyFilterOptions> {
+    const [allOptionsResult, chapterOptionsResult] = await Promise.all([
+        supabase.from("vocabularies").select("level, book, chapter"),
+        (() => {
+            let query = supabase.from("vocabularies").select("chapter");
+
+            if (level !== "All") {
+                query = query.eq("level", level);
+            }
+
+            if (book !== "All") {
+                query = query.eq("book", book);
+            }
+
+            return query;
+        })(),
+    ]);
+
+    if (allOptionsResult.error) {
+        throw allOptionsResult.error;
     }
 
-    const rows = data ?? [];
+    if (chapterOptionsResult.error) {
+        throw chapterOptionsResult.error;
+    }
+
+    const allRows = allOptionsResult.data ?? [];
+    const chapterRows = chapterOptionsResult.data ?? [];
 
     return {
-        levels: Array.from(new Set(rows.map((row) => row.level).filter(Boolean))).sort(),
-        books: Array.from(new Set(rows.map((row) => row.book).filter(Boolean))).sort(),
+        levels: Array.from(
+            new Set(allRows.map((row) => row.level).filter(Boolean)),
+        ).sort(),
+        books: Array.from(
+            new Set(allRows.map((row) => row.book).filter(Boolean)),
+        ).sort(),
         chapters: Array.from(
-            new Set(rows.map((row) => row.chapter).filter(Boolean)),
+            new Set(chapterRows.map((row) => row.chapter).filter(Boolean)),
         ).sort(),
     };
 }

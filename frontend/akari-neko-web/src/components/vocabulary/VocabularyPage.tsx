@@ -13,6 +13,7 @@ import {
 import { motion } from "motion/react";
 import { SoftPanel } from "../ui/SoftPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppSelect } from "@/components/ui/AppSelect";
 import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal";
 import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
 import { ImportVocabularyModal } from "./ImportVocabularyModal";
@@ -27,39 +28,6 @@ import {
   type CreateVocabularyInput,
   type VocabularyListItem,
 } from "@/services/vocabularyService";
-import { i } from "motion/react-client";
-
-function SelectBox({
-  label,
-  items,
-  value,
-  onChange,
-}: {
-  label: string;
-  items: string[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="grid gap-2">
-      <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </span>
-
-      <select
-        value={value}
-        className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {items.map((item) => (
-          <option key={item} value={item}>
-            {item}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 function ImportButton({
   onSelectSource,
@@ -172,12 +140,14 @@ export function VocabularyPage() {
   const [selectedLevel, setSelectedLevel] = useState("All");
   const [selectedBook, setSelectedBook] = useState("All");
   const [selectedChapter, setSelectedChapter] = useState("All");
+  const [isLoadingFilterOptions, setIsLoadingFilterOptions] = useState(false);
   const [isLoadingVocabularies, setIsLoadingVocabularies] = useState(false);
   const [vocabularyLoadError, setVocabularyLoadError] = useState<string | null>(
     null,
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [onlyDifficult, setOnlyDifficult] = useState(false);
+  const filterOptionsRequestIdRef = useRef(0);
 
   const filteredVocabularies = vocabularies;
   const displayVocabularies = vocabularies;
@@ -236,12 +206,14 @@ export function VocabularyPage() {
   function handleLevelChange(level: string) {
     setSelectedLevel(level);
     setSelectedChapter("All");
+    setAvailableChapters([]);
     setCurrentPage(1);
   }
 
   function handleBookChange(book: string) {
     setSelectedBook(book);
     setSelectedChapter("All");
+    setAvailableChapters([]);
     setCurrentPage(1);
   }
 
@@ -272,23 +244,41 @@ export function VocabularyPage() {
     );
   }
 
-  const loadVocabularyFilterOptions = useCallback(async () => {
+  const loadVocabularyFilterOptions = useCallback(async (
+    level = selectedLevel,
+    book = selectedBook,
+  ) => {
+    const requestId = filterOptionsRequestIdRef.current + 1;
+    filterOptionsRequestIdRef.current = requestId;
+    setIsLoadingFilterOptions(true);
+
     try {
-      const options = await getVocabularyFilterOptions();
+      const options = await getVocabularyFilterOptions({
+        level,
+        book,
+      });
+
+      if (filterOptionsRequestIdRef.current !== requestId) {
+        return;
+      }
 
       setAvailableLevels(options.levels);
       setAvailableBooks(options.books);
       setAvailableChapters(options.chapters);
     } catch (error) {
       console.error("Failed to load vocabulary filter options:", error);
+    } finally {
+      if (filterOptionsRequestIdRef.current === requestId) {
+        setIsLoadingFilterOptions(false);
+      }
     }
-  }, []);
+  }, [selectedLevel, selectedBook]);
 
   useEffect(() => {
     // Filter options are loaded from Supabase when the page mounts.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadVocabularyFilterOptions();
-  }, [loadVocabularyFilterOptions]);
+    void loadVocabularyFilterOptions(selectedLevel, selectedBook);
+  }, [selectedLevel, selectedBook, loadVocabularyFilterOptions]);
 
   async function handleDeleteVocabulary(vocabulary: VocabularyListItem) {
     const confirmed = window.confirm(
@@ -480,27 +470,29 @@ export function VocabularyPage() {
           </div>
         </motion.section>
 
-        <SoftPanel className="p-4 sm:p-5">
+        <SoftPanel className="relative z-30 p-4 sm:p-5">
           <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto] xl:items-end">
-            <SelectBox
+            <AppSelect
               label="JLPT Level"
               items={levelOptions}
               value={selectedLevel}
               onChange={handleLevelChange}
             />
 
-            <SelectBox
+            <AppSelect
               label="Book"
               items={bookOptions}
               value={selectedBook}
               onChange={handleBookChange}
             />
 
-            <SelectBox
+            <AppSelect
               label="Chapter"
               items={chapterOptions}
               value={selectedChapter}
               onChange={handleChapterChange}
+              disabled={isLoadingFilterOptions}
+              isLoading={isLoadingFilterOptions}
             />
 
             <label className="grid gap-2">
@@ -558,7 +550,7 @@ export function VocabularyPage() {
           ) : null}
         </SoftPanel>
 
-        <SoftPanel className="p-4 sm:p-5">
+        <SoftPanel className="relative z-10 p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black text-slate-800">
