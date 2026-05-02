@@ -35,7 +35,38 @@ export type DashboardStats = {
     recentImportBatches: RecentImportBatch[];
     todayFlashcardStudyStats: TodayFlashcardStudyStats;
     recentStudySessions: RecentStudySession[];
+    todayQuizStats: TodayQuizStats;
 };
+
+export type TodayQuizStats = {
+    quizCount: number;
+    questionCount: number;
+    correctCount: number;
+    wrongCount: number;
+};
+
+type QuizSessionRow = {
+    question_count: number;
+    correct_count: number;
+    wrong_count: number;
+};
+
+function summarizeTodayQuizSessions(rows: QuizSessionRow[]): TodayQuizStats {
+    return rows.reduce(
+        (summary, row) => ({
+            quizCount: summary.quizCount + 1,
+            questionCount: summary.questionCount + row.question_count,
+            correctCount: summary.correctCount + row.correct_count,
+            wrongCount: summary.wrongCount + row.wrong_count,
+        }),
+        {
+            quizCount: 0,
+            questionCount: 0,
+            correctCount: 0,
+            wrongCount: 0,
+        },
+    );
+}
 
 type VocabularyLevelRow = {
     level: string;
@@ -125,6 +156,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         recentImportBatchesResult,
         todayFlashcardSessionsResult,
         recentStudySessionsResult,
+        todayQuizSessionsResult,
     ] = await Promise.all([
         supabase.from("vocabularies").select("id", {
             count: "exact",
@@ -180,6 +212,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
             )
             .order("created_at", { ascending: false })
             .limit(5),
+
+        supabase
+            .from("quiz_sessions")
+            .select("question_count, correct_count, wrong_count")
+            .gte("created_at", getTodayStartIsoString()),
     ]);
 
     if (vocabularyCountResult.error) {
@@ -206,7 +243,15 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         throw recentStudySessionsResult.error;
     }
 
+    if (todayQuizSessionsResult.error) {
+        throw todayQuizSessionsResult.error;
+    }
+
     return {
+        todayQuizStats: summarizeTodayQuizSessions(
+            (todayQuizSessionsResult.data ?? []) as QuizSessionRow[],
+        ),
+
         todayFlashcardStudyStats: summarizeTodayFlashcardStudySessions(
             (todayFlashcardSessionsResult.data ?? []) as FlashcardStudySessionRow[],
         ),

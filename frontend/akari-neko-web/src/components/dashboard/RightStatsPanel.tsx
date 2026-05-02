@@ -31,6 +31,7 @@ export function RightStatsPanel({
   const totalVocabularyCount = dashboardStats?.totalVocabularyCount ?? 0;
   const todayReviewedCount =
     dashboardStats?.todayFlashcardStudyStats.reviewedCount ?? 0;
+  const todayQuizCount = dashboardStats?.todayQuizStats.quizCount ?? 0;
   const recentStudySessions = dashboardStats?.recentStudySessions ?? [];
   const dailyGoalPercent = Math.min(
     100,
@@ -48,7 +49,13 @@ export function RightStatsPanel({
     if (statistic.label === "Bài kiểm tra") {
       return {
         ...statistic,
-        label: "Ôn hôm nay",
+        value: isLoading ? "..." : String(todayQuizCount),
+      };
+    }
+
+    if (statistic.label === "Ôn hôm nay") {
+      return {
+        ...statistic,
         value: isLoading ? "..." : String(todayReviewedCount),
       };
     }
