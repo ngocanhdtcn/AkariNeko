@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { getCurrentUserId } from "@/services/authService";
 
 export type StudyHistoryItem = {
     id: string;
@@ -62,6 +63,14 @@ export async function getStudyHistories({
 }: GetStudyHistoriesParams): Promise<GetStudyHistoriesResult> {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        return {
+            items: [],
+            totalCount: 0,
+        };
+    }
 
     let query = supabase
         .from("flashcard_study_sessions")
@@ -80,7 +89,8 @@ export async function getStudyHistories({
             { count: "exact" },
         )
         .order("created_at", { ascending: false })
-        .range(from, to);
+        .range(from, to)
+        .eq("user_id", userId);
 
     if (fromDate) {
         query = query.gte("created_at", fromDate);
@@ -99,10 +109,17 @@ export async function getStudyHistories({
 }
 
 export async function deleteStudyHistory(historyId: string): Promise<void> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
     const { error } = await supabase
         .from("flashcard_study_sessions")
         .delete()
-        .eq("id", historyId);
+        .eq("id", historyId)
+        .eq("user_id", userId);
 
     if (error) {
         throw error;
@@ -112,9 +129,20 @@ export async function deleteStudyHistory(historyId: string): Promise<void> {
 export async function getStudyHistorySummary(
     fromDate?: string | null,
 ): Promise<StudyHistorySummary> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        return {
+            reviewedCount: 0,
+            rememberedCount: 0,
+            forgotCount: 0,
+        };
+    }
+
     let query = supabase
         .from("flashcard_study_sessions")
-        .select("reviewed_count, remembered_count, forgot_count");
+        .select("reviewed_count, remembered_count, forgot_count")
+        .eq("user_id", userId);
 
     if (fromDate) {
         query = query.gte("created_at", fromDate);

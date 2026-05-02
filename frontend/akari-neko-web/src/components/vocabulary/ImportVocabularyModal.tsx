@@ -41,6 +41,7 @@ export function ImportVocabularyModal({
     previewItems,
     parsedImportFiles,
     importResult,
+    importError,
     totalFiles,
     totalSizeText,
     displayFileRows,
@@ -212,6 +213,12 @@ export function ImportVocabularyModal({
                     </div>
                   ) : null}
 
+                  {importError ? (
+                    <div className="mt-5 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-500">
+                      {importError}
+                    </div>
+                  ) : null}
+
                   {importStep === "completed" && importResult ? (
                     <ImportCompletedCard
                       importedCount={importResult.importedCount}
@@ -244,8 +251,11 @@ export function ImportVocabularyModal({
                 onClose={handleClose}
                 onPreviewImport={handlePreviewImport}
                 onConfirmImport={async () => {
-                  await handleConfirmImport();
-                  onImportCompleted?.();
+                  const isCompleted = await handleConfirmImport();
+
+                  if (isCompleted) {
+                    onImportCompleted?.();
+                  }
                 }}
               />
             </div>

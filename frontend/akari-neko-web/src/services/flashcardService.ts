@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { VocabularyListItem } from "@/services/vocabularyService";
+import { getCurrentUserId } from "@/services/authService";
 
 type VocabularyRow = {
     id: string;
@@ -136,7 +137,14 @@ export type CreateFlashcardStudySessionInput = {
 export async function createFlashcardStudySession(
     input: CreateFlashcardStudySessionInput,
 ): Promise<void> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
     const { error } = await supabase.from("flashcard_study_sessions").insert({
+        user_id: userId,
         reviewed_count: input.reviewedCount,
         remembered_count: input.rememberedCount,
         forgot_count: input.forgotCount,

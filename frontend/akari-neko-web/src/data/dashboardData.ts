@@ -26,6 +26,8 @@ import type {
   StudyStatistic,
 } from "@/types/dashboard";
 
+import { MessageCircle } from "lucide-react";
+
 export const dashboardMenuItems: DashboardMenuItem[] = [
   {
     icon: Home,
@@ -117,6 +119,15 @@ export const dashboardMenuItems: DashboardMenuItem[] = [
     activeIconClassName: "bg-slate-400 text-white",
     activeItemClassName: "bg-slate-50 text-slate-600",
   },
+  {
+    icon: MessageCircle,
+    label: "Messages",
+    href: "/messages",
+    active: false,
+    iconClassName: "bg-slate-50 text-slate-400",
+    activeIconClassName: "bg-slate-400 text-white",
+    activeItemClassName: "bg-slate-50 text-slate-600",
+  }
 ];
 
 export const mobileNavItems: MobileNavItem[] = [

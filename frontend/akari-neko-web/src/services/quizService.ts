@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { VocabularyListItem } from "@/services/vocabularyService";
+import { getCurrentUserId } from "@/services/authService";
 
 type VocabularyRow = {
     id: string;
@@ -135,7 +136,14 @@ export type CreateQuizSessionInput = {
 export async function createQuizSession(
     input: CreateQuizSessionInput,
 ): Promise<void> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
     const { error } = await supabase.from("quiz_sessions").insert({
+        user_id: userId,
         question_count: input.questionCount,
         correct_count: input.correctCount,
         wrong_count: input.wrongCount,

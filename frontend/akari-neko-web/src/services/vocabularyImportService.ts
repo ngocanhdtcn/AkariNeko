@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { getCurrentUserId } from "@/services/authService";
 import type {
   ImportVocabularyPayload,
   ParsedImportFile,
@@ -43,6 +44,12 @@ function buildDuplicateKey({
 export async function importVocabularies(
   payload: ImportVocabularyPayload,
 ): Promise<ImportVocabularyResponse> {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    throw new Error("User is not logged in.");
+  }
+
   const validFiles = payload.files.filter(
     (file) => file.vocabularies.length > 0,
   );
@@ -52,6 +59,7 @@ export async function importVocabularies(
   const { data: batch, error: batchError } = await supabase
     .from("import_batches")
     .insert({
+      user_id: userId,
       source_type: payload.sourceType,
       status: "completed",
       total_files: validFiles.length,

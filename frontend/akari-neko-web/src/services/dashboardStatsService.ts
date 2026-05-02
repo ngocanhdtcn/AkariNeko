@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { getCurrentUserId } from "@/services/authService";
 
 export type VocabularyLevelStat = {
     level: string;
@@ -149,6 +150,8 @@ function countByLevel(rows: VocabularyLevelRow[]) {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
+    const userId = await getCurrentUserId();
+
     const [
         vocabularyCountResult,
         difficultCountResult,
@@ -190,33 +193,42 @@ export async function getDashboardStats(): Promise<DashboardStats> {
             .order("created_at", { ascending: false })
             .limit(5),
 
-        supabase
-            .from("flashcard_study_sessions")
-            .select("reviewed_count, remembered_count, forgot_count")
-            .gte("created_at", getTodayStartIsoString()),
+        userId
+            ? supabase
+                .from("flashcard_study_sessions")
+                .select("reviewed_count, remembered_count, forgot_count")
+                .eq("user_id", userId)
+                .gte("created_at", getTodayStartIsoString())
+            : Promise.resolve({ data: [], error: null }),
 
-        supabase
-            .from("flashcard_study_sessions")
-            .select(
-                [
-                    "id",
-                    "reviewed_count",
-                    "remembered_count",
-                    "forgot_count",
-                    "level",
-                    "book",
-                    "chapter",
-                    "only_difficult",
-                    "created_at",
-                ].join(","),
-            )
-            .order("created_at", { ascending: false })
-            .limit(5),
+        userId
+            ? supabase
+                .from("flashcard_study_sessions")
+                .select(
+                    [
+                        "id",
+                        "reviewed_count",
+                        "remembered_count",
+                        "forgot_count",
+                        "level",
+                        "book",
+                        "chapter",
+                        "only_difficult",
+                        "created_at",
+                    ].join(","),
+                )
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false })
+                .limit(5)
+            : Promise.resolve({ data: [], error: null }),
 
-        supabase
-            .from("quiz_sessions")
-            .select("question_count, correct_count, wrong_count")
-            .gte("created_at", getTodayStartIsoString()),
+        userId
+            ? supabase
+                .from("quiz_sessions")
+                .select("question_count, correct_count, wrong_count")
+                .eq("user_id", userId)
+                .gte("created_at", getTodayStartIsoString())
+            : Promise.resolve({ data: [], error: null }),
     ]);
 
     if (vocabularyCountResult.error) {

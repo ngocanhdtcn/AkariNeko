@@ -47,6 +47,7 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
         [],
     );
     const [importResult, setImportResult] = useState<ImportResult | null>(null);
+    const [importError, setImportError] = useState<string | null>(null);
 
     function resetImportState() {
         setSelectedFiles([]);
@@ -54,6 +55,7 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
         setPreviewItems([]);
         setParsedImportFiles([]);
         setImportResult(null);
+        setImportError(null);
         setImportStep("select");
         setIsPreviewing(false);
         setIsImporting(false);
@@ -64,6 +66,7 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
         setPreviewItems([]);
         setParsedImportFiles([]);
         setImportResult(null);
+        setImportError(null);
         setImportStep("select");
     }
 
@@ -75,6 +78,7 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
         setPreviewItems([]);
         setParsedImportFiles([]);
         setImportResult(null);
+        setImportError(null);
         setImportStep("select");
     }
 
@@ -217,20 +221,21 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
 
     async function handleConfirmImport() {
         if (parsedImportFiles.length === 0) {
-            return;
+            return false;
         }
 
         if (getMetadataValidationErrors().length > 0) {
-            return;
+            return false;
         }
 
         const payload = buildImportPayload();
 
         if (payload.files.length === 0) {
-            return;
+            return false;
         }
 
         setIsImporting(true);
+        setImportError(null);
 
         try {
             console.log("Import vocabulary payload:", payload);
@@ -244,6 +249,15 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
             });
 
             setImportStep("completed");
+            return true;
+        } catch (error) {
+            console.error("Failed to import vocabularies:", error);
+            setImportError(
+                error instanceof Error
+                    ? error.message
+                    : "Không thể import từ vựng. Vui lòng kiểm tra quyền Supabase.",
+            );
+            return false;
         } finally {
             setIsImporting(false);
         }
@@ -339,6 +353,7 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
         previewItems,
         parsedImportFiles,
         importResult,
+        importError,
         totalFiles,
         totalSize,
         totalSizeText: formatFileSize(totalSize),

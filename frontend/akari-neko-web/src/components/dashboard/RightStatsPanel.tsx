@@ -14,6 +14,7 @@ import { RecentStudySessionsCard } from "./RecentStudySessionsCard";
 import { StatisticCard } from "./StatisticCard";
 import { IconBadge } from "../ui/IconBadge";
 import { SoftPanel } from "../ui/SoftPanel";
+import { OnlineUsersCard } from "./OnlineUsersCard";
 
 type RightStatsPanelProps = {
   dashboardStats: DashboardStats | null;
@@ -151,6 +152,8 @@ export function RightStatsPanel({
         sessions={recentStudySessions}
         isLoading={isLoading}
       />
+
+      <OnlineUsersCard />
 
       <DailyGoalCard
         reviewedCount={todayReviewedCount}
