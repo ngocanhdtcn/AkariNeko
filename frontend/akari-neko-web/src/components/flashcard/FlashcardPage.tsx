@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Eye, EyeOff, RotateCcw, Shuffle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,6 +25,7 @@ export function FlashcardPage() {
     const flashcardsRequestIdRef = useRef(0);
     const filterOptionsRequestIdRef = useRef(0);
     const [isSavingSession, setIsSavingSession] = useState(false);
+    const [isSessionSaved, setIsSessionSaved] = useState(false);
     const [sessionSavedMessage, setSessionSavedMessage] = useState<string | null>(
         null,
     );
@@ -91,6 +92,7 @@ export function FlashcardPage() {
             });
 
             setSessionSavedMessage(null);
+            setIsSessionSaved(false);
         } catch (error) {
             console.error("Failed to load flashcards:", error);
             setLoadError("Không thể tải flashcard.");
@@ -141,6 +143,8 @@ export function FlashcardPage() {
 
         setCurrentIndex(0);
         setIsFlipped(false);
+        setIsSessionSaved(false);
+        setSessionSavedMessage(null);
     }
 
     const loadFilterOptions = useCallback(async (
@@ -253,6 +257,7 @@ export function FlashcardPage() {
 
             updateReviewedVocabularyLocally(currentVocabulary.id, result);
             setSessionSavedMessage(null);
+            setIsSessionSaved(false);
             updateSessionStats(result);
             handleNextCard();
         } catch (error) {
@@ -289,7 +294,7 @@ export function FlashcardPage() {
     }
 
     async function handleSaveStudySession() {
-        if (sessionStats.reviewedCount === 0 || isSavingSession) {
+        if (sessionStats.reviewedCount === 0 || isSavingSession || isSessionSaved) {
             return;
         }
 
@@ -307,7 +312,13 @@ export function FlashcardPage() {
                 onlyDifficult,
             });
 
-            setSessionSavedMessage("Đã lưu phiên học hôm nay.");
+            setSessionSavedMessage("Đã lưu phiên học. Hãy ôn thêm từ mới để bắt đầu phiên tiếp theo.");
+            setIsSessionSaved(true);
+            setSessionStats({
+                reviewedCount: 0,
+                rememberedCount: 0,
+                forgotCount: 0,
+            });
         } catch (error) {
             console.error("Failed to save flashcard study session:", error);
             setLoadError("Không thể lưu phiên học.");
@@ -559,7 +570,7 @@ export function FlashcardPage() {
                                 <div className="flex flex-wrap gap-2">
                                     <button
                                         type="button"
-                                        disabled={sessionStats.reviewedCount === 0 || isSavingSession}
+                                        disabled={sessionStats.reviewedCount === 0 || isSavingSession || isSessionSaved}
                                         className="h-10 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-4 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.18)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                                         onClick={() => void handleSaveStudySession()}
                                     >

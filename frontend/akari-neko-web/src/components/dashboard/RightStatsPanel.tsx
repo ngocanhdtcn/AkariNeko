@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { DailyGoalCard } from "./DailyGoalCard";
 import { ProgressRing } from "./ProgressRing";
+import { RecentStudySessionsCard } from "./RecentStudySessionsCard";
 import { StatisticCard } from "./StatisticCard";
 import { IconBadge } from "../ui/IconBadge";
 import { SoftPanel } from "../ui/SoftPanel";
@@ -32,6 +33,7 @@ export function RightStatsPanel({
     dashboardStats?.todayFlashcardStudyStats.reviewedCount ?? 0;
   const difficultVocabularyCount = dashboardStats?.difficultVocabularyCount ?? 0;
   const recentImportCount = dashboardStats?.recentImportBatches.length ?? 0;
+  const recentStudySessions = dashboardStats?.recentStudySessions ?? [];
 
   const displayStudyStatistics = studyStatistics.map((statistic) => {
     if (statistic.label === "Từ vựng đã học") {
@@ -131,6 +133,11 @@ export function RightStatsPanel({
           ))}
         </div>
       </SoftPanel>
+
+      <RecentStudySessionsCard
+        sessions={recentStudySessions}
+        isLoading={isLoading}
+      />
 
       <DailyGoalCard />
     </aside>

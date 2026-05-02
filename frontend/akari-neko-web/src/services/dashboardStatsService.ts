@@ -16,12 +16,25 @@ export type RecentImportBatch = {
     createdAt: string;
 };
 
+export type RecentStudySession = {
+    id: string;
+    reviewedCount: number;
+    rememberedCount: number;
+    forgotCount: number;
+    level: string | null;
+    book: string | null;
+    chapter: string | null;
+    onlyDifficult: boolean;
+    createdAt: string;
+};
+
 export type DashboardStats = {
     totalVocabularyCount: number;
     difficultVocabularyCount: number;
     levelStats: VocabularyLevelStat[];
     recentImportBatches: RecentImportBatch[];
     todayFlashcardStudyStats: TodayFlashcardStudyStats;
+    recentStudySessions: RecentStudySession[];
 };
 
 type VocabularyLevelRow = {
@@ -49,6 +62,18 @@ type FlashcardStudySessionRow = {
     reviewed_count: number;
     remembered_count: number;
     forgot_count: number;
+};
+
+type RecentStudySessionRow = {
+    id: string;
+    reviewed_count: number;
+    remembered_count: number;
+    forgot_count: number;
+    level: string | null;
+    book: string | null;
+    chapter: string | null;
+    only_difficult: boolean;
+    created_at: string;
 };
 
 function getTodayStartIsoString() {
@@ -99,6 +124,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         vocabularyLevelsResult,
         recentImportBatchesResult,
         todayFlashcardSessionsResult,
+        recentStudySessionsResult,
     ] = await Promise.all([
         supabase.from("vocabularies").select("id", {
             count: "exact",
@@ -136,6 +162,24 @@ export async function getDashboardStats(): Promise<DashboardStats> {
             .from("flashcard_study_sessions")
             .select("reviewed_count, remembered_count, forgot_count")
             .gte("created_at", getTodayStartIsoString()),
+
+        supabase
+            .from("flashcard_study_sessions")
+            .select(
+                [
+                    "id",
+                    "reviewed_count",
+                    "remembered_count",
+                    "forgot_count",
+                    "level",
+                    "book",
+                    "chapter",
+                    "only_difficult",
+                    "created_at",
+                ].join(","),
+            )
+            .order("created_at", { ascending: false })
+            .limit(5),
     ]);
 
     if (vocabularyCountResult.error) {
@@ -158,10 +202,26 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         throw todayFlashcardSessionsResult.error;
     }
 
+    if (recentStudySessionsResult.error) {
+        throw recentStudySessionsResult.error;
+    }
+
     return {
         todayFlashcardStudyStats: summarizeTodayFlashcardStudySessions(
             (todayFlashcardSessionsResult.data ?? []) as FlashcardStudySessionRow[],
         ),
+        recentStudySessions: ((recentStudySessionsResult.data ??
+            []) as unknown as RecentStudySessionRow[]).map((row) => ({
+                id: row.id,
+                reviewedCount: row.reviewed_count,
+                rememberedCount: row.remembered_count,
+                forgotCount: row.forgot_count,
+                level: row.level,
+                book: row.book,
+                chapter: row.chapter,
+                onlyDifficult: row.only_difficult,
+                createdAt: row.created_at,
+            })),
         totalVocabularyCount: vocabularyCountResult.count ?? 0,
         difficultVocabularyCount: difficultCountResult.count ?? 0,
         levelStats: countByLevel(
