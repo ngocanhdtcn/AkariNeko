@@ -21,6 +21,7 @@ export type DashboardStats = {
     difficultVocabularyCount: number;
     levelStats: VocabularyLevelStat[];
     recentImportBatches: RecentImportBatch[];
+    todayFlashcardStudyStats: TodayFlashcardStudyStats;
 };
 
 type VocabularyLevelRow = {
@@ -37,6 +38,43 @@ type ImportBatchRow = {
     error_count: number;
     created_at: string;
 };
+
+export type TodayFlashcardStudyStats = {
+    reviewedCount: number;
+    rememberedCount: number;
+    forgotCount: number;
+};
+
+type FlashcardStudySessionRow = {
+    reviewed_count: number;
+    remembered_count: number;
+    forgot_count: number;
+};
+
+function getTodayStartIsoString() {
+    const today = new Date();
+
+    today.setHours(0, 0, 0, 0);
+
+    return today.toISOString();
+}
+
+function summarizeTodayFlashcardStudySessions(
+    rows: FlashcardStudySessionRow[],
+): TodayFlashcardStudyStats {
+    return rows.reduce(
+        (summary, row) => ({
+            reviewedCount: summary.reviewedCount + row.reviewed_count,
+            rememberedCount: summary.rememberedCount + row.remembered_count,
+            forgotCount: summary.forgotCount + row.forgot_count,
+        }),
+        {
+            reviewedCount: 0,
+            rememberedCount: 0,
+            forgotCount: 0,
+        },
+    );
+}
 
 function countByLevel(rows: VocabularyLevelRow[]) {
     const levelCountMap = new Map<string, number>();
@@ -60,6 +98,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         difficultCountResult,
         vocabularyLevelsResult,
         recentImportBatchesResult,
+        todayFlashcardSessionsResult,
     ] = await Promise.all([
         supabase.from("vocabularies").select("id", {
             count: "exact",
@@ -92,6 +131,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
             )
             .order("created_at", { ascending: false })
             .limit(5),
+
+        supabase
+            .from("flashcard_study_sessions")
+            .select("reviewed_count, remembered_count, forgot_count")
+            .gte("created_at", getTodayStartIsoString()),
     ]);
 
     if (vocabularyCountResult.error) {
@@ -110,7 +154,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         throw recentImportBatchesResult.error;
     }
 
+    if (todayFlashcardSessionsResult.error) {
+        throw todayFlashcardSessionsResult.error;
+    }
+
     return {
+        todayFlashcardStudyStats: summarizeTodayFlashcardStudySessions(
+            (todayFlashcardSessionsResult.data ?? []) as FlashcardStudySessionRow[],
+        ),
         totalVocabularyCount: vocabularyCountResult.count ?? 0,
         difficultVocabularyCount: difficultCountResult.count ?? 0,
         levelStats: countByLevel(

@@ -28,6 +28,8 @@ export function RightStatsPanel({
 }: RightStatsPanelProps) {
 
   const totalVocabularyCount = dashboardStats?.totalVocabularyCount ?? 0;
+  const todayReviewedCount =
+    dashboardStats?.todayFlashcardStudyStats.reviewedCount ?? 0;
   const difficultVocabularyCount = dashboardStats?.difficultVocabularyCount ?? 0;
   const recentImportCount = dashboardStats?.recentImportBatches.length ?? 0;
 
@@ -36,6 +38,21 @@ export function RightStatsPanel({
       return {
         ...statistic,
         value: isLoading ? "..." : String(totalVocabularyCount),
+      };
+    }
+
+    if (statistic.label === "Ôn hôm nay") {
+      return {
+        ...statistic,
+        value: isLoading ? "..." : String(todayReviewedCount),
+      };
+    }
+
+    if (statistic.label === "Bài kiểm tra") {
+      return {
+        ...statistic,
+        label: "Ôn hôm nay",
+        value: isLoading ? "..." : String(todayReviewedCount),
       };
     }
 

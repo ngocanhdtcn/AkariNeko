@@ -1,9 +1,10 @@
 "use client";
 
-import { RotateCcw, Shuffle } from "lucide-react";
+import { Eye, EyeOff, RotateCcw, Shuffle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSelect } from "@/components/ui/AppSelect";
 import {
+    createFlashcardStudySession,
     getFlashcardVocabularies,
     reviewFlashcard,
     type ReviewFlashcardResult,
@@ -23,6 +24,10 @@ export function FlashcardPage() {
     const [isReviewing, setIsReviewing] = useState(false);
     const flashcardsRequestIdRef = useRef(0);
     const filterOptionsRequestIdRef = useRef(0);
+    const [isSavingSession, setIsSavingSession] = useState(false);
+    const [sessionSavedMessage, setSessionSavedMessage] = useState<string | null>(
+        null,
+    );
 
     type FlashcardSessionStats = {
         reviewedCount: number;
@@ -40,6 +45,7 @@ export function FlashcardPage() {
     const [selectedBook, setSelectedBook] = useState("All");
     const [selectedChapter, setSelectedChapter] = useState("All");
     const [onlyDifficult, setOnlyDifficult] = useState(false);
+    const [showHiragana, setShowHiragana] = useState(true);
 
     const [availableLevels, setAvailableLevels] = useState<string[]>([]);
     const [availableBooks, setAvailableBooks] = useState<string[]>([]);
@@ -83,6 +89,8 @@ export function FlashcardPage() {
                 rememberedCount: 0,
                 forgotCount: 0,
             });
+
+            setSessionSavedMessage(null);
         } catch (error) {
             console.error("Failed to load flashcards:", error);
             setLoadError("Không thể tải flashcard.");
@@ -244,6 +252,7 @@ export function FlashcardPage() {
             await reviewFlashcard(currentVocabulary, result);
 
             updateReviewedVocabularyLocally(currentVocabulary.id, result);
+            setSessionSavedMessage(null);
             updateSessionStats(result);
             handleNextCard();
         } catch (error) {
@@ -277,6 +286,34 @@ export function FlashcardPage() {
         setSelectedChapter("All");
         setOnlyDifficult(false);
         void loadFilterOptions("All", "All");
+    }
+
+    async function handleSaveStudySession() {
+        if (sessionStats.reviewedCount === 0 || isSavingSession) {
+            return;
+        }
+
+        setIsSavingSession(true);
+        setLoadError(null);
+
+        try {
+            await createFlashcardStudySession({
+                reviewedCount: sessionStats.reviewedCount,
+                rememberedCount: sessionStats.rememberedCount,
+                forgotCount: sessionStats.forgotCount,
+                level: selectedLevel,
+                book: selectedBook,
+                chapter: selectedChapter,
+                onlyDifficult,
+            });
+
+            setSessionSavedMessage("Đã lưu phiên học hôm nay.");
+        } catch (error) {
+            console.error("Failed to save flashcard study session:", error);
+            setLoadError("Không thể lưu phiên học.");
+        } finally {
+            setIsSavingSession(false);
+        }
     }
 
     return (
@@ -320,7 +357,7 @@ export function FlashcardPage() {
             </section>
 
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto] xl:items-end">
+                <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto_auto] xl:items-end">
                     <AppSelect
                         label="JLPT Level"
                         items={levelOptions}
@@ -357,6 +394,18 @@ export function FlashcardPage() {
                         onClick={() => setOnlyDifficult((current) => !current)}
                     >
                         {onlyDifficult ? "Only difficult: ON" : "Only difficult"}
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`flex h-12 items-center gap-2 rounded-2xl border px-4 text-sm font-bold shadow-sm transition ${showHiragana
+                            ? "border-pink-200 bg-pink-50 text-pink-500"
+                            : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                            }`}
+                        onClick={() => setShowHiragana((current) => !current)}
+                    >
+                        {showHiragana ? <Eye size={17} /> : <EyeOff size={17} />}
+                        Hiragana
                     </button>
                 </div>
 
@@ -425,9 +474,11 @@ export function FlashcardPage() {
                                         <p className="text-6xl font-black text-slate-800">
                                             {currentVocabulary.kanji}
                                         </p>
-                                        <p className="mt-4 text-2xl font-bold text-pink-500">
-                                            {currentVocabulary.hiragana}
-                                        </p>
+                                        {showHiragana ? (
+                                            <p className="mt-4 text-2xl font-bold text-pink-500">
+                                                {currentVocabulary.hiragana}
+                                            </p>
+                                        ) : null}
                                         <p className="mt-6 text-sm font-bold text-slate-400">
                                             Bấm vào thẻ để xem nghĩa
                                         </p>
@@ -497,15 +548,32 @@ export function FlashcardPage() {
                                     <p className="mt-1 text-sm text-slate-500">
                                         Theo dõi nhanh kết quả ôn tập trong phiên hiện tại.
                                     </p>
+
+                                    {sessionSavedMessage ? (
+                                        <div className="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-600">
+                                            {sessionSavedMessage}
+                                        </div>
+                                    ) : null}
                                 </div>
 
-                                <button
-                                    type="button"
-                                    className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                                    onClick={handleResetSession}
-                                >
-                                    Reset session
-                                </button>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={sessionStats.reviewedCount === 0 || isSavingSession}
+                                        className="h-10 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-4 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.18)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                                        onClick={() => void handleSaveStudySession()}
+                                    >
+                                        {isSavingSession ? "Saving..." : "End session"}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                                        onClick={handleResetSession}
+                                    >
+                                        Reset session
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="mt-4 grid gap-3 sm:grid-cols-3">

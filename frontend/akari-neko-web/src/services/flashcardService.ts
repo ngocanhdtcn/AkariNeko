@@ -122,3 +122,31 @@ export async function reviewFlashcard(
         throw error;
     }
 }
+
+export type CreateFlashcardStudySessionInput = {
+    reviewedCount: number;
+    rememberedCount: number;
+    forgotCount: number;
+    level: string;
+    book: string;
+    chapter: string;
+    onlyDifficult: boolean;
+};
+
+export async function createFlashcardStudySession(
+    input: CreateFlashcardStudySessionInput,
+): Promise<void> {
+    const { error } = await supabase.from("flashcard_study_sessions").insert({
+        reviewed_count: input.reviewedCount,
+        remembered_count: input.rememberedCount,
+        forgot_count: input.forgotCount,
+        level: input.level === "All" ? null : input.level,
+        book: input.book === "All" ? null : input.book,
+        chapter: input.chapter === "All" ? null : input.chapter,
+        only_difficult: input.onlyDifficult,
+    });
+
+    if (error) {
+        throw error;
+    }
+}
