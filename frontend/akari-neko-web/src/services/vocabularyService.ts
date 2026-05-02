@@ -21,6 +21,7 @@ export type GetVocabulariesParams = {
     level?: string;
     book?: string;
     chapter?: string;
+    onlyDifficult?: boolean;
 };
 
 export type GetVocabulariesResult = {
@@ -72,13 +73,14 @@ function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
 }
 
 export async function getVocabularies({
-    page = 1,
-    pageSize = 15,
+    page,
+    pageSize,
     searchKeyword = "",
     level = "All",
     book = "All",
     chapter = "All",
-}: Partial<GetVocabulariesParams> = {}): Promise<GetVocabulariesResult> {
+    onlyDifficult = false,
+}: GetVocabulariesParams): Promise<GetVocabulariesResult> {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     const normalizedSearchKeyword = searchKeyword.trim();
@@ -114,6 +116,10 @@ export async function getVocabularies({
 
     if (chapter !== "All") {
         query = query.eq("chapter", chapter);
+    }
+
+    if (onlyDifficult) {
+        query = query.eq("is_difficult", true);
     }
 
     if (normalizedSearchKeyword.length > 0) {

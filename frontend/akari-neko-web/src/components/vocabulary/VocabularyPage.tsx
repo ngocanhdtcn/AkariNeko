@@ -27,6 +27,7 @@ import {
   type CreateVocabularyInput,
   type VocabularyListItem,
 } from "@/services/vocabularyService";
+import { i } from "motion/react-client";
 
 function SelectBox({
   label,
@@ -176,6 +177,7 @@ export function VocabularyPage() {
     null,
   );
   const [currentPage, setCurrentPage] = useState(1);
+  const [onlyDifficult, setOnlyDifficult] = useState(false);
 
   const filteredVocabularies = vocabularies;
   const displayVocabularies = vocabularies;
@@ -201,6 +203,7 @@ export function VocabularyPage() {
         level: selectedLevel,
         book: selectedBook,
         chapter: selectedChapter,
+        onlyDifficult,
       });
 
       setVocabularies(result.items);
@@ -211,13 +214,18 @@ export function VocabularyPage() {
     } finally {
       setIsLoadingVocabularies(false);
     }
-  }, [searchKeyword, selectedLevel, selectedBook, selectedChapter]);
+  }, [searchKeyword, selectedLevel, selectedBook, selectedChapter, onlyDifficult]);
 
   useEffect(() => {
-    // Data loading is the external synchronization point for this page.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadVocabularies(currentPage);
-  }, [currentPage, loadVocabularies]);
+  }, [
+    currentPage,
+    searchKeyword,
+    selectedLevel,
+    selectedBook,
+    selectedChapter,
+    onlyDifficult,
+  ]);
 
   const levelOptions = ["All", ...availableLevels];
 
@@ -473,7 +481,7 @@ export function VocabularyPage() {
         </motion.section>
 
         <SoftPanel className="p-4 sm:p-5">
-          <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr] xl:items-end">
+          <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto] xl:items-end">
             <SelectBox
               label="JLPT Level"
               items={levelOptions}
@@ -513,12 +521,24 @@ export function VocabularyPage() {
                 />
               </div>
             </label>
+
+            <button
+              type="button"
+              className={`h-12 rounded-2xl border px-4 text-sm font-bold shadow-sm transition ${onlyDifficult
+                ? "border-amber-200 bg-amber-50 text-amber-500"
+                : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                }`}
+              onClick={() => setOnlyDifficult((current) => !current)}
+            >
+              {onlyDifficult ? "Only difficult: ON" : "Only difficult"}
+            </button>
           </div>
 
           {searchKeyword ||
             selectedLevel !== "All" ||
             selectedBook !== "All" ||
-            selectedChapter !== "All" ? (
+            selectedChapter !== "All" ||
+            onlyDifficult ? (
             <div className="mt-4 flex justify-end">
               <button
                 type="button"
@@ -529,6 +549,7 @@ export function VocabularyPage() {
                   setSelectedBook("All");
                   setSelectedChapter("All");
                   setCurrentPage(1);
+                  setOnlyDifficult(false);
                 }}
               >
                 Clear filter
