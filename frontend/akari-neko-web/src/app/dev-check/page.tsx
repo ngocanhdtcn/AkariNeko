@@ -1,10 +1,10 @@
+import { DevCheckPage } from "@/components/dev-check/DevCheckPage";
 import { AppShell } from "@/components/layout/AppShell";
-import { ProfilePage } from "@/components/profile/ProfilePage";
 
 export default function Page() {
     return (
         <AppShell rightPanel={null}>
-            <ProfilePage />
+            <DevCheckPage />
         </AppShell>
     );
 }

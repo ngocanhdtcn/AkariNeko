@@ -15,6 +15,8 @@
   Trophy,
   UserRound,
   WalletCards,
+  MessageCircle,
+  Activity,
 } from "lucide-react";
 
 import type {
@@ -25,8 +27,6 @@ import type {
   StudyShortcutCard,
   StudyStatistic,
 } from "@/types/dashboard";
-
-import { MessageCircle } from "lucide-react";
 
 export const dashboardMenuItems: DashboardMenuItem[] = [
   {
@@ -123,6 +123,15 @@ export const dashboardMenuItems: DashboardMenuItem[] = [
     icon: MessageCircle,
     label: "Messages",
     href: "/messages",
+    active: false,
+    iconClassName: "bg-slate-50 text-slate-400",
+    activeIconClassName: "bg-slate-400 text-white",
+    activeItemClassName: "bg-slate-50 text-slate-600",
+  },
+  {
+    icon: Activity,
+    label: "Dev Check",
+    href: "/dev-check",
     active: false,
     iconClassName: "bg-slate-50 text-slate-400",
     activeIconClassName: "bg-slate-400 text-white",

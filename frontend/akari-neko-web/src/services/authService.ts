@@ -97,17 +97,21 @@ export async function signOut() {
 
 export async function getCurrentProfile(): Promise<AuthProfile | null> {
     const {
-        data: { user },
-        error: userError,
-    } = await supabase.auth.getUser();
+        data: { session },
+        error: sessionError,
+    } = await supabase.auth.getSession();
 
-    if (userError) {
-        throw userError;
+    if (sessionError) {
+        throw sessionError;
     }
 
-    if (!user?.email) {
+    const userEmail = session?.user?.email;
+
+    if (!userEmail) {
         return null;
     }
+
+    const user = session.user;
 
     const { data, error } = await supabase
         .from("profiles")
@@ -122,24 +126,81 @@ export async function getCurrentProfile(): Promise<AuthProfile | null> {
             ].join(","),
         )
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
     if (error) {
         throw error;
     }
 
-    return mapProfileRow(data as unknown as ProfileRow, user.email);
+    if (!data) {
+        const { data: insertedProfile, error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+                id: user.id,
+                display_name: userEmail,
+                current_jlpt_level: "N5",
+            })
+            .select(
+                [
+                    "id",
+                    "display_name",
+                    "avatar_url",
+                    "app_level",
+                    "experience_point",
+                    "current_jlpt_level",
+                ].join(","),
+            )
+            .single();
+
+        if (insertError) {
+            throw insertError;
+        }
+
+        return mapProfileRow(insertedProfile as unknown as ProfileRow, userEmail);
+    }
+
+    return mapProfileRow(data as unknown as ProfileRow, userEmail);
 }
 
 export async function getCurrentUserId(): Promise<string | null> {
     const {
-        data: { user },
+        data: { session },
         error,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
 
     if (error) {
         throw error;
     }
 
-    return user?.id ?? null;
+    return session?.user?.id ?? null;
+}
+
+export type UpdateProfileInput = {
+    displayName: string;
+    avatarUrl: string | null;
+    currentJlptLevel: string;
+};
+
+export async function updateCurrentProfile(
+    input: UpdateProfileInput,
+): Promise<void> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            display_name: input.displayName,
+            avatar_url: input.avatarUrl,
+            current_jlpt_level: input.currentJlptLevel,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+
+    if (error) {
+        throw error;
+    }
 }

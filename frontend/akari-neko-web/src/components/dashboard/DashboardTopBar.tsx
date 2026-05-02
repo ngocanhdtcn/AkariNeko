@@ -1,6 +1,13 @@
 "use client";
 
-import { Home, LogOut, Menu, MessageCircle, Search, UsersRound } from "lucide-react";
+import {
+  Home,
+  LogOut,
+  Menu,
+  MessageCircle,
+  Search,
+  UsersRound,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -80,12 +87,24 @@ export function DashboardTopBar({
           ) : null}
         </Link>
 
-        <div className="flex h-14 min-w-0 items-center gap-3 rounded-2xl border border-pink-100 bg-white px-3 shadow-sm">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-pink-50 text-sm font-black text-pink-500">
-            {profile?.displayName?.charAt(0).toUpperCase() ?? "A"}
+        <Link
+          href="/profile"
+          className="flex items-center gap-3 rounded-2xl border border-pink-100 bg-white px-3 py-2 shadow-sm transition hover:bg-pink-50"
+        >
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-pink-50 text-sm font-black text-pink-500">
+            {profile?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatarUrl}
+                alt={profile.displayName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              profile?.displayName?.charAt(0).toUpperCase() ?? "A"
+            )}
           </div>
 
-          <div className="min-w-0">
+          <div className="hidden min-w-0 sm:block">
             <p className="max-w-[150px] truncate text-sm font-black text-slate-700">
               {profile?.displayName ?? "AkariNeko"}
             </p>
@@ -93,16 +112,16 @@ export function DashboardTopBar({
               Level {profile?.appLevel ?? 1}
             </p>
           </div>
+        </Link>
 
-          <button
-            type="button"
-            aria-label="Log out"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-rose-50 hover:text-rose-500"
-            onClick={() => void logout()}
-          >
-            <LogOut size={17} />
-          </button>
-        </div>
+        <button
+          type="button"
+          aria-label="Log out"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-pink-100 bg-white text-slate-400 shadow-sm transition hover:bg-rose-50 hover:text-rose-500"
+          onClick={() => void logout()}
+        >
+          <LogOut size={17} />
+        </button>
       </div>
     </header>
   );
