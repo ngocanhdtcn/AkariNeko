@@ -12,9 +12,16 @@ export type StudyHistoryItem = {
     createdAt: string;
 };
 
+export type StudyHistorySummary = {
+    reviewedCount: number;
+    rememberedCount: number;
+    forgotCount: number;
+};
+
 export type GetStudyHistoriesParams = {
     page: number;
     pageSize: number;
+    fromDate?: string | null;
 };
 
 export type GetStudyHistoriesResult = {
@@ -51,11 +58,12 @@ function mapStudyHistoryRow(row: StudyHistoryRow): StudyHistoryItem {
 export async function getStudyHistories({
     page,
     pageSize,
+    fromDate = null,
 }: GetStudyHistoriesParams): Promise<GetStudyHistoriesResult> {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    const { data, error, count } = await supabase
+    let query = supabase
         .from("flashcard_study_sessions")
         .select(
             [
@@ -73,6 +81,12 @@ export async function getStudyHistories({
         )
         .order("created_at", { ascending: false })
         .range(from, to);
+
+    if (fromDate) {
+        query = query.gte("created_at", fromDate);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) {
         throw error;
@@ -93,4 +107,35 @@ export async function deleteStudyHistory(historyId: string): Promise<void> {
     if (error) {
         throw error;
     }
+}
+
+export async function getStudyHistorySummary(
+    fromDate?: string | null,
+): Promise<StudyHistorySummary> {
+    let query = supabase
+        .from("flashcard_study_sessions")
+        .select("reviewed_count, remembered_count, forgot_count");
+
+    if (fromDate) {
+        query = query.gte("created_at", fromDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        throw error;
+    }
+
+    return (data ?? []).reduce(
+        (summary, row) => ({
+            reviewedCount: summary.reviewedCount + row.reviewed_count,
+            rememberedCount: summary.rememberedCount + row.remembered_count,
+            forgotCount: summary.forgotCount + row.forgot_count,
+        }),
+        {
+            reviewedCount: 0,
+            rememberedCount: 0,
+            forgotCount: 0,
+        },
+    );
 }

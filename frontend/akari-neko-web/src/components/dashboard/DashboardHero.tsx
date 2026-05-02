@@ -12,70 +12,43 @@ export function DashboardHero() {
         duration: 0.28,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="relative min-h-60 overflow-hidden rounded-[28px] border border-pink-100/80 bg-[linear-gradient(105deg,#fff2f7_0%,#fff7fb_42%,#eee8ff_100%)] px-5 py-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)] sm:min-h-65 sm:rounded-4xl sm:px-9 sm:py-8"
+      className="relative min-h-60 overflow-hidden rounded-[28px] border border-pink-100/80 bg-white px-5 py-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)] sm:min-h-65 sm:rounded-4xl sm:px-9 sm:py-8"
     >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-10 -top-8 h-44 w-44 rounded-full bg-pink-200/35 blur-3xl" />
-        <div className="absolute right-10 top-8 h-40 w-40 rounded-full bg-violet-200/35 blur-3xl" />
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: "url('/akari-assets/hero-bg.png')",
+        }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-white/78 via-white/28 to-white/0" />
+      <div className="absolute inset-0 bg-gradient-to-t from-pink-50/20 via-transparent to-transparent" />
 
-        <motion.div
-          animate={{ y: [0, -5, 0], rotate: [0, 2, 0] }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute left-0 top-0 text-6xl opacity-45 sm:text-7xl"
-        >
-          🌸
-        </motion.div>
+      <motion.div
+        animate={{ x: [0, 16, 0], y: [0, -8, 0], rotate: [0, 6, 0] }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="pointer-events-none absolute right-[18%] top-8 hidden text-2xl text-pink-300 sm:block"
+        aria-hidden="true"
+      >
+        ✿
+      </motion.div>
 
-        <motion.div
-          animate={{ y: [0, 6, 0], rotate: [0, -2, 0] }}
-          transition={{
-            duration: 4.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute right-8 top-14 text-5xl opacity-60 sm:text-6xl"
-        >
-          🌸
-        </motion.div>
-
-        <div className="absolute bottom-8 right-[30%] hidden text-4xl opacity-45 sm:block">
-          🌸
-        </div>
-
-        <div className="absolute bottom-0 right-[18%] hidden h-37.5 w-75 rounded-t-full bg-linear-to-t from-violet-300/45 to-violet-100/20 sm:block" />
-
-        <div className="absolute bottom-0 right-[22%] hidden h-33 w-62.5 rounded-t-full bg-linear-to-t from-slate-400/30 to-white/70 sm:block" />
-
-        <motion.div
-          animate={{ y: [0, -4, 0] }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute bottom-8 right-[14%] hidden text-8xl opacity-75 sm:block"
-        >
-          🗻
-        </motion.div>
-
-        <motion.div
-          animate={{ y: [0, -3, 0] }}
-          transition={{
-            duration: 4.2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute bottom-7 right-8 hidden text-7xl opacity-80 sm:block"
-        >
-          🏯
-        </motion.div>
-
-        <div className="absolute bottom-3 right-[12%] hidden h-2 w-80 rounded-full bg-pink-200/50 blur-sm sm:block" />
-      </div>
+      <motion.div
+        animate={{ x: [0, -18, 0], y: [0, 10, 0], rotate: [0, -8, 0] }}
+        transition={{
+          duration: 9,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="pointer-events-none absolute right-[8%] top-28 hidden text-xl text-pink-300 sm:block"
+        aria-hidden="true"
+      >
+        ✿
+      </motion.div>
 
       <div className="relative z-10 max-w-140">
         <motion.p
@@ -99,7 +72,7 @@ export function DashboardHero() {
             duration: 0.24,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="mt-3 text-sm font-medium text-slate-600 sm:text-base"
+          className="mt-3 text-sm font-medium text-slate-700 sm:text-base"
         >
           Hôm nay bạn muốn học gì nào?
         </motion.p>
@@ -132,7 +105,7 @@ export function DashboardHero() {
             duration: 0.16,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="mt-6 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm"
+          className="mt-6 rounded-2xl bg-white/95 px-5 py-3 text-sm font-bold text-slate-700 shadow-sm"
         >
           Continue studying N3 〉
         </motion.button>

@@ -1,15 +1,36 @@
 ﻿"use client";
 
 import { RefreshCcw, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
     deleteStudyHistory,
     getStudyHistories,
+    getStudyHistorySummary,
     type StudyHistoryItem,
+    type StudyHistorySummary,
 } from "@/services/studyHistoryService";
 
 const STUDY_HISTORY_PAGE_SIZE = 15;
+
+type StudyHistoryRange = "all" | "today" | "last7days";
+
+function getRangeStartDate(range: StudyHistoryRange) {
+    const date = new Date();
+
+    if (range === "today") {
+        date.setHours(0, 0, 0, 0);
+        return date.toISOString();
+    }
+
+    if (range === "last7days") {
+        date.setDate(date.getDate() - 7);
+        date.setHours(0, 0, 0, 0);
+        return date.toISOString();
+    }
+
+    return null;
+}
 
 function formatStudyDate(value: string) {
     return new Intl.DateTimeFormat("vi-VN", {
@@ -56,7 +77,14 @@ function getVisiblePageNumbers(currentPage: number, totalPages: number) {
 export function StudyHistoryPage() {
     const [histories, setHistories] = useState<StudyHistoryItem[]>([]);
     const [totalHistoryCount, setTotalHistoryCount] = useState(0);
+    const [historySummary, setHistorySummary] = useState<StudyHistorySummary>({
+        reviewedCount: 0,
+        rememberedCount: 0,
+        forgotCount: 0,
+    });
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedRange, setSelectedRange] =
+        useState<StudyHistoryRange>("all");
     const [isLoadingHistories, setIsLoadingHistories] = useState(false);
     const [historyLoadError, setHistoryLoadError] = useState<string | null>(null);
     const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(
@@ -77,24 +105,7 @@ export function StudyHistoryPage() {
         totalPages,
     );
 
-    const summary = useMemo(
-        () =>
-            histories.reduce(
-                (total, history) => ({
-                    reviewedCount: total.reviewedCount + history.reviewedCount,
-                    rememberedCount: total.rememberedCount + history.rememberedCount,
-                    forgotCount: total.forgotCount + history.forgotCount,
-                }),
-                {
-                    reviewedCount: 0,
-                    rememberedCount: 0,
-                    forgotCount: 0,
-                },
-            ),
-        [histories],
-    );
-
-    async function loadStudyHistories(page = currentPage) {
+    const loadStudyHistories = useCallback(async (page = currentPage) => {
         setIsLoadingHistories(true);
         setHistoryLoadError(null);
 
@@ -102,6 +113,7 @@ export function StudyHistoryPage() {
             const result = await getStudyHistories({
                 page,
                 pageSize: STUDY_HISTORY_PAGE_SIZE,
+                fromDate: getRangeStartDate(selectedRange),
             });
 
             setHistories(result.items);
@@ -112,7 +124,20 @@ export function StudyHistoryPage() {
         } finally {
             setIsLoadingHistories(false);
         }
-    }
+    }, [currentPage, selectedRange]);
+
+    const loadStudyHistorySummary = useCallback(async () => {
+        try {
+            const summary = await getStudyHistorySummary(
+                getRangeStartDate(selectedRange),
+            );
+
+            setHistorySummary(summary);
+        } catch (error) {
+            console.error("Failed to load study history summary:", error);
+            setHistoryLoadError("Không thể tải tổng thống kê lịch sử học.");
+        }
+    }, [selectedRange]);
 
     async function handleConfirmDeleteStudyHistory() {
         if (!historyPendingDelete) {
@@ -125,6 +150,7 @@ export function StudyHistoryPage() {
             await deleteStudyHistory(historyPendingDelete.id);
             setHistoryPendingDelete(null);
             await loadStudyHistories(safeCurrentPage);
+            await loadStudyHistorySummary();
         } catch (error) {
             console.error("Failed to delete study history:", error);
             setHistoryLoadError("Không thể xoá phiên học. Vui lòng thử lại.");
@@ -134,7 +160,8 @@ export function StudyHistoryPage() {
     }
     useEffect(() => {
         void loadStudyHistories(currentPage);
-    }, [currentPage]);
+        void loadStudyHistorySummary();
+    }, [currentPage, selectedRange, loadStudyHistories, loadStudyHistorySummary]);
 
     return (
         <>
@@ -168,15 +195,15 @@ export function StudyHistoryPage() {
                 <div className="rounded-[26px] border border-pink-100 bg-white/85 p-5 shadow-sm">
                     <p className="text-sm font-bold text-slate-500">Reviewed</p>
                     <p className="mt-2 text-3xl font-black text-slate-800">
-                        {summary.reviewedCount}
+                        {historySummary.reviewedCount}
                     </p>
-                    <p className="mt-1 text-sm text-slate-400">Trong trang hiện tại</p>
+                    <p className="mt-1 text-sm text-slate-400">Theo bộ lọc hiện tại</p>
                 </div>
 
                 <div className="rounded-[26px] border border-emerald-100 bg-emerald-50/80 p-5 shadow-sm">
                     <p className="text-sm font-bold text-emerald-600">Remembered</p>
                     <p className="mt-2 text-3xl font-black text-emerald-700">
-                        {summary.rememberedCount}
+                        {historySummary.rememberedCount}
                     </p>
                     <p className="mt-1 text-sm text-emerald-600/75">
                         Tổng số từ đã nhớ
@@ -186,7 +213,7 @@ export function StudyHistoryPage() {
                 <div className="rounded-[26px] border border-rose-100 bg-rose-50/80 p-5 shadow-sm">
                     <p className="text-sm font-bold text-rose-500">Forgot</p>
                     <p className="mt-2 text-3xl font-black text-rose-600">
-                        {summary.forgotCount}
+                        {historySummary.forgotCount}
                     </p>
                     <p className="mt-1 text-sm text-rose-500/75">
                         Tổng số từ đã quên
@@ -203,6 +230,30 @@ export function StudyHistoryPage() {
                         <p className="mt-1 text-sm text-slate-500">
                             {totalHistoryCount} phiên học đã lưu.
                         </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { label: "All", value: "all" },
+                            { label: "Today", value: "today" },
+                            { label: "Last 7 days", value: "last7days" },
+                        ].map((item) => (
+                            <button
+                                key={item.value}
+                                type="button"
+                                className={`h-10 rounded-2xl border px-4 text-sm font-bold shadow-sm transition ${
+                                    selectedRange === item.value
+                                        ? "border-pink-200 bg-pink-500 text-white"
+                                        : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                                }`}
+                                onClick={() => {
+                                    setSelectedRange(item.value as StudyHistoryRange);
+                                    setCurrentPage(1);
+                                }}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 

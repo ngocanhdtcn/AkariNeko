@@ -5,14 +5,15 @@ import {
   LineChart,
   Target,
 } from "lucide-react";
+import { DAILY_FLASHCARD_REVIEW_GOAL } from "@/config/studyGoalConfig";
+import { studyStatistics } from "@/data/dashboardData";
+import type { DashboardStats } from "@/services/dashboardStatsService";
 import { DailyGoalCard } from "./DailyGoalCard";
 import { ProgressRing } from "./ProgressRing";
 import { RecentStudySessionsCard } from "./RecentStudySessionsCard";
 import { StatisticCard } from "./StatisticCard";
 import { IconBadge } from "../ui/IconBadge";
 import { SoftPanel } from "../ui/SoftPanel";
-import { studyStatistics } from "@/data/dashboardData";
-import type { DashboardStats } from "@/services/dashboardStatsService";
 
 type RightStatsPanelProps = {
   dashboardStats: DashboardStats | null;
@@ -27,26 +28,20 @@ export function RightStatsPanel({
   errorMessage,
   onRefresh,
 }: RightStatsPanelProps) {
-
   const totalVocabularyCount = dashboardStats?.totalVocabularyCount ?? 0;
   const todayReviewedCount =
     dashboardStats?.todayFlashcardStudyStats.reviewedCount ?? 0;
-  const difficultVocabularyCount = dashboardStats?.difficultVocabularyCount ?? 0;
-  const recentImportCount = dashboardStats?.recentImportBatches.length ?? 0;
   const recentStudySessions = dashboardStats?.recentStudySessions ?? [];
+  const dailyGoalPercent = Math.min(
+    100,
+    Math.round((todayReviewedCount / DAILY_FLASHCARD_REVIEW_GOAL) * 100),
+  );
 
   const displayStudyStatistics = studyStatistics.map((statistic) => {
     if (statistic.label === "Từ vựng đã học") {
       return {
         ...statistic,
         value: isLoading ? "..." : String(totalVocabularyCount),
-      };
-    }
-
-    if (statistic.label === "Ôn hôm nay") {
-      return {
-        ...statistic,
-        value: isLoading ? "..." : String(todayReviewedCount),
       };
     }
 
@@ -67,19 +62,23 @@ export function RightStatsPanel({
         <div className="mb-5 flex items-center gap-3">
           <IconBadge icon={Target} />
 
-          <h3 className="text-xl font-black text-slate-800">Tiến độ hôm nay</h3>
+          <h3 className="text-xl font-black text-slate-800">
+            Tiến độ hôm nay
+          </h3>
         </div>
 
         <div className="flex items-center gap-5">
-          <ProgressRing percent={75} />
+          <ProgressRing percent={isLoading ? 0 : dailyGoalPercent} />
 
           <div className="grid flex-1 gap-4 text-sm text-slate-600">
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <BookOpen size={17} className="text-emerald-500" />
-                30 / 40 từ
+                {isLoading
+                  ? "..."
+                  : `${todayReviewedCount} / ${DAILY_FLASHCARD_REVIEW_GOAL} lượt`}
               </span>
-              <span className="text-xs text-slate-500">Từ vựng</span>
+              <span className="text-xs text-slate-500">Flashcard</span>
             </div>
 
             <div className="flex items-center justify-between gap-3">
@@ -113,12 +112,19 @@ export function RightStatsPanel({
 
           <button
             type="button"
-            className="ml-auto rounded-2xl border border-pink-100 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+            disabled={isLoading}
+            className="ml-auto rounded-2xl border border-pink-100 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={onRefresh}
           >
-            Refresh
+            {isLoading ? "Loading..." : "Refresh"}
           </button>
         </div>
+
+        {errorMessage ? (
+          <div className="mb-3 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-500">
+            {errorMessage}
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-3">
           {displayStudyStatistics.map((statistic) => (
@@ -139,7 +145,11 @@ export function RightStatsPanel({
         isLoading={isLoading}
       />
 
-      <DailyGoalCard />
+      <DailyGoalCard
+        reviewedCount={todayReviewedCount}
+        goalCount={DAILY_FLASHCARD_REVIEW_GOAL}
+        isLoading={isLoading}
+      />
     </aside>
   );
 }

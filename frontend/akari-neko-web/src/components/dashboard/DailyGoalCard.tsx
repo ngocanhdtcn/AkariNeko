@@ -5,50 +5,94 @@ import { motion } from "motion/react";
 import { IconBadge } from "../ui/IconBadge";
 import { SoftPanel } from "../ui/SoftPanel";
 
-export function DailyGoalCard() {
+type DailyGoalCardProps = {
+  reviewedCount: number;
+  goalCount: number;
+  isLoading: boolean;
+};
+
+export function DailyGoalCard({
+  reviewedCount,
+  goalCount,
+  isLoading,
+}: DailyGoalCardProps) {
+  const progressPercent =
+    goalCount > 0
+      ? Math.min(100, Math.round((reviewedCount / goalCount) * 100))
+      : 0;
+  const isCompleted = reviewedCount >= goalCount;
+  const remainingCount = Math.max(0, goalCount - reviewedCount);
+
   return (
-    <SoftPanel className="relative min-h-[230px] overflow-hidden bg-gradient-to-br from-white to-pink-50 p-5">
+    <SoftPanel className="relative min-h-[250px] overflow-hidden bg-gradient-to-br from-white via-white to-pink-50 p-5">
       <div className="mb-3 flex items-center gap-3">
         <IconBadge icon={Target} />
 
-        <h3 className="text-xl font-black text-slate-800">Mục tiêu mỗi ngày</h3>
+        <h3 className="text-xl font-black text-slate-800">
+          Mục tiêu mỗi ngày
+        </h3>
       </div>
 
-      <div className="flex items-end gap-2">
-        <p className="text-4xl font-black text-slate-800">40</p>
-        <p className="pb-1 text-base font-bold text-slate-500">/ 40 từ</p>
+      <div className="relative z-10 flex items-end gap-2">
+        <p className="text-4xl font-black text-slate-800">
+          {isLoading ? "..." : reviewedCount}
+        </p>
+        <p className="pb-1 text-base font-bold text-slate-500">
+          / {goalCount} lượt ôn
+        </p>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="relative z-10 mt-4 flex items-center gap-3">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-pink-100">
-          <div className="h-full w-full rounded-full bg-gradient-to-r from-pink-500 to-violet-500" />
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-pink-500 to-violet-500 transition-all duration-300"
+            style={{ width: `${isLoading ? 0 : progressPercent}%` }}
+          />
         </div>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-500 text-white shadow-md">
+        <div
+          className={`flex h-9 w-9 items-center justify-center rounded-full text-white shadow-md ${
+            isCompleted ? "bg-pink-500" : "bg-slate-300"
+          }`}
+        >
           <Check size={20} strokeWidth={3} />
         </div>
       </div>
 
-      <div className="mt-6 w-[62%] rounded-2xl border border-pink-100 bg-white/85 p-3 text-sm font-semibold leading-6 text-slate-600 shadow-sm">
-        Yay! Bạn đã hoàn thành mục tiêu hôm nay! Cố gắng tiếp tục nhé! ✨
+      <div className="relative z-10 mt-6 w-[58%] rounded-2xl border border-pink-100 bg-white/90 p-3 text-sm font-semibold leading-6 text-slate-600 shadow-sm backdrop-blur">
+        <p className="font-black text-pink-500">
+          {isLoading ? "..." : `${progressPercent}%`}
+        </p>
+        <p className="mt-1">
+          {isLoading
+            ? "Đang tải tiến độ hôm nay..."
+            : isCompleted
+              ? "Yay! Bạn đã hoàn thành mục tiêu hôm nay. Cố gắng tiếp tục nhé!"
+              : `Còn ${remainingCount} lượt ôn nữa để hoàn thành.`}
+        </p>
       </div>
 
-      <motion.div
-        animate={{ y: [0, -6, 0] }}
+      <motion.img
+        src="/akari-assets/cat-goal.png"
+        alt=""
+        animate={{ y: [0, -5, 0] }}
         transition={{
           duration: 3,
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        whileHover={{ rotate: -5, scale: 1.08 }}
-        className="absolute bottom-2 right-2 text-8xl drop-shadow-sm"
-      >
-        🐱
-      </motion.div>
+        whileHover={{ rotate: -4, scale: 1.05 }}
+        className="absolute -bottom-1 right-2 h-[10.5rem] w-[10.5rem] object-contain drop-shadow-sm"
+      />
 
-      <div className="pointer-events-none absolute bottom-8 right-28 text-xl text-pink-300">
-        🌸
-      </div>
+      <span className="absolute bottom-12 right-36 text-lg text-pink-300">
+        ✿
+      </span>
+      {isCompleted ? (
+        <span className="absolute right-4 top-4 text-xl text-yellow-300">
+          ✦
+        </span>
+      ) : null}
     </SoftPanel>
   );
 }

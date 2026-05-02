@@ -1,0 +1,1 @@
+export const DAILY_FLASHCARD_REVIEW_GOAL = 40;

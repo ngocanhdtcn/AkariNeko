@@ -1,4 +1,5 @@
 "use client";
+
 import { BookOpen, MoreHorizontal, Star, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -6,6 +7,10 @@ import {
   type VocabularyListItem,
 } from "@/services/vocabularyService";
 import { SoftPanel } from "../ui/SoftPanel";
+
+type RecentVocabularyTableProps = {
+  refreshKey?: number;
+};
 
 function DifficultyStars({ count }: { count: number }) {
   return (
@@ -37,7 +42,9 @@ function getDifficultyStarCount(vocabulary: VocabularyListItem) {
   return 1;
 }
 
-export function RecentVocabularyTable() {
+export function RecentVocabularyTable({
+  refreshKey = 0,
+}: RecentVocabularyTableProps) {
   const [recentVocabularies, setRecentVocabularies] = useState<
     VocabularyListItem[]
   >([]);
@@ -63,10 +70,10 @@ export function RecentVocabularyTable() {
   }
 
   useEffect(() => {
-    // Load recent vocabulary when the dashboard mounts.
+    // Reload when the dashboard refresh button completes a stats refresh.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadRecentVocabularies();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <SoftPanel className="p-4 sm:p-5">
@@ -124,9 +131,7 @@ export function RecentVocabularyTable() {
                 </p>
               </div>
 
-              <DifficultyStars
-                count={getDifficultyStarCount(vocabulary)}
-              />
+              <DifficultyStars count={getDifficultyStarCount(vocabulary)} />
             </div>
           </div>
         ))}
@@ -195,9 +200,7 @@ export function RecentVocabularyTable() {
                 {vocabulary.wrongCount}
               </div>
 
-              <DifficultyStars
-                count={getDifficultyStarCount(vocabulary)}
-              />
+              <DifficultyStars count={getDifficultyStarCount(vocabulary)} />
 
               <div>
                 <button

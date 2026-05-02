@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  getDashboardStats,
+  type DashboardStats,
+} from "@/services/dashboardStatsService";
 import { AppShell } from "../layout/AppShell";
 import { DashboardHero } from "./DashboardHero";
 import { MobileStatsSection } from "./MobileStatsSection";
 import { RecentVocabularyTable } from "./RecentVocabularyTable";
 import { RightStatsPanel } from "./RightStatsPanel";
 import { StudyShortcutCards } from "./StudyShortcutCards";
-import {
-  getDashboardStats,
-  type DashboardStats,
-} from "@/services/dashboardStatsService";
 
 export function DashboardLayout() {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
@@ -20,18 +20,27 @@ export function DashboardLayout() {
   const [dashboardStatsError, setDashboardStatsError] = useState<string | null>(
     null,
   );
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+  const isLoadingDashboardStatsRef = useRef(false);
 
   async function loadDashboardStats() {
+    if (isLoadingDashboardStatsRef.current) {
+      return;
+    }
+
+    isLoadingDashboardStatsRef.current = true;
     setIsLoadingDashboardStats(true);
     setDashboardStatsError(null);
 
     try {
       const stats = await getDashboardStats();
       setDashboardStats(stats);
+      setDashboardRefreshKey((current) => current + 1);
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
       setDashboardStatsError("Không thể tải thống kê học tập.");
     } finally {
+      isLoadingDashboardStatsRef.current = false;
       setIsLoadingDashboardStats(false);
     }
   }
@@ -56,7 +65,7 @@ export function DashboardLayout() {
       <DashboardHero />
       <MobileStatsSection />
       <StudyShortcutCards />
-      <RecentVocabularyTable />
+      <RecentVocabularyTable refreshKey={dashboardRefreshKey} />
     </AppShell>
   );
 }

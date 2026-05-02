@@ -5,6 +5,9 @@ export type DashboardMenuItem = {
   label: string;
   href: string;
   active: boolean;
+  iconClassName?: string;
+  activeIconClassName?: string;
+  activeItemClassName?: string;
 };
 
 export type MobileNavItem = {
