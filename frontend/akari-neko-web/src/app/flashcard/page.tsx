@@ -1,15 +1,10 @@
-import { WalletCards } from "lucide-react";
-import { ComingSoonPage } from "@/components/common/ComingSoonPage";
+import { FlashcardPage } from "@/components/flashcard/FlashcardPage";
 import { AppShell } from "@/components/layout/AppShell";
 
-export default function FlashcardPage() {
-  return (
-    <AppShell>
-      <ComingSoonPage
-        icon={WalletCards}
-        title="Flashcard"
-        description="Trang flashcard sẽ dùng để ôn từ vựng và ngữ pháp với hiệu ứng lật thẻ, đánh dấu biết/chưa biết và ghi nhớ từ khó."
-      />
-    </AppShell>
-  );
+export default function Page() {
+    return (
+        <AppShell>
+            <FlashcardPage />
+        </AppShell>
+    );
 }
