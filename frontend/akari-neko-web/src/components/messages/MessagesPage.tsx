@@ -38,8 +38,8 @@ export function MessagesPage() {
         Record<string, PublicProfile>
     >({});
     const senderProfilesRef = useRef<Record<string, PublicProfile>>({});
-
-    const bottomRef = useRef<HTMLDivElement | null>(null);
+    const chatScrollRef = useRef<HTMLDivElement | null>(null);
+    const previousMessageCountRef = useRef(0);
 
     function getSenderName(senderId: string) {
         if (senderId === profile?.id) {
@@ -151,10 +151,24 @@ export function MessagesPage() {
     }, [loadMessages, loadMissingSenderProfiles]);
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({
-            behavior: "smooth",
+        const chatScrollElement = chatScrollRef.current;
+
+        if (!chatScrollElement || messages.length === 0 || isLoadingMessages) {
+            return;
+        }
+
+        const shouldAnimate = previousMessageCountRef.current > 0;
+        previousMessageCountRef.current = messages.length;
+
+        const animationFrameId = window.requestAnimationFrame(() => {
+            chatScrollElement.scrollTo({
+                top: chatScrollElement.scrollHeight,
+                behavior: shouldAnimate ? "smooth" : "auto",
+            });
         });
-    }, [messages]);
+
+        return () => window.cancelAnimationFrame(animationFrameId);
+    }, [isLoadingMessages, messages.length]);
 
     useEffect(() => {
         void resetUnreadMessageCount();
@@ -199,7 +213,10 @@ export function MessagesPage() {
                         </div>
                     ) : null}
 
-                    <div className="grid h-[540px] content-start gap-3 overflow-y-auto bg-gradient-to-b from-white via-white to-pink-50/20 px-5 py-5">
+                    <div
+                        ref={chatScrollRef}
+                        className="grid h-[540px] content-start gap-3 overflow-y-auto bg-gradient-to-b from-white via-white to-pink-50/20 px-5 py-5"
+                    >
                         {isLoadingMessages ? (
                             <div className="rounded-2xl border border-pink-50 bg-white px-4 py-6 text-center text-sm font-bold text-slate-400">
                                 Đang tải tin nhắn...
@@ -268,8 +285,6 @@ export function MessagesPage() {
                                 Chưa có tin nhắn nào.
                             </div>
                         )}
-
-                        <div ref={bottomRef} />
                     </div>
 
                     <div className="border-t border-pink-50 bg-white/95 p-4">
