@@ -385,3 +385,43 @@ body {
     overflow-y: hidden;
   }
 }
+
+.akari-auth-page[data-akari-auth-theme="light"] {
+  color-scheme: light;
+}
+
+@media (max-width: 767px) {
+  .akari-auth-page {
+    background-size: cover !important;
+  }
+}
+
+:is(html.dark, body.dark) .akari-auth-page[data-akari-auth-theme="light"] {
+  color: rgb(30 41 59);
+}
+
+:is(html.dark, body.dark) .akari-auth-page[data-akari-auth-theme="light"] :is(.bg-white\/70, .bg-white\/68, .bg-white\/65, .bg-white\/42, .bg-white\/30, .bg-white\/80) {
+  background-color: rgb(255 255 255 / 0.72);
+}
+
+:is(html.dark, body.dark) .akari-auth-page[data-akari-auth-theme="light"] .bg-white\/80 {
+  background-color: rgb(255 255 255 / 0.86);
+}
+
+:is(html.dark, body.dark) .akari-auth-page[data-akari-auth-theme="light"] :is(.text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600, .text-slate-500) {
+  color: rgb(30 41 59);
+}
+
+:is(html.dark, body.dark) .akari-auth-page[data-akari-auth-theme="light"] input {
+  background-color: transparent;
+  border-color: transparent;
+  color: rgb(30 41 59);
+}
+
+:is(html.dark, body.dark) .akari-auth-page[data-akari-auth-theme="light"] input::placeholder {
+  color: rgb(148 163 184);
+}
+
+:is(html.dark, body.dark) .akari-auth-page[data-akari-auth-theme="light"] .akari-wordmark p {
+  color: rgb(71 85 105);
+}
