@@ -178,10 +178,12 @@ export function FlashcardPage() {
     }, [selectedLevel, selectedBook]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadFilterOptions(selectedLevel, selectedBook);
     }, [selectedLevel, selectedBook, loadFilterOptions]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadFlashcards();
     }, [loadFlashcards]);
 
@@ -446,19 +448,23 @@ export function FlashcardPage() {
                     </div>
                 ) : currentVocabulary ? (
                     <div className="grid gap-5">
-                        <div className="flex items-center justify-between gap-3">
-                            <span className="rounded-2xl bg-pink-50 px-4 py-2 text-sm font-bold text-pink-500">
-                                {progressText}
-                            </span>
+                        <div className="grid gap-3">
+                            <div className="flex min-w-0 items-center justify-between gap-3">
+                                <span className="shrink-0 rounded-2xl bg-pink-50 px-4 py-2 text-sm font-bold text-pink-500">
+                                    {progressText}
+                                </span>
 
-                            <div className="flex flex-wrap items-center justify-end gap-2 text-sm font-bold text-slate-500">
-                                <span>{currentVocabulary.level}</span>
-                                <span>・</span>
-                                <span>{currentVocabulary.book}</span>
-                                <span>・</span>
-                                <span>{currentVocabulary.chapter}</span>
+                                <div className="ml-auto flex min-w-0 items-center justify-end gap-2 text-right text-sm font-bold text-slate-500">
+                                    <span className="shrink-0">{currentVocabulary.level}</span>
+                                    <span className="shrink-0">・</span>
+                                    <span className="truncate">{currentVocabulary.book}</span>
+                                    <span className="shrink-0">・</span>
+                                    <span className="truncate">{currentVocabulary.chapter}</span>
+                                </div>
+                            </div>
 
-                                <span className="ml-2 rounded-full bg-emerald-50 px-3 py-1 text-emerald-600">
+                            <div className="flex flex-wrap items-center justify-center gap-2 text-sm font-bold">
+                                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-600">
                                     Correct {currentVocabulary.correctCount}
                                 </span>
 
@@ -512,38 +518,36 @@ export function FlashcardPage() {
                             )}
                         </button>
 
-                        <div className="grid gap-3 lg:grid-cols-[auto_1fr_auto] lg:items-center">
+                        <div className="grid grid-cols-4 gap-2 lg:grid-cols-[auto_1fr_1fr_auto] lg:items-center">
                             <button
                                 type="button"
-                                className="h-12 rounded-2xl border border-pink-100 bg-white px-5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                                className="h-12 rounded-2xl border border-pink-100 bg-white px-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 sm:px-5 sm:text-sm"
                                 onClick={handlePreviousCard}
                             >
-                                Previous
+                                Prev
                             </button>
-
-                            <div className="flex flex-wrap justify-center gap-3">
-                                <button
-                                    type="button"
-                                    disabled={isReviewing}
-                                    className="h-12 rounded-2xl border border-rose-100 bg-rose-50 px-6 text-sm font-bold text-rose-500 shadow-sm transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                    onClick={() => void handleReviewFlashcard("forgot")}
-                                >
-                                    {isReviewing ? "Saving..." : "Forgot"}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    disabled={isReviewing}
-                                    className="h-12 rounded-2xl border border-emerald-100 bg-emerald-50 px-6 text-sm font-bold text-emerald-600 shadow-sm transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                    onClick={() => void handleReviewFlashcard("remember")}
-                                >
-                                    {isReviewing ? "Saving..." : "Remember"}
-                                </button>
-                            </div>
 
                             <button
                                 type="button"
-                                className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-6 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105"
+                                disabled={isReviewing}
+                                className="h-12 rounded-2xl border border-rose-100 bg-rose-50 px-2 text-xs font-bold text-rose-500 shadow-sm transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:text-sm"
+                                onClick={() => void handleReviewFlashcard("forgot")}
+                            >
+                                {isReviewing ? "..." : "Forgot"}
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled={isReviewing}
+                                className="h-12 rounded-2xl border border-emerald-100 bg-emerald-50 px-2 text-xs font-bold text-emerald-600 shadow-sm transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:text-sm"
+                                onClick={() => void handleReviewFlashcard("remember")}
+                            >
+                                {isReviewing ? "..." : "Remember"}
+                            </button>
+
+                            <button
+                                type="button"
+                                className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-2 text-xs font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 sm:px-6 sm:text-sm"
                                 onClick={handleNextCard}
                             >
                                 Next

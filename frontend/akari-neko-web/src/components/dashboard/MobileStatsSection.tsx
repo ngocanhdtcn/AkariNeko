@@ -9,7 +9,9 @@ export function MobileStatsSection() {
     <section className="grid gap-4 lg:hidden">
       <div className="rounded-[26px] border border-pink-100/80 bg-white/90 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.09)]">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xl font-black text-slate-800">Tiến độ hôm nay</h3>
+          <h3 className="text-xl font-black text-slate-800">
+            Tiến độ hôm nay
+          </h3>
 
           <ChevronRight size={20} className="text-slate-400" />
         </div>
@@ -44,7 +46,7 @@ export function MobileStatsSection() {
           Kiên trì là sức mạnh.
         </p>
 
-        <div className="mt-5 inline-flex gap-2 rounded-2xl bg-white/80 p-3 shadow-sm">
+        <div className="relative z-10 mt-5 inline-flex gap-2 rounded-2xl bg-white/80 p-3 shadow-sm">
           {["✓", "✓", "✓", "✓", "T", "T"].map((item, index) => (
             <span
               key={`${item}-${index}`}
@@ -55,7 +57,9 @@ export function MobileStatsSection() {
           ))}
         </div>
 
-        <motion.div
+        <motion.img
+          src="/akari-assets/cat-goal.png"
+          alt=""
           animate={{ y: [0, -6, 0] }}
           transition={{
             duration: 3,
@@ -63,10 +67,8 @@ export function MobileStatsSection() {
             ease: "easeInOut",
           }}
           whileHover={{ rotate: -5, scale: 1.08 }}
-          className="absolute bottom-0 right-4 text-8xl"
-        >
-          🐱
-        </motion.div>
+          className="absolute -bottom-1 right-2 h-[8.25rem] w-[8.25rem] object-contain drop-shadow-sm"
+        />
       </div>
 
       <section className="rounded-[26px] border border-pink-100/80 bg-white/90 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.09)]">

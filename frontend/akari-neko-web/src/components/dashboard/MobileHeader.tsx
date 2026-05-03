@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
+import { MessageCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,9 +45,10 @@ export function MobileHeader() {
 
         <Link
           href="/messages"
+          aria-label="Messages"
           className="relative flex h-11 w-11 items-center justify-center rounded-full border border-pink-100 bg-white text-slate-700 shadow-sm"
         >
-          <Bell size={20} />
+          <MessageCircle size={20} />
 
           {unreadMessageCount > 0 ? (
             <span className="absolute -right-1 -top-1 rounded-full bg-pink-500 px-1.5 py-0.5 text-[10px] font-bold text-white">

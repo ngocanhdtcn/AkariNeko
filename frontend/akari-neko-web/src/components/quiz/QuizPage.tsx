@@ -234,11 +234,15 @@ export function QuizPage() {
     }
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadFilterOptions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadQuiz();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedLevel, selectedBook, selectedChapter, onlyDifficult]);
 
     async function handleSaveQuizSession() {
@@ -441,17 +445,17 @@ export function QuizPage() {
                     </div>
                 ) : currentQuestion ? (
                     <div className="grid gap-5">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <span className="rounded-2xl bg-pink-50 px-4 py-2 text-sm font-bold text-pink-500">
+                        <div className="flex min-w-0 items-center justify-between gap-3">
+                            <span className="shrink-0 rounded-2xl bg-pink-50 px-4 py-2 text-sm font-bold text-pink-500">
                                 {progressText}
                             </span>
 
-                            <div className="flex flex-wrap gap-2 text-sm font-bold text-slate-500">
-                                <span>{currentQuestion.vocabulary.level}</span>
+                            <div className="ml-auto flex min-w-0 items-center justify-end gap-2 text-right text-sm font-bold text-slate-500">
+                                <span className="shrink-0">{currentQuestion.vocabulary.level}</span>
                                 <span>・</span>
-                                <span>{currentQuestion.vocabulary.book}</span>
+                                <span className="truncate">{currentQuestion.vocabulary.book}</span>
                                 <span>・</span>
-                                <span>{currentQuestion.vocabulary.chapter}</span>
+                                <span className="truncate">{currentQuestion.vocabulary.chapter}</span>
                             </div>
                         </div>
 
@@ -507,9 +511,16 @@ export function QuizPage() {
                         </div>
 
                         <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm font-bold text-slate-500">
-                                Correct: <span className="text-emerald-600">{correctCount}</span>{" "}
-                                ・ Wrong: <span className="text-rose-500">{wrongCount}</span>
+                            <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-bold">
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-emerald-600 shadow-sm">
+                                    <CheckCircle2 size={15} />
+                                    Correct {correctCount}
+                                </span>
+
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-rose-500 shadow-sm">
+                                    <XCircle size={15} />
+                                    Wrong {wrongCount}
+                                </span>
                             </div>
 
                             <button

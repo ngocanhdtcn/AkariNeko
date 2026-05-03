@@ -233,7 +233,7 @@ export function VocabularyPage() {
   }
 
   function getVisiblePageNumbers(currentPageNumber: number, totalPageCount: number) {
-    const maxVisiblePages = 5;
+    const maxVisiblePages = 3;
     const halfVisiblePages = Math.floor(maxVisiblePages / 2);
 
     let startPage = Math.max(1, currentPageNumber - halfVisiblePages);
@@ -773,11 +773,11 @@ export function VocabularyPage() {
                 {displayVocabularies.length} / {totalVocabularyCount} từ
               </p>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
                 <button
                   type="button"
                   disabled={safeCurrentPage <= 1}
-                  className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="h-10 shrink-0 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
                   onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                 >
                   Prev
@@ -787,14 +787,14 @@ export function VocabularyPage() {
                   <>
                     <button
                       type="button"
-                      className="h-10 min-w-10 rounded-2xl border border-pink-100 bg-white px-3 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                      className="h-10 min-w-10 shrink-0 rounded-2xl border border-pink-100 bg-white px-3 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
                       onClick={() => setCurrentPage(1)}
                     >
                       1
                     </button>
 
                     {visiblePageNumbers[0] > 2 ? (
-                      <span className="px-1 text-sm font-bold text-slate-400">...</span>
+                      <span className="shrink-0 px-1 text-sm font-bold text-slate-400">...</span>
                     ) : null}
                   </>
                 ) : null}
@@ -806,7 +806,7 @@ export function VocabularyPage() {
                     <button
                       key={pageNumber}
                       type="button"
-                      className={`h-10 min-w-10 rounded-2xl border px-3 text-sm font-bold shadow-sm transition ${isActivePage
+                      className={`h-10 min-w-10 shrink-0 rounded-2xl border px-3 text-sm font-bold shadow-sm transition ${isActivePage
                         ? "border-pink-200 bg-pink-500 text-white"
                         : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
                         }`}
@@ -821,12 +821,12 @@ export function VocabularyPage() {
                   <>
                     {visiblePageNumbers[visiblePageNumbers.length - 1] <
                       totalPages - 1 ? (
-                      <span className="px-1 text-sm font-bold text-slate-400">...</span>
+                      <span className="shrink-0 px-1 text-sm font-bold text-slate-400">...</span>
                     ) : null}
 
                     <button
                       type="button"
-                      className="h-10 min-w-10 rounded-2xl border border-pink-100 bg-white px-3 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                      className="h-10 min-w-10 shrink-0 rounded-2xl border border-pink-100 bg-white px-3 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
                       onClick={() => setCurrentPage(totalPages)}
                     >
                       {totalPages}
@@ -837,7 +837,7 @@ export function VocabularyPage() {
                 <button
                   type="button"
                   disabled={safeCurrentPage >= totalPages}
-                  className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="h-10 shrink-0 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
                   onClick={() =>
                     setCurrentPage((page) => Math.min(totalPages, page + 1))
                   }
