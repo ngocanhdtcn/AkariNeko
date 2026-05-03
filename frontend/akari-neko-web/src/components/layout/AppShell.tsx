@@ -46,16 +46,16 @@ export function AppShell({ children, rightPanel }: AppShellProps) {
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-[linear-gradient(135deg,#fff8fb,#fffdf8_48%,#f7f2ff)] p-4 text-slate-800">
+    <main className="akari-mobile-scroll overflow-x-hidden bg-[linear-gradient(135deg,#fff8fb,#fffdf8_48%,#f7f2ff)] p-2 text-slate-800 sm:p-4 lg:h-screen lg:overflow-hidden">
       <div
-        className={`mx-auto grid h-full w-full max-w-[1740px] gap-4 transition-[grid-template-columns] duration-300 ease-out ${isSidebarCollapsed
+        className={`mx-auto grid w-full max-w-[1740px] gap-3 transition-[grid-template-columns] duration-300 ease-out sm:gap-4 lg:h-full ${isSidebarCollapsed
           ? "lg:grid-cols-[112px_minmax(0,1fr)]"
           : "lg:grid-cols-[300px_minmax(0,1fr)]"
           }`}
       >
         <DashboardSidebar isCollapsed={isSidebarCollapsed} />
 
-        <section className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-4">
+        <section className="grid min-w-0 gap-3 sm:gap-4 lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
           <MobileHeader />
 
           <DashboardTopBar
@@ -63,7 +63,7 @@ export function AppShell({ children, rightPanel }: AppShellProps) {
             onToggleSidebar={toggleSidebar}
           />
 
-          <div className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pb-28 pr-1 lg:pb-0">
+          <div className="min-w-0 overflow-x-hidden pb-28 lg:min-h-0 lg:overflow-y-auto lg:pb-0 lg:pr-1">
             {rightPanel ? (
               <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <section className="grid min-w-0 content-start gap-4">
