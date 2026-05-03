@@ -5,16 +5,9 @@ import type {
 
 const jlptLevelOptions = ["Unknown", "N5", "N4", "N3", "N2", "N1"];
 
-const bookOptions = [
-    "JLPT Vocabulary",
-    "JTest",
-    "Minna no Nihongo",
-    "Soumatome",
-    "Shinkanzen Master",
-];
-
 type HtmlFilePreviewGridProps = {
     rows: ImportPreviewRow[];
+    bookOptions: string[];
     onMetadataChange: (
         filePath: string,
         field: ImportMetadataField,
@@ -24,8 +17,13 @@ type HtmlFilePreviewGridProps = {
 
 export function HtmlFilePreviewGrid({
     rows,
+    bookOptions,
     onMetadataChange,
 }: HtmlFilePreviewGridProps) {
+    const resolvedBookOptions = Array.from(
+        new Set([...bookOptions, ...rows.map((row) => row.book).filter(Boolean)]),
+    );
+
     return (
         <div className="mt-5 overflow-hidden rounded-2xl border border-pink-50">
             <div className="overflow-x-auto">
@@ -89,7 +87,7 @@ export function HtmlFilePreviewGrid({
                                             )
                                         }
                                     >
-                                        {bookOptions.map((book) => (
+                                        {resolvedBookOptions.map((book) => (
                                             <option key={book} value={book}>
                                                 {book}
                                             </option>

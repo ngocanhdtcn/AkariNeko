@@ -42,6 +42,7 @@ export function ImportVocabularyModal({
     parsedImportFiles,
     importResult,
     importError,
+    bookOptions,
     totalFiles,
     totalSizeText,
     displayFileRows,
@@ -177,6 +178,7 @@ export function ImportVocabularyModal({
 
                   <HtmlFilePreviewGrid
                     rows={displayFileRows}
+                    bookOptions={bookOptions}
                     onMetadataChange={handleMetadataChange}
                   />
 

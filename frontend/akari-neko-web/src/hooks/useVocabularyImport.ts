@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { parseVocabularyHtml } from "@/lib/htmlVocabularyParser";
 import {
     buildImportGroupName,
@@ -17,6 +17,7 @@ import type {
 } from "@/types/vocabularyImport";
 
 import { importVocabularies } from "@/services/vocabularyImportService";
+import { getVocabularyFilterOptions } from "@/services/vocabularyService";
 
 type ImportResult = {
     importedCount: number;
@@ -46,8 +47,23 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
     const [parsedImportFiles, setParsedImportFiles] = useState<ParsedImportFile[]>(
         [],
     );
+    const [bookOptions, setBookOptions] = useState<string[]>([]);
     const [importResult, setImportResult] = useState<ImportResult | null>(null);
     const [importError, setImportError] = useState<string | null>(null);
+
+    const loadBookOptions = useCallback(async () => {
+        try {
+            const options = await getVocabularyFilterOptions();
+            setBookOptions(options.books);
+        } catch (error) {
+            console.error("Failed to load import book options:", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void loadBookOptions();
+    }, [loadBookOptions]);
 
     function resetImportState() {
         setSelectedFiles([]);
@@ -71,7 +87,7 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
     }
 
     function handleFileChange(fileList: FileList | null) {
-        const htmlFiles = mapSelectedFiles(fileList, isFolderImport);
+        const htmlFiles = mapSelectedFiles(fileList, isFolderImport, bookOptions);
 
         setSelectedFiles(htmlFiles);
         setPreviewRows([]);
@@ -359,6 +375,7 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
         parsedImportFiles,
         importResult,
         importError,
+        bookOptions,
         totalFiles,
         totalSize,
         totalSizeText: formatFileSize(totalSize),
