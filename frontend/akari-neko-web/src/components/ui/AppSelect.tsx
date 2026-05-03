@@ -62,7 +62,10 @@ export function AppSelect({
   }
 
   return (
-    <div ref={selectRef} className="relative z-40 grid gap-2">
+    <div
+      ref={selectRef}
+      className={`relative grid gap-2 ${isOpen ? "z-[90]" : "z-40"}`}
+    >
       <span className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
         {label}
         {isLoading ? (
@@ -91,7 +94,7 @@ export function AppSelect({
       </button>
 
       {isOpen ? (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-50 max-h-64 w-full min-w-28 overflow-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max">
+        <div className="akari-select-menu absolute left-0 top-[calc(100%+8px)] z-[100] max-h-64 w-full min-w-28 overflow-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max">
           {items.map((item) => {
             const isSelected = item === value;
 

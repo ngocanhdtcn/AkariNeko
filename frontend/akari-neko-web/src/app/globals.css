@@ -425,3 +425,9 @@ body {
 :is(html.dark, body.dark) .akari-auth-page[data-akari-auth-theme="light"] .akari-wordmark p {
   color: rgb(71 85 105);
 }
+
+:is(html.dark, body.dark) .akari-select-menu {
+  background-color: rgb(15 23 42) !important;
+  border-color: rgb(196 181 253 / 0.18) !important;
+  box-shadow: 0 20px 54px rgb(0 0 0 / 0.42) !important;
+}

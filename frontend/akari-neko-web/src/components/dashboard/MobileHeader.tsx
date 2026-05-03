@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Search } from "lucide-react";
+import { LogOut, MessageCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,7 +12,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 export function MobileHeader() {
   const pathname = usePathname();
   const currentPageTitle = getCurrentPageTitle(pathname);
-  const { profile } = useAuth();
+  const { profile, logout } = useAuth();
   const { unreadMessageCount } = useMessageNotification();
 
   return (
@@ -68,6 +68,15 @@ export function MobileHeader() {
             className="h-10 w-10 rounded-full text-sm"
           />
         </Link>
+
+        <button
+          type="button"
+          aria-label="Log out"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-pink-100 bg-white text-slate-700 shadow-sm transition hover:bg-rose-50 hover:text-rose-500"
+          onClick={() => void logout()}
+        >
+          <LogOut size={18} />
+        </button>
       </div>
     </header>
   );
