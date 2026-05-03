@@ -41,6 +41,38 @@ function buildDuplicateKey({
   ].map(normalizeDuplicateKeyPart).join("|");
 }
 
+function getSupabaseErrorMessage(
+  action: string,
+  error: {
+    message?: string;
+    details?: string | null;
+    hint?: string | null;
+    code?: string;
+  },
+) {
+  return [
+    action,
+    error.message,
+    error.details ? `Details: ${error.details}` : null,
+    error.hint ? `Hint: ${error.hint}` : null,
+    error.code ? `Code: ${error.code}` : null,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function throwSupabaseError(
+  action: string,
+  error: {
+    message?: string;
+    details?: string | null;
+    hint?: string | null;
+    code?: string;
+  },
+): never {
+  throw new Error(getSupabaseErrorMessage(action, error));
+}
+
 export async function importVocabularies(
   payload: ImportVocabularyPayload,
 ): Promise<ImportVocabularyResponse> {
@@ -72,12 +104,12 @@ export async function importVocabularies(
     .single();
 
   if (batchError) {
-    throw batchError;
+    throwSupabaseError("Cannot create import batch.", batchError);
   }
 
   let importedCount = 0;
   let duplicateCount = 0;
-  let errorCount = 0;
+  const errorCount = 0;
 
   for (const file of validFiles) {
     const { data: batchFile, error: batchFileError } = await supabase
@@ -98,8 +130,10 @@ export async function importVocabularies(
       .single();
 
     if (batchFileError) {
-      errorCount += file.vocabularies.length;
-      continue;
+      throwSupabaseError(
+        `Cannot create import batch file for "${file.fileName}".`,
+        batchFileError,
+      );
     }
 
     const vocabularyRows = file.vocabularies.map((vocabulary) => ({
@@ -121,8 +155,10 @@ export async function importVocabularies(
       .eq("chapter", file.chapter.trim());
 
     if (existingRowsError) {
-      errorCount += vocabularyRows.length;
-      continue;
+      throwSupabaseError(
+        `Cannot check existing vocabularies for "${file.fileName}".`,
+        existingRowsError,
+      );
     }
 
     const existingKeys = new Set(
@@ -163,9 +199,10 @@ export async function importVocabularies(
       .select("id");
 
     if (vocabularyError) {
-      errorCount += newVocabularyRows.length;
-      duplicateCount += fileDuplicateCount;
-      continue;
+      throwSupabaseError(
+        `Cannot insert vocabularies from "${file.fileName}".`,
+        vocabularyError,
+      );
     }
 
     const fileImportedCount = insertedRows?.length ?? 0;

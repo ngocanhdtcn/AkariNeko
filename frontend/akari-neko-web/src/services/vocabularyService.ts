@@ -21,6 +21,7 @@ export type GetVocabulariesParams = {
     level?: string;
     book?: string;
     chapter?: string;
+    chapters?: string[];
     onlyDifficult?: boolean;
 };
 
@@ -49,6 +50,9 @@ export type VocabularyFilterOptions = {
     chapters: string[];
 };
 
+const JLPT_LEVEL_ORDER = ["N5", "N4", "N3", "N2", "N1"];
+const VOCABULARY_OPTION_PAGE_SIZE = 1000;
+
 export class DuplicateVocabularyError extends Error {
     constructor() {
         super("Vocabulary already exists in the selected Book / Level / Chapter.");
@@ -72,6 +76,80 @@ function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
     };
 }
 
+type VocabularyOptionRow = {
+    level?: string | null;
+    book?: string | null;
+    chapter?: string | null;
+};
+
+function sortJlptLevels(levels: string[]) {
+    return [...levels].sort((firstLevel, secondLevel) => {
+        const firstIndex = JLPT_LEVEL_ORDER.indexOf(firstLevel);
+        const secondIndex = JLPT_LEVEL_ORDER.indexOf(secondLevel);
+
+        if (firstIndex !== -1 && secondIndex !== -1) {
+            return firstIndex - secondIndex;
+        }
+
+        if (firstIndex !== -1) {
+            return -1;
+        }
+
+        if (secondIndex !== -1) {
+            return 1;
+        }
+
+        return firstLevel.localeCompare(secondLevel);
+    });
+}
+
+function getUniqueStringOptions(values: Array<string | null | undefined>) {
+    return Array.from(
+        new Set(values.filter((value): value is string => Boolean(value))),
+    ).sort();
+}
+
+async function getAllVocabularyOptionRows({
+    level = "All",
+    book = "All",
+}: GetVocabularyFilterOptionsParams = {}): Promise<VocabularyOptionRow[]> {
+    const rows: VocabularyOptionRow[] = [];
+    let from = 0;
+
+    while (true) {
+        const to = from + VOCABULARY_OPTION_PAGE_SIZE - 1;
+        let query = supabase
+            .from("vocabularies")
+            .select("level, book, chapter")
+            .range(from, to);
+
+        if (level !== "All") {
+            query = query.eq("level", level);
+        }
+
+        if (book !== "All") {
+            query = query.eq("book", book);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            throw error;
+        }
+
+        const pageRows = (data ?? []) as VocabularyOptionRow[];
+        rows.push(...pageRows);
+
+        if (pageRows.length < VOCABULARY_OPTION_PAGE_SIZE) {
+            break;
+        }
+
+        from += VOCABULARY_OPTION_PAGE_SIZE;
+    }
+
+    return rows;
+}
+
 export async function getVocabularies({
     page,
     pageSize,
@@ -79,6 +157,7 @@ export async function getVocabularies({
     level = "All",
     book = "All",
     chapter = "All",
+    chapters,
     onlyDifficult = false,
 }: GetVocabulariesParams): Promise<GetVocabulariesResult> {
     const from = (page - 1) * pageSize;
@@ -114,7 +193,13 @@ export async function getVocabularies({
         query = query.eq("book", book);
     }
 
-    if (chapter !== "All") {
+    const selectedChapters =
+        chapters?.filter((item) => item && item !== "All") ??
+        (chapter !== "All" ? [chapter] : []);
+
+    if (selectedChapters.length > 0) {
+        query = query.in("chapter", selectedChapters);
+    } else if (chapter !== "All") {
         query = query.eq("chapter", chapter);
     }
 
@@ -155,44 +240,17 @@ export async function getVocabularyFilterOptions({
     level = "All",
     book = "All",
 }: GetVocabularyFilterOptionsParams = {}): Promise<VocabularyFilterOptions> {
-    const [allOptionsResult, chapterOptionsResult] = await Promise.all([
-        supabase.from("vocabularies").select("level, book, chapter"),
-        (() => {
-            let query = supabase.from("vocabularies").select("chapter");
-
-            if (level !== "All") {
-                query = query.eq("level", level);
-            }
-
-            if (book !== "All") {
-                query = query.eq("book", book);
-            }
-
-            return query;
-        })(),
+    const [allRows, chapterRows] = await Promise.all([
+        getAllVocabularyOptionRows(),
+        getAllVocabularyOptionRows({ level, book }),
     ]);
 
-    if (allOptionsResult.error) {
-        throw allOptionsResult.error;
-    }
-
-    if (chapterOptionsResult.error) {
-        throw chapterOptionsResult.error;
-    }
-
-    const allRows = allOptionsResult.data ?? [];
-    const chapterRows = chapterOptionsResult.data ?? [];
-
     return {
-        levels: Array.from(
-            new Set(allRows.map((row) => row.level).filter(Boolean)),
-        ).sort(),
-        books: Array.from(
-            new Set(allRows.map((row) => row.book).filter(Boolean)),
-        ).sort(),
-        chapters: Array.from(
-            new Set(chapterRows.map((row) => row.chapter).filter(Boolean)),
-        ).sort(),
+        levels: sortJlptLevels(
+            getUniqueStringOptions(allRows.map((row) => row.level)),
+        ),
+        books: getUniqueStringOptions(allRows.map((row) => row.book)),
+        chapters: getUniqueStringOptions(chapterRows.map((row) => row.chapter)),
     };
 }
 

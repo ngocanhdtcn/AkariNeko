@@ -3,6 +3,7 @@
 import { Eye, EyeOff, RotateCcw, Shuffle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSelect } from "@/components/ui/AppSelect";
+import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
 import {
     createFlashcardStudySession,
     getFlashcardVocabularies,
@@ -44,7 +45,7 @@ export function FlashcardPage() {
 
     const [selectedLevel, setSelectedLevel] = useState("All");
     const [selectedBook, setSelectedBook] = useState("All");
-    const [selectedChapter, setSelectedChapter] = useState("All");
+    const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
     const [onlyDifficult, setOnlyDifficult] = useState(false);
     const [showHiragana, setShowHiragana] = useState(true);
 
@@ -72,7 +73,7 @@ export function FlashcardPage() {
             const data = await getFlashcardVocabularies({
                 level: selectedLevel,
                 book: selectedBook,
-                chapter: selectedChapter,
+                chapters: selectedChapters,
                 onlyDifficult,
                 limitCount: 100,
             });
@@ -101,7 +102,7 @@ export function FlashcardPage() {
                 setIsLoading(false);
             }
         }
-    }, [selectedLevel, selectedBook, selectedChapter, onlyDifficult]);
+    }, [selectedLevel, selectedBook, selectedChapters, onlyDifficult]);
 
     function handleNextCard() {
         if (vocabularies.length === 0) {
@@ -189,17 +190,17 @@ export function FlashcardPage() {
 
     const levelOptions = ["All", ...availableLevels];
     const bookOptions = ["All", ...availableBooks];
-    const chapterOptions = ["All", ...availableChapters];
+    const chapterOptions = availableChapters;
 
     function handleLevelChange(level: string) {
         setSelectedLevel(level);
-        setSelectedChapter("All");
+        setSelectedChapters([]);
         setAvailableChapters([]);
     }
 
     function handleBookChange(book: string) {
         setSelectedBook(book);
-        setSelectedChapter("All");
+        setSelectedChapters([]);
         setAvailableChapters([]);
     }
 
@@ -284,13 +285,13 @@ export function FlashcardPage() {
     const hasActiveFilter =
         selectedLevel !== "All" ||
         selectedBook !== "All" ||
-        selectedChapter !== "All" ||
+        selectedChapters.length > 0 ||
         onlyDifficult;
 
     function handleClearFilters() {
         setSelectedLevel("All");
         setSelectedBook("All");
-        setSelectedChapter("All");
+        setSelectedChapters([]);
         setOnlyDifficult(false);
         void loadFilterOptions("All", "All");
     }
@@ -310,7 +311,8 @@ export function FlashcardPage() {
                 forgotCount: sessionStats.forgotCount,
                 level: selectedLevel,
                 book: selectedBook,
-                chapter: selectedChapter,
+                chapter:
+                    selectedChapters.length > 0 ? selectedChapters.join(", ") : "All",
                 onlyDifficult,
             });
 
@@ -385,11 +387,11 @@ export function FlashcardPage() {
                         onChange={handleBookChange}
                     />
 
-                    <AppSelect
+                    <AppMultiSelect
                         label="Chapter"
                         items={chapterOptions}
-                        value={selectedChapter}
-                        onChange={setSelectedChapter}
+                        values={selectedChapters}
+                        onChange={setSelectedChapters}
                         disabled={isLoadingFilterOptions}
                         isLoading={isLoadingFilterOptions}
                     />

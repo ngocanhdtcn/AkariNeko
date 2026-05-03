@@ -11,9 +11,11 @@ import {
   Upload,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SoftPanel } from "../ui/SoftPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppSelect } from "@/components/ui/AppSelect";
+import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal";
 import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
@@ -110,6 +112,10 @@ function ImportButton({
 }
 
 export function VocabularyPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isSyncingUrlRef = useRef(false);
   const [deletingVocabularyId, setDeletingVocabularyId] = useState<string | null>(
     null,
   );
@@ -139,18 +145,100 @@ export function VocabularyPage() {
   const [availableLevels, setAvailableLevels] = useState<string[]>([]);
   const [availableBooks, setAvailableBooks] = useState<string[]>([]);
   const [availableChapters, setAvailableChapters] = useState<string[]>([]);
-  const [searchKeyword, setSearchKeyword] = useState("");
-  const [selectedLevel, setSelectedLevel] = useState("All");
-  const [selectedBook, setSelectedBook] = useState("All");
-  const [selectedChapter, setSelectedChapter] = useState("All");
+  const [searchKeyword, setSearchKeyword] = useState(
+    searchParams.get("search") ?? "",
+  );
+  const [selectedLevel, setSelectedLevel] = useState(
+    searchParams.get("level") ?? "All",
+  );
+  const [selectedBook, setSelectedBook] = useState(
+    searchParams.get("book") ?? "All",
+  );
+  const [selectedChapters, setSelectedChapters] = useState(() => {
+    const chaptersParam = searchParams.get("chapters");
+    const legacyChapterParam = searchParams.get("chapter");
+
+    if (chaptersParam) {
+      return chaptersParam.split(",").map(decodeURIComponent).filter(Boolean);
+    }
+
+    return legacyChapterParam && legacyChapterParam !== "All"
+      ? [legacyChapterParam]
+      : [];
+  });
   const [isLoadingFilterOptions, setIsLoadingFilterOptions] = useState(false);
   const [isLoadingVocabularies, setIsLoadingVocabularies] = useState(false);
   const [vocabularyLoadError, setVocabularyLoadError] = useState<string | null>(
     null,
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [onlyDifficult, setOnlyDifficult] = useState(false);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const pageParam = Number(searchParams.get("page") ?? "1");
+    return Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  });
+  const [onlyDifficult, setOnlyDifficult] = useState(
+    searchParams.get("difficult") === "1",
+  );
   const filterOptionsRequestIdRef = useRef(0);
+
+  const updateVocabularyUrl = useCallback(
+    ({
+      level = selectedLevel,
+      book = selectedBook,
+      chapters = selectedChapters,
+      search = searchKeyword,
+      difficult = onlyDifficult,
+      page = currentPage,
+    }: {
+      level?: string;
+      book?: string;
+      chapters?: string[];
+      search?: string;
+      difficult?: boolean;
+      page?: number;
+    }) => {
+      const nextParams = new URLSearchParams();
+
+      if (level !== "All") {
+        nextParams.set("level", level);
+      }
+
+      if (book !== "All") {
+        nextParams.set("book", book);
+      }
+
+      if (chapters.length > 0) {
+        nextParams.set("chapters", chapters.map(encodeURIComponent).join(","));
+      }
+
+      if (search.trim()) {
+        nextParams.set("search", search.trim());
+      }
+
+      if (difficult) {
+        nextParams.set("difficult", "1");
+      }
+
+      if (page > 1) {
+        nextParams.set("page", String(page));
+      }
+
+      const queryString = nextParams.toString();
+      const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
+
+      isSyncingUrlRef.current = true;
+      router.replace(nextUrl, { scroll: false });
+    },
+    [
+      currentPage,
+      onlyDifficult,
+      pathname,
+      router,
+      searchKeyword,
+      selectedBook,
+      selectedChapters,
+      selectedLevel,
+    ],
+  );
 
   const filteredVocabularies = vocabularies;
   const displayVocabularies = vocabularies;
@@ -164,6 +252,32 @@ export function VocabularyPage() {
 
   const visiblePageNumbers = getVisiblePageNumbers(safeCurrentPage, totalPages);
 
+  useEffect(() => {
+    if (isSyncingUrlRef.current) {
+      isSyncingUrlRef.current = false;
+      return;
+    }
+
+    const pageParam = Number(searchParams.get("page") ?? "1");
+    const nextPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+
+    setSelectedLevel(searchParams.get("level") ?? "All");
+    setSelectedBook(searchParams.get("book") ?? "All");
+    const chaptersParam = searchParams.get("chapters");
+    const legacyChapterParam = searchParams.get("chapter");
+
+    setSelectedChapters(
+      chaptersParam
+        ? chaptersParam.split(",").map(decodeURIComponent).filter(Boolean)
+        : legacyChapterParam && legacyChapterParam !== "All"
+          ? [legacyChapterParam]
+          : [],
+    );
+    setSearchKeyword(searchParams.get("search") ?? "");
+    setOnlyDifficult(searchParams.get("difficult") === "1");
+    setCurrentPage(nextPage);
+  }, [searchParams]);
+
   const loadVocabularies = useCallback(async (page: number) => {
     setIsLoadingVocabularies(true);
     setVocabularyLoadError(null);
@@ -175,7 +289,7 @@ export function VocabularyPage() {
         searchKeyword,
         level: selectedLevel,
         book: selectedBook,
-        chapter: selectedChapter,
+        chapters: selectedChapters,
         onlyDifficult,
       });
 
@@ -187,7 +301,7 @@ export function VocabularyPage() {
     } finally {
       setIsLoadingVocabularies(false);
     }
-  }, [searchKeyword, selectedLevel, selectedBook, selectedChapter, onlyDifficult]);
+  }, [searchKeyword, selectedLevel, selectedBook, selectedChapters, onlyDifficult]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -198,7 +312,7 @@ export function VocabularyPage() {
     searchKeyword,
     selectedLevel,
     selectedBook,
-    selectedChapter,
+    selectedChapters,
     onlyDifficult,
   ]);
 
@@ -206,30 +320,34 @@ export function VocabularyPage() {
 
   const bookOptions = ["All", ...availableBooks];
 
-  const chapterOptions = ["All", ...availableChapters];
+  const chapterOptions = availableChapters;
 
   function handleLevelChange(level: string) {
     setSelectedLevel(level);
-    setSelectedChapter("All");
+    setSelectedChapters([]);
     setAvailableChapters([]);
     setCurrentPage(1);
+    updateVocabularyUrl({ level, chapters: [], page: 1 });
   }
 
   function handleBookChange(book: string) {
     setSelectedBook(book);
-    setSelectedChapter("All");
+    setSelectedChapters([]);
     setAvailableChapters([]);
     setCurrentPage(1);
+    updateVocabularyUrl({ book, chapters: [], page: 1 });
   }
 
-  function handleChapterChange(chapter: string) {
-    setSelectedChapter(chapter);
+  function handleChapterChange(chapters: string[]) {
+    setSelectedChapters(chapters);
     setCurrentPage(1);
+    updateVocabularyUrl({ chapters, page: 1 });
   }
 
   function handleSearchKeywordChange(keyword: string) {
     setSearchKeyword(keyword);
     setCurrentPage(1);
+    updateVocabularyUrl({ search: keyword, page: 1 });
   }
 
   function getVisiblePageNumbers(currentPageNumber: number, totalPageCount: number) {
@@ -487,10 +605,10 @@ export function VocabularyPage() {
               onChange={handleBookChange}
             />
 
-            <AppSelect
+            <AppMultiSelect
               label="Chapter"
               items={chapterOptions}
-              value={selectedChapter}
+              values={selectedChapters}
               onChange={handleChapterChange}
               disabled={isLoadingFilterOptions}
               isLoading={isLoadingFilterOptions}
@@ -521,7 +639,12 @@ export function VocabularyPage() {
                 ? "border-amber-200 bg-amber-50 text-amber-500"
                 : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
                 }`}
-              onClick={() => setOnlyDifficult((current) => !current)}
+              onClick={() => {
+                const nextOnlyDifficult = !onlyDifficult;
+                setOnlyDifficult(nextOnlyDifficult);
+                setCurrentPage(1);
+                updateVocabularyUrl({ difficult: nextOnlyDifficult, page: 1 });
+              }}
             >
               {onlyDifficult ? "Only difficult: ON" : "Only difficult"}
             </button>
@@ -530,7 +653,7 @@ export function VocabularyPage() {
           {searchKeyword ||
             selectedLevel !== "All" ||
             selectedBook !== "All" ||
-            selectedChapter !== "All" ||
+            selectedChapters.length > 0 ||
             onlyDifficult ? (
             <div className="mt-4 flex justify-end">
               <button
@@ -540,9 +663,17 @@ export function VocabularyPage() {
                   setSearchKeyword("");
                   setSelectedLevel("All");
                   setSelectedBook("All");
-                  setSelectedChapter("All");
+                  setSelectedChapters([]);
                   setCurrentPage(1);
                   setOnlyDifficult(false);
+                  updateVocabularyUrl({
+                    level: "All",
+                    book: "All",
+                    chapters: [],
+                    search: "",
+                    difficult: false,
+                    page: 1,
+                  });
                 }}
               >
                 Clear filter
@@ -778,7 +909,11 @@ export function VocabularyPage() {
                   type="button"
                   disabled={safeCurrentPage <= 1}
                   className="h-10 shrink-0 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
-                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  onClick={() => {
+                    const nextPage = Math.max(1, safeCurrentPage - 1);
+                    setCurrentPage(nextPage);
+                    updateVocabularyUrl({ page: nextPage });
+                  }}
                 >
                   Prev
                 </button>
@@ -788,7 +923,10 @@ export function VocabularyPage() {
                     <button
                       type="button"
                       className="h-10 min-w-10 shrink-0 rounded-2xl border border-pink-100 bg-white px-3 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                      onClick={() => setCurrentPage(1)}
+                      onClick={() => {
+                        setCurrentPage(1);
+                        updateVocabularyUrl({ page: 1 });
+                      }}
                     >
                       1
                     </button>
@@ -810,7 +948,10 @@ export function VocabularyPage() {
                         ? "border-pink-200 bg-pink-500 text-white"
                         : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
                         }`}
-                      onClick={() => setCurrentPage(pageNumber)}
+                      onClick={() => {
+                        setCurrentPage(pageNumber);
+                        updateVocabularyUrl({ page: pageNumber });
+                      }}
                     >
                       {pageNumber}
                     </button>
@@ -827,7 +968,10 @@ export function VocabularyPage() {
                     <button
                       type="button"
                       className="h-10 min-w-10 shrink-0 rounded-2xl border border-pink-100 bg-white px-3 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                      onClick={() => setCurrentPage(totalPages)}
+                      onClick={() => {
+                        setCurrentPage(totalPages);
+                        updateVocabularyUrl({ page: totalPages });
+                      }}
                     >
                       {totalPages}
                     </button>
@@ -838,9 +982,11 @@ export function VocabularyPage() {
                   type="button"
                   disabled={safeCurrentPage >= totalPages}
                   className="h-10 shrink-0 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
-                  onClick={() =>
-                    setCurrentPage((page) => Math.min(totalPages, page + 1))
-                  }
+                  onClick={() => {
+                    const nextPage = Math.min(totalPages, safeCurrentPage + 1);
+                    setCurrentPage(nextPage);
+                    updateVocabularyUrl({ page: nextPage });
+                  }}
                 >
                   Next
                 </button>

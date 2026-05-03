@@ -36,6 +36,7 @@ export type GetQuizVocabulariesParams = {
     level?: string;
     book?: string;
     chapter?: string;
+    chapters?: string[];
     onlyDifficult?: boolean;
     limitCount?: number;
 };
@@ -46,6 +47,7 @@ export async function getQuizVocabularies({
     level = "All",
     book = "All",
     chapter = "All",
+    chapters,
     onlyDifficult = false,
     limitCount = 40,
 }: GetQuizVocabulariesParams): Promise<VocabularyListItem[]> {
@@ -77,7 +79,13 @@ export async function getQuizVocabularies({
         query = query.eq("book", book);
     }
 
-    if (chapter !== "All") {
+    const selectedChapters =
+        chapters?.filter((item) => item && item !== "All") ??
+        (chapter !== "All" ? [chapter] : []);
+
+    if (selectedChapters.length > 0) {
+        query = query.in("chapter", selectedChapters);
+    } else if (chapter !== "All") {
         query = query.eq("chapter", chapter);
     }
 

@@ -251,7 +251,12 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
             setImportStep("completed");
             return true;
         } catch (error) {
-            console.error("Failed to import vocabularies:", error);
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "Không thể import từ vựng. Vui lòng kiểm tra quyền Supabase.";
+
+            console.warn("Failed to import vocabularies:", errorMessage);
             setImportError(
                 error instanceof Error
                     ? error.message

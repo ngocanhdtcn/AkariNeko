@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppSelect } from "@/components/ui/AppSelect";
+import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
 import {
     createQuizSession,
     getQuizVocabularies,
@@ -80,7 +81,7 @@ export function QuizPage() {
 
     const [selectedLevel, setSelectedLevel] = useState("All");
     const [selectedBook, setSelectedBook] = useState("All");
-    const [selectedChapter, setSelectedChapter] = useState("All");
+    const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
     const [onlyDifficult, setOnlyDifficult] = useState(false);
     const [showHiragana, setShowHiragana] = useState(true);
 
@@ -108,12 +109,12 @@ export function QuizPage() {
 
     const levelOptions = ["All", ...availableLevels];
     const bookOptions = ["All", ...availableBooks];
-    const chapterOptions = ["All", ...availableChapters];
+    const chapterOptions = availableChapters;
 
     const hasActiveFilter =
         selectedLevel !== "All" ||
         selectedBook !== "All" ||
-        selectedChapter !== "All" ||
+        selectedChapters.length > 0 ||
         onlyDifficult;
 
     async function loadFilterOptions(level = selectedLevel, book = selectedBook) {
@@ -143,7 +144,7 @@ export function QuizPage() {
             const vocabularies = await getQuizVocabularies({
                 level: selectedLevel,
                 book: selectedBook,
-                chapter: selectedChapter,
+                chapters: selectedChapters,
                 onlyDifficult,
                 limitCount: 60,
             });
@@ -168,14 +169,14 @@ export function QuizPage() {
 
     function handleLevelChange(level: string) {
         setSelectedLevel(level);
-        setSelectedChapter("All");
+        setSelectedChapters([]);
         setAvailableChapters([]);
         void loadFilterOptions(level, selectedBook);
     }
 
     function handleBookChange(book: string) {
         setSelectedBook(book);
-        setSelectedChapter("All");
+        setSelectedChapters([]);
         setAvailableChapters([]);
         void loadFilterOptions(selectedLevel, book);
     }
@@ -183,7 +184,7 @@ export function QuizPage() {
     function handleClearFilters() {
         setSelectedLevel("All");
         setSelectedBook("All");
-        setSelectedChapter("All");
+        setSelectedChapters([]);
         setOnlyDifficult(false);
         void loadFilterOptions("All", "All");
     }
@@ -243,7 +244,7 @@ export function QuizPage() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadQuiz();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedLevel, selectedBook, selectedChapter, onlyDifficult]);
+    }, [selectedLevel, selectedBook, selectedChapters, onlyDifficult]);
 
     async function handleSaveQuizSession() {
         if (
@@ -267,7 +268,8 @@ export function QuizPage() {
                 scorePercent,
                 level: selectedLevel,
                 book: selectedBook,
-                chapter: selectedChapter,
+                chapter:
+                    selectedChapters.length > 0 ? selectedChapters.join(", ") : "All",
                 onlyDifficult,
             });
 
@@ -325,11 +327,11 @@ export function QuizPage() {
                         onChange={handleBookChange}
                     />
 
-                    <AppSelect
+                    <AppMultiSelect
                         label="Chapter"
                         items={chapterOptions}
-                        value={selectedChapter}
-                        onChange={setSelectedChapter}
+                        values={selectedChapters}
+                        onChange={setSelectedChapters}
                         disabled={isLoadingFilterOptions}
                         isLoading={isLoadingFilterOptions}
                     />

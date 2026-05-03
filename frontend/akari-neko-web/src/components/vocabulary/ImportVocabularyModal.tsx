@@ -167,8 +167,8 @@ export function ImportVocabularyModal({
                 selectedFileCount={selectedFiles.length}
               />
 
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="rounded-[26px] border border-pink-100 bg-white p-5 shadow-sm">
+              <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="min-w-0 rounded-[26px] border border-pink-100 bg-white p-4 shadow-sm sm:p-5">
                   <ImportDropzone
                     isFolderImport={isFolderImport}
                     selectedFileCount={selectedFiles.length}

@@ -36,6 +36,7 @@ export type GetFlashcardVocabulariesParams = {
     level?: string;
     book?: string;
     chapter?: string;
+    chapters?: string[];
     onlyDifficult?: boolean;
     limitCount?: number;
 };
@@ -44,6 +45,7 @@ export async function getFlashcardVocabularies({
     level = "All",
     book = "All",
     chapter = "All",
+    chapters,
     onlyDifficult = false,
     limitCount = 100,
 }: GetFlashcardVocabulariesParams): Promise<VocabularyListItem[]> {
@@ -75,7 +77,13 @@ export async function getFlashcardVocabularies({
         query = query.eq("book", book);
     }
 
-    if (chapter !== "All") {
+    const selectedChapters =
+        chapters?.filter((item) => item && item !== "All") ??
+        (chapter !== "All" ? [chapter] : []);
+
+    if (selectedChapters.length > 0) {
+        query = query.in("chapter", selectedChapters);
+    } else if (chapter !== "All") {
         query = query.eq("chapter", chapter);
     }
 
