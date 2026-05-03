@@ -1,13 +1,13 @@
 "use client";
 
-import { Moon } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { dashboardMenuItems } from "@/data/dashboardData";
 import { AkariNekoWordmark } from "../branding/AkariNekoWordmark";
-import { useAuth } from "@/contexts/AuthContext";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type DashboardSidebarProps = {
   isCollapsed: boolean;
@@ -15,8 +15,8 @@ type DashboardSidebarProps = {
 
 export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const { profile } = useAuth();
   const { unreadMessageCount } = useMessageNotification();
+  const { isDarkMode, toggleDarkMode } = useTheme();
 
   return (
     <aside
@@ -97,17 +97,31 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
         <button
           type="button"
           title="Dark mode"
-          className={`flex w-full items-center rounded-2xl border border-pink-100 bg-white text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 ${isCollapsed ? "justify-center px-0 py-3" : "justify-between px-4 py-3"
+          aria-pressed={isDarkMode}
+          onClick={toggleDarkMode}
+          className={`group flex w-full items-center rounded-2xl border border-pink-100 bg-white text-sm font-bold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:bg-pink-50 focus:outline-none focus:ring-4 focus:ring-violet-200/40 ${isCollapsed ? "justify-center px-0 py-3" : "justify-between px-4 py-3"
             }`}
         >
           <span className="flex items-center gap-3">
-            <Moon size={18} className="text-amber-400" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-500 shadow-sm transition group-hover:bg-amber-100">
+              {isDarkMode ? <Moon size={17} /> : <Sun size={17} />}
+            </span>
             {!isCollapsed ? <span>Dark mode</span> : null}
           </span>
 
           {!isCollapsed ? (
-            <span className="relative h-7 w-12 rounded-full bg-slate-200">
-              <span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow" />
+            <span
+              className={`relative h-8 w-15 rounded-full border p-1 shadow-inner transition ${isDarkMode
+                ? "border-violet-300/30 bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                : "border-amber-100 bg-gradient-to-r from-amber-100 to-pink-100"
+                }`}
+            >
+              <span
+                className={`grid h-6 w-6 place-items-center rounded-full bg-white text-[13px] shadow-[0_4px_12px_rgba(15,23,42,0.22)] transition-transform ${isDarkMode ? "translate-x-7 text-violet-500" : "translate-x-0 text-amber-500"
+                  }`}
+              >
+                {isDarkMode ? "☾" : "☀"}
+              </span>
             </span>
           ) : null}
         </button>

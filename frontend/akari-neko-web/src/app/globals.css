@@ -20,6 +20,358 @@ body {
     sans-serif;
 }
 
+html.dark {
+  --akari-bg: #0f1024;
+  --akari-surface: rgb(15 23 42 / 0.82);
+  --akari-surface-strong: rgb(17 24 39 / 0.94);
+  --akari-surface-soft: rgb(49 46 129 / 0.16);
+  --akari-border: rgb(255 255 255 / 0.1);
+  --akari-border-accent: rgb(196 181 253 / 0.2);
+  --akari-text: rgb(248 250 252);
+  --akari-text-soft: rgb(203 213 225);
+  --akari-text-muted: rgb(148 163 184);
+  --akari-pink-soft: rgb(244 114 182 / 0.16);
+  --akari-violet-soft: rgb(139 92 246 / 0.16);
+}
+
+html.dark body {
+  background:
+    radial-gradient(circle at top left, rgb(236 72 153 / 0.11), transparent 34rem),
+    radial-gradient(circle at top right, rgb(139 92 246 / 0.14), transparent 32rem),
+    linear-gradient(135deg, #0f172a 0%, #24134d 48%, #111827 100%);
+  color: var(--akari-text-soft);
+}
+
+html.dark .akari-mobile-scroll,
+html.dark main[class*="from-pink-50"],
+html.dark main[class*="bg-gradient"],
+html.dark .bg-\[linear-gradient\(135deg\,\#fff8fb\,\#fffdf8_48\%\,\#f7f2ff\)\] {
+  background:
+    radial-gradient(circle at top left, rgb(236 72 153 / 0.1), transparent 30rem),
+    radial-gradient(circle at top right, rgb(139 92 246 / 0.14), transparent 34rem),
+    linear-gradient(135deg, #0f172a 0%, #271650 48%, #111827 100%);
+}
+
+html.dark :is(.bg-white, [class~="bg-white\/95"], [class~="bg-white\/90"], [class~="bg-white\/85"], [class~="bg-white\/80"], [class~="bg-white\/75"], [class~="bg-white\/70"]) {
+  background-color: var(--akari-surface);
+}
+
+html.dark :is(.bg-pink-50, [class~="bg-pink-50\/80"], [class~="bg-pink-50\/70"], [class~="bg-pink-50\/60"], [class~="bg-pink-50\/50"], .bg-violet-50, [class~="bg-violet-50\/80"], [class~="bg-violet-50\/70"], .bg-purple-50, .bg-fuchsia-50) {
+  background-color: var(--akari-violet-soft);
+}
+
+html.dark :is(.bg-slate-50, [class~="bg-slate-50\/80"], .bg-blue-50, .bg-indigo-50, .bg-sky-50) {
+  background-color: rgb(51 65 85 / 0.45);
+}
+
+html.dark :is(.bg-rose-50, [class~="bg-rose-50\/80"], .bg-red-50) {
+  background-color: rgb(244 63 94 / 0.12);
+}
+
+html.dark :is(.bg-emerald-50, [class~="bg-emerald-50\/80"], .bg-green-50) {
+  background-color: rgb(16 185 129 / 0.12);
+}
+
+html.dark :is(.bg-amber-50, [class~="bg-amber-50\/80"], .bg-yellow-50, .bg-orange-50) {
+  background-color: rgb(245 158 11 / 0.13);
+}
+
+html.dark :is([class~="from-white"], [class~="from-pink-50"], [class~="from-pink-50\/80"], [class~="from-violet-50"], [class~="from-pink-100"], [class~="from-violet-100"], [class~="via-white"], [class~="via-pink-50\/60"], [class~="to-white"], [class~="to-pink-50"], [class~="to-pink-50\/80"], [class~="to-pink-50\/20"], [class~="to-pink-100"], [class~="to-violet-50"], [class~="to-violet-100"]) {
+  --tw-gradient-from: rgb(30 41 59 / 0.9) var(--tw-gradient-from-position);
+  --tw-gradient-via: rgb(49 46 129 / 0.34) var(--tw-gradient-via-position);
+  --tw-gradient-to: rgb(15 23 42 / 0.86) var(--tw-gradient-to-position);
+}
+
+html.dark :is(.border-pink-50, .border-pink-100, .border-pink-200, .border-pink-300, [class~="border-pink-100\/80"], .border-rose-50, .border-rose-100, .border-rose-200, .border-violet-100, .border-violet-200, .border-purple-100, .border-slate-100, .border-emerald-100, .border-emerald-200, .border-amber-100, .border-amber-200, .border-blue-100, .border-indigo-100, .border-fuchsia-100, [class~="border-white\/80"]) {
+  border-color: var(--akari-border);
+}
+
+html.dark :is(.text-slate-900, .text-slate-800, .text-slate-700) {
+  color: var(--akari-text);
+}
+
+html.dark .text-slate-600 {
+  color: var(--akari-text-soft);
+}
+
+html.dark :is(.text-slate-500, .text-slate-400) {
+  color: var(--akari-text-muted);
+}
+
+html.dark :is(.text-pink-600, .text-pink-500, .text-pink-400, .text-rose-600, .text-rose-500, .text-rose-400) {
+  color: rgb(249 168 212);
+}
+
+html.dark :is(.text-violet-700, .text-violet-600, .text-violet-500, .text-violet-400, .text-purple-600, .text-purple-500, .text-fuchsia-500) {
+  color: rgb(221 214 254);
+}
+
+html.dark :is(.text-emerald-700, .text-emerald-600, .text-emerald-500) {
+  color: rgb(110 231 183);
+}
+
+html.dark :is(.text-rose-700, .text-rose-600, .text-rose-500, .text-rose-400) {
+  color: rgb(253 164 175);
+}
+
+html.dark :is(.text-amber-700, .text-amber-600, .text-amber-500, .text-orange-500) {
+  color: rgb(252 211 77);
+}
+
+html.dark :is(.hover\:bg-pink-50:hover, .hover\:bg-pink-50\/45:hover, .hover\:bg-pink-50\/50:hover, .hover\:bg-violet-50:hover, .hover\:bg-rose-50:hover, .hover\:bg-emerald-100:hover, .hover\:bg-amber-100\/70:hover) {
+  background-color: rgb(255 255 255 / 0.07);
+}
+
+html.dark :is(.hover\:text-slate-900:hover, .hover\:text-pink-500:hover, .hover\:text-violet-500:hover, .hover\:text-rose-500:hover) {
+  color: rgb(248 250 252);
+}
+
+html.dark :is(.shadow-sm, [class*="shadow-[0_"], [class*="shadow-inner"]) {
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.24);
+}
+
+html.dark :is(input, textarea, select) {
+  background-color: rgb(15 23 42 / 0.88);
+  border-color: var(--akari-border);
+  color: var(--akari-text);
+}
+
+html.dark :is(input, textarea, select)::placeholder {
+  color: rgb(100 116 139);
+}
+
+html.dark :is(input, textarea, select):focus {
+  border-color: rgb(167 139 250 / 0.72);
+  box-shadow: 0 0 0 4px rgb(139 92 246 / 0.18);
+}
+
+html.dark option {
+  background-color: rgb(15 23 42);
+  color: var(--akari-text);
+}
+
+html.dark [class*="ring-pink-100"] {
+  --tw-ring-color: rgb(139 92 246 / 0.22);
+}
+
+html.dark :is(button.bg-white, a.bg-white, button[class~="bg-white\/95"], a[class~="bg-white\/95"]) {
+  background-color: rgb(15 23 42 / 0.74);
+  border-color: var(--akari-border);
+  color: var(--akari-text-soft);
+}
+
+html.dark :is(button.bg-white, a.bg-white, button[class~="bg-white\/95"], a[class~="bg-white\/95"]):hover {
+  background-color: rgb(255 255 255 / 0.08);
+  color: var(--akari-text);
+}
+
+html.dark :is([class~="from-pink-500"], [class~="from-pink-400"])[class*="to-violet"],
+html.dark :is([class~="from-pink-500"], [class~="from-pink-400"])[class*="to-fuchsia"] {
+  --tw-gradient-from: rgb(236 72 153 / 0.82) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(139 92 246 / 0.82) var(--tw-gradient-to-position);
+}
+
+html.dark :is(table, thead, tbody) {
+  color: var(--akari-text-soft);
+}
+
+html.dark [class*="grid-cols"][class*="bg-pink-50"],
+html.dark [class*="grid-cols"][class*="from-pink-50"] {
+  background: rgb(255 255 255 / 0.055);
+  color: var(--akari-text-soft);
+}
+
+html.dark [class*="border-t"][class*="border-pink-50"],
+html.dark [class*="border-b"][class*="border-pink-50"] {
+  border-color: var(--akari-border);
+}
+
+html.dark [class*="rounded-2xl"][class*="bg-white"],
+html.dark [class*="rounded-[26px]"][class*="bg-white"],
+html.dark [class*="rounded-[32px]"][class*="bg-white"] {
+  background-color: var(--akari-surface);
+  border-color: var(--akari-border);
+}
+
+html.dark [class*="rounded-2xl"][class*="border-pink-50"][class*="text-center"] {
+  background-color: rgb(15 23 42 / 0.62);
+  color: var(--akari-text-muted);
+}
+
+html.dark [class*="bg-pink-100"] {
+  background-color: rgb(236 72 153 / 0.16);
+}
+
+html.dark [class*="bg-amber-100"] {
+  background-color: rgb(245 158 11 / 0.16);
+}
+
+html.dark [class*="bg-rose-100"] {
+  background-color: rgb(244 63 94 / 0.16);
+}
+
+html.dark [class*="bg-emerald-100"] {
+  background-color: rgb(16 185 129 / 0.16);
+}
+
+html.dark [class*="bg-slate-200"] {
+  background-color: rgb(71 85 105 / 0.86);
+}
+
+html.dark :is(.bg-pink-500, .bg-rose-500) {
+  background-color: rgb(236 72 153 / 0.76);
+}
+
+html.dark .bg-violet-500 {
+  background-color: rgb(139 92 246 / 0.76);
+}
+
+html.dark [class*="fill-slate-200"] {
+  fill: rgb(71 85 105);
+  color: rgb(71 85 105);
+}
+
+html.dark :is([class~="bg-slate-900\/25"], [class~="bg-slate-900\/30"]) {
+  background-color: rgb(2 6 23 / 0.68);
+}
+
+html.dark .fixed[class*="bottom-"] {
+  background-color: rgb(15 23 42 / 0.94);
+  border-color: var(--akari-border);
+}
+
+html.dark [class*="bg-gradient-to-b"][class*="from-white"][class*="to-pink-50"] {
+  background: linear-gradient(180deg, rgb(15 23 42 / 0.78), rgb(30 41 59 / 0.7));
+}
+
+html.dark [class*="from-pink-400"][class*="to-fuchsia-400"] {
+  background-image: linear-gradient(135deg, rgb(236 72 153 / 0.34), rgb(139 92 246 / 0.34));
+  border-color: rgb(196 181 253 / 0.22);
+  color: rgb(253 242 248);
+}
+
+html.dark [class*="from-white"][class*="to-pink-50\/80"] {
+  background-image: linear-gradient(135deg, rgb(30 41 59 / 0.92), rgb(49 46 129 / 0.48));
+}
+
+html.dark [class*="bg-rose-50"][class*="border-rose"] {
+  border-color: rgb(251 113 133 / 0.24);
+}
+
+html.dark [class*="bg-emerald-50"][class*="border-emerald"] {
+  border-color: rgb(110 231 183 / 0.22);
+}
+
+html.dark [class*="bg-amber-50"][class*="border-amber"] {
+  border-color: rgb(252 211 77 / 0.22);
+}
+
+html.dark .akari-dashboard-hero {
+  background-color: rgb(255 255 255 / 0.95);
+  border-color: rgb(196 181 253 / 0.3);
+}
+
+html.dark .akari-dashboard-hero-overlay {
+  background-image: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.9),
+    rgb(255 255 255 / 0.42),
+    rgb(255 255 255 / 0.06)
+  );
+}
+
+html.dark .akari-dashboard-hero .text-slate-800 {
+  color: rgb(30 41 59);
+}
+
+html.dark .akari-dashboard-hero .text-slate-700,
+html.dark .akari-dashboard-hero .text-slate-600 {
+  color: rgb(71 85 105);
+}
+
+html.dark .akari-wordmark .akari-wordmark-main {
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, #ec4899, #e879f9, #8b5cf6) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+}
+
+html.dark .akari-wordmark .akari-wordmark-o {
+  background: none !important;
+  color: #d946ef !important;
+  -webkit-text-fill-color: #d946ef;
+}
+
+html.dark .akari-wordmark .akari-wordmark-text,
+html.dark .akari-wordmark .akari-wordmark-o,
+html.dark .akari-wordmark .akari-wordmark-paw {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.dark .akari-dashboard-hero .akari-dashboard-hero-cta {
+  background-color: rgb(255 255 255 / 0.88);
+  border: 1px solid rgb(255 255 255 / 0.72);
+  color: rgb(51 65 85);
+  box-shadow: 0 12px 26px rgb(30 41 59 / 0.14);
+}
+
+html.dark .akari-dashboard-hero .akari-dashboard-hero-cta:hover {
+  background-color: rgb(255 255 255 / 0.96);
+  color: rgb(30 41 59);
+}
+
+html.dark .akari-study-shortcut-card {
+  background-image: linear-gradient(
+    145deg,
+    rgb(30 41 59 / 0.98),
+    rgb(49 46 129 / 0.86)
+  );
+  border-color: rgb(99 102 241 / 0.28);
+}
+
+html.dark .akari-study-shortcut-card .text-slate-800 {
+  color: rgb(248 250 252);
+}
+
+html.dark .akari-study-shortcut-card .text-slate-500 {
+  color: rgb(203 213 225);
+}
+
+html.dark .akari-vocabulary-hero {
+  background-image: linear-gradient(
+    105deg,
+    rgb(30 41 59) 0%,
+    rgb(49 46 129) 52%,
+    rgb(76 29 149) 100%
+  );
+  border-color: rgb(99 102 241 / 0.32);
+}
+
+html.dark .akari-vocabulary-hero :is(.text-slate-800, .text-slate-700) {
+  color: rgb(248 250 252);
+}
+
+html.dark .akari-vocabulary-hero :is(.text-slate-600, .text-slate-500) {
+  color: rgb(203 213 225);
+}
+
+html.dark .akari-study-history-hero,
+html.dark .akari-study-history-stat {
+  background-color: rgb(15 23 42 / 0.88);
+  border-color: rgb(99 102 241 / 0.28);
+}
+
+html.dark .akari-study-history-stat {
+  background-image: linear-gradient(
+    145deg,
+    rgb(15 23 42 / 0.92),
+    rgb(30 41 59 / 0.88)
+  );
+}
+
 .akari-mobile-scroll {
   height: 100dvh;
   overflow-y: auto;

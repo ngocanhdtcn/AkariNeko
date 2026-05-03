@@ -18,8 +18,10 @@ export function MobileBottomNav() {
           <Link
             key={item.label}
             href={item.href}
-            className={`flex flex-col items-center justify-center gap-1 text-xs font-bold transition ${
-              isActive ? "text-violet-500" : "text-slate-500"
+            className={`m-1 flex flex-col items-center justify-center gap-1 rounded-[22px] text-xs font-bold transition ${
+              isActive
+                ? "bg-violet-50 text-violet-500"
+                : "text-slate-500 hover:bg-pink-50 hover:text-slate-700"
             }`}
           >
             <Icon size={22} strokeWidth={isActive ? 2.7 : 2.2} />

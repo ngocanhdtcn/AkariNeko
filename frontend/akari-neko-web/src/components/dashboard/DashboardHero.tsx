@@ -12,7 +12,7 @@ export function DashboardHero() {
         duration: 0.28,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="relative min-h-60 overflow-hidden rounded-[28px] border border-pink-100/80 bg-white px-5 py-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)] sm:min-h-65 sm:rounded-4xl sm:px-9 sm:py-8"
+      className="akari-dashboard-hero relative min-h-60 overflow-hidden rounded-[28px] border border-pink-100/80 bg-white px-5 py-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)] sm:min-h-65 sm:rounded-4xl sm:px-9 sm:py-8"
     >
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -21,7 +21,7 @@ export function DashboardHero() {
         }}
         aria-hidden="true"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-white/78 via-white/28 to-white/0" />
+      <div className="akari-dashboard-hero-overlay absolute inset-0 bg-gradient-to-r from-white/78 via-white/28 to-white/0" />
       <div className="absolute inset-0 bg-gradient-to-t from-pink-50/20 via-transparent to-transparent" />
 
       <motion.div
@@ -105,7 +105,7 @@ export function DashboardHero() {
             duration: 0.16,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="mt-6 rounded-2xl bg-white/95 px-5 py-3 text-sm font-bold text-slate-700 shadow-sm"
+          className="akari-dashboard-hero-cta mt-6 rounded-2xl bg-white/95 px-5 py-3 text-sm font-bold text-slate-700 shadow-sm"
         >
           Continue studying N3 〉
         </motion.button>

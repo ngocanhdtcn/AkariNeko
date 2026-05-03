@@ -81,22 +81,22 @@ export function AkariNekoWordmark({
   const currentSize = wordmarkSizeClasses[size];
 
   return (
-    <div className={`inline-flex flex-col ${className}`}>
+    <div className={`akari-wordmark inline-flex flex-col ${className}`}>
       <div className="relative inline-block w-fit pr-5">
         <span
-          className={`${currentSize.text} inline-block font-extrabold tracking-tight`}
+          className={`akari-wordmark-text ${currentSize.text} inline-block font-extrabold tracking-tight`}
         >
-          <span className="bg-gradient-to-r from-pink-500 via-fuchsia-400 to-violet-500 bg-clip-text text-transparent">
+          <span className="akari-wordmark-main bg-gradient-to-r from-pink-500 via-fuchsia-400 to-violet-500 bg-clip-text text-transparent">
             AkariNek
           </span>
 
-          <span className="bg-gradient-to-tr from-violet-500 via-pink-400 via-45% to-yellow-300 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(250,204,21,0.18)]">
+          <span className="akari-wordmark-o text-fuchsia-500 drop-shadow-[0_0_8px_rgba(250,204,21,0.18)]">
             o
           </span>
         </span>
 
         <span
-          className={`absolute ${currentSize.pawWrapper}`}
+          className={`akari-wordmark-paw absolute ${currentSize.pawWrapper}`}
           aria-hidden="true"
         >
           <GoldenPawAccent />

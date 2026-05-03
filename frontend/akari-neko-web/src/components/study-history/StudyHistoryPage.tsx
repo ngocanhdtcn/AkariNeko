@@ -165,8 +165,8 @@ export function StudyHistoryPage() {
 
     return (
         <>
-        <div className="grid gap-5">
-            <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
+        <div className="akari-study-history grid gap-5">
+            <section className="akari-study-history-hero rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div>
                         <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
@@ -192,7 +192,7 @@ export function StudyHistoryPage() {
             </section>
 
             <section className="grid gap-4 xl:grid-cols-3">
-                <div className="rounded-[26px] border border-pink-100 bg-white/85 p-5 shadow-sm">
+                <div className="akari-study-history-stat rounded-[26px] border border-pink-100 bg-white/85 p-5 shadow-sm">
                     <p className="text-sm font-bold text-slate-500">Reviewed</p>
                     <p className="mt-2 text-3xl font-black text-slate-800">
                         {historySummary.reviewedCount}
@@ -200,7 +200,7 @@ export function StudyHistoryPage() {
                     <p className="mt-1 text-sm text-slate-400">Theo bộ lọc hiện tại</p>
                 </div>
 
-                <div className="rounded-[26px] border border-emerald-100 bg-emerald-50/80 p-5 shadow-sm">
+                <div className="akari-study-history-stat rounded-[26px] border border-emerald-100 bg-emerald-50/80 p-5 shadow-sm">
                     <p className="text-sm font-bold text-emerald-600">Remembered</p>
                     <p className="mt-2 text-3xl font-black text-emerald-700">
                         {historySummary.rememberedCount}
@@ -210,7 +210,7 @@ export function StudyHistoryPage() {
                     </p>
                 </div>
 
-                <div className="rounded-[26px] border border-rose-100 bg-rose-50/80 p-5 shadow-sm">
+                <div className="akari-study-history-stat rounded-[26px] border border-rose-100 bg-rose-50/80 p-5 shadow-sm">
                     <p className="text-sm font-bold text-rose-500">Forgot</p>
                     <p className="mt-2 text-3xl font-black text-rose-600">
                         {historySummary.forgotCount}
