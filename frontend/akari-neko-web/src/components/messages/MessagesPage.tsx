@@ -1,10 +1,15 @@
 "use client";
 
 import { Send, UsersRound } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
 import { useOnlineUsers } from "@/contexts/OnlineUsersContext";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import {
+    getPublicProfilesByIds,
+    type PublicProfile,
+} from "@/services/authService";
 import {
     getRecentMessages,
     sendMessage,
@@ -19,10 +24,6 @@ function formatMessageTime(value: string) {
     }).format(new Date(value));
 }
 
-function getInitial(value: string) {
-    return value.trim().charAt(0).toUpperCase() || "A";
-}
-
 export function MessagesPage() {
     const { resetUnreadMessageCount } = useMessageNotification();
     const { profile } = useAuth();
@@ -33,6 +34,10 @@ export function MessagesPage() {
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [messageError, setMessageError] = useState<string | null>(null);
+    const [senderProfiles, setSenderProfiles] = useState<
+        Record<string, PublicProfile>
+    >({});
+    const senderProfilesRef = useRef<Record<string, PublicProfile>>({});
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -43,24 +48,68 @@ export function MessagesPage() {
 
         return (
             onlineUsers.find((user) => user.userId === senderId)?.displayName ??
+            senderProfiles[senderId]?.displayName ??
             "Akari user"
         );
     }
 
-    async function loadMessages() {
+    function getSenderAvatarUrl(senderId: string) {
+        if (senderId === profile?.id) {
+            return profile.avatarUrl;
+        }
+
+        return (
+            onlineUsers.find((user) => user.userId === senderId)?.avatarUrl ??
+            senderProfiles[senderId]?.avatarUrl ??
+            null
+        );
+    }
+
+    const loadMissingSenderProfiles = useCallback(async (nextMessages: ChatMessage[]) => {
+        const senderIds = nextMessages
+            .map((message) => message.senderId)
+            .filter((senderId) => senderId !== profile?.id);
+        const missingSenderIds = Array.from(new Set(senderIds)).filter(
+            (senderId) => !senderProfilesRef.current[senderId],
+        );
+
+        if (missingSenderIds.length === 0) {
+            return;
+        }
+
+        try {
+            const profiles = await getPublicProfilesByIds(missingSenderIds);
+            setSenderProfiles((currentProfiles) => {
+                const nextProfiles = { ...currentProfiles };
+
+                profiles.forEach((senderProfile) => {
+                    nextProfiles[senderProfile.id] = senderProfile;
+                });
+
+                senderProfilesRef.current = nextProfiles;
+
+                return nextProfiles;
+            });
+        } catch (error) {
+            console.error("Failed to load sender profiles:", error);
+        }
+    }, [profile?.id]);
+
+    const loadMessages = useCallback(async () => {
         setIsLoadingMessages(true);
         setMessageError(null);
 
         try {
             const data = await getRecentMessages(50);
             setMessages(data);
+            await loadMissingSenderProfiles(data);
         } catch (error) {
             console.error("Failed to load messages:", error);
             setMessageError("Không thể tải tin nhắn.");
         } finally {
             setIsLoadingMessages(false);
         }
-    }
+    }, [loadMissingSenderProfiles]);
 
     async function handleSendMessage() {
         const content = messageText.trim();
@@ -84,6 +133,7 @@ export function MessagesPage() {
     }
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadMessages();
 
         const unsubscribe = subscribeToMessages((message) => {
@@ -94,10 +144,11 @@ export function MessagesPage() {
 
                 return [...currentMessages, message].slice(-50);
             });
+            void loadMissingSenderProfiles([message]);
         });
 
         return unsubscribe;
-    }, []);
+    }, [loadMessages, loadMissingSenderProfiles]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({
@@ -157,6 +208,7 @@ export function MessagesPage() {
                             messages.map((message) => {
                                 const isOwnMessage = message.senderId === profile?.id;
                                 const senderName = getSenderName(message.senderId);
+                                const senderAvatarUrl = getSenderAvatarUrl(message.senderId);
 
                                 return (
                                     <div
@@ -165,9 +217,11 @@ export function MessagesPage() {
                                             }`}
                                     >
                                         {!isOwnMessage ? (
-                                            <div className="mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border border-pink-100 bg-white text-xs font-black text-pink-500 shadow-sm">
-                                                {getInitial(senderName)}
-                                            </div>
+                                            <UserAvatar
+                                                name={senderName}
+                                                avatarUrl={senderAvatarUrl}
+                                                className="mb-1 h-8 w-8 rounded-2xl bg-white text-xs"
+                                            />
                                         ) : null}
 
                                         <div
@@ -198,6 +252,14 @@ export function MessagesPage() {
                                                 </p>
                                             </div>
                                         </div>
+
+                                        {isOwnMessage ? (
+                                            <UserAvatar
+                                                name={senderName}
+                                                avatarUrl={senderAvatarUrl}
+                                                className="mb-1 h-8 w-8 rounded-2xl bg-white text-xs"
+                                            />
+                                        ) : null}
                                     </div>
                                 );
                             })
@@ -252,9 +314,10 @@ export function MessagesPage() {
                                 key={user.userId}
                                 className="flex items-center gap-3 rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
                             >
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-sm font-black text-pink-500">
-                                    {getInitial(user.displayName)}
-                                </div>
+                                <UserAvatar
+                                    name={user.displayName}
+                                    avatarUrl={user.avatarUrl}
+                                />
 
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-black text-slate-700">

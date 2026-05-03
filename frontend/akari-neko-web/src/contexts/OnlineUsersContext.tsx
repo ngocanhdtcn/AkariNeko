@@ -8,6 +8,7 @@ export type OnlineUser = {
     userId: string;
     displayName: string;
     email: string;
+    avatarUrl: string | null;
     onlineAt: string;
 };
 
@@ -22,6 +23,7 @@ type PresenceStateItem = {
     userId?: string;
     displayName?: string;
     email?: string;
+    avatarUrl?: string | null;
     onlineAt?: string;
 };
 
@@ -35,6 +37,7 @@ export function OnlineUsersProvider({
 
     useEffect(() => {
         if (!profile) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setOnlineUsers([]);
             return;
         }
@@ -62,6 +65,7 @@ export function OnlineUsersProvider({
                         displayName:
                             presenceItem.displayName || presenceItem.email || "Akari user",
                         email: presenceItem.email || "",
+                        avatarUrl: presenceItem.avatarUrl || null,
                         onlineAt: presenceItem.onlineAt || new Date().toISOString(),
                     });
                 });
@@ -81,6 +85,7 @@ export function OnlineUsersProvider({
                 userId: profile.id,
                 displayName: profile.displayName,
                 email: profile.email,
+                avatarUrl: profile.avatarUrl,
                 onlineAt: new Date().toISOString(),
             });
         });

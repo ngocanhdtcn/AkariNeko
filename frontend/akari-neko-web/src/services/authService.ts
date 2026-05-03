@@ -10,6 +10,12 @@ export type AuthProfile = {
     currentJlptLevel: string;
 };
 
+export type PublicProfile = {
+    id: string;
+    displayName: string;
+    avatarUrl: string | null;
+};
+
 type ProfileRow = {
     id: string;
     display_name: string | null;
@@ -173,6 +179,35 @@ export async function getCurrentUserId(): Promise<string | null> {
     }
 
     return session?.user?.id ?? null;
+}
+
+export async function getPublicProfilesByIds(
+    profileIds: string[],
+): Promise<PublicProfile[]> {
+    const uniqueProfileIds = Array.from(new Set(profileIds)).filter(Boolean);
+
+    if (uniqueProfileIds.length === 0) {
+        return [];
+    }
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("id,display_name,avatar_url")
+        .in("id", uniqueProfileIds);
+
+    if (error) {
+        throw error;
+    }
+
+    return ((data ?? []) as Array<{
+        id: string;
+        display_name: string | null;
+        avatar_url: string | null;
+    }>).map((row) => ({
+        id: row.id,
+        displayName: row.display_name || "Akari user",
+        avatarUrl: row.avatar_url,
+    }));
 }
 
 export type UpdateProfileInput = {

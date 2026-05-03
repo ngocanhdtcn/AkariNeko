@@ -1,10 +1,7 @@
 import { UsersRound } from "lucide-react";
 import { useOnlineUsers } from "@/contexts/OnlineUsersContext";
 import { SoftPanel } from "../ui/SoftPanel";
-
-function getInitial(displayName: string) {
-  return displayName.trim().charAt(0).toUpperCase() || "A";
-}
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function OnlineUsersCard() {
   const { onlineUsers, onlineUserCount } = useOnlineUsers();
@@ -33,9 +30,7 @@ export function OnlineUsersCard() {
               key={user.userId}
               className="flex items-center gap-3 rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-sm font-black text-pink-500">
-                {getInitial(user.displayName)}
-              </div>
+              <UserAvatar name={user.displayName} avatarUrl={user.avatarUrl} />
 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-slate-700">

@@ -91,7 +91,7 @@ export function AppSelect({
       </button>
 
       {isOpen ? (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-50 max-h-64 w-max min-w-28 overflow-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)]">
+        <div className="absolute left-0 top-[calc(100%+8px)] z-50 max-h-64 w-full min-w-28 overflow-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max">
           {items.map((item) => {
             const isSelected = item === value;
 
@@ -106,7 +106,7 @@ export function AppSelect({
                 }`}
                 onClick={() => handleSelect(item)}
               >
-                <span className="whitespace-nowrap">{item}</span>
+                <span className="min-w-0 truncate sm:whitespace-nowrap">{item}</span>
                 {isSelected ? <Check size={16} className="shrink-0" /> : null}
               </button>
             );

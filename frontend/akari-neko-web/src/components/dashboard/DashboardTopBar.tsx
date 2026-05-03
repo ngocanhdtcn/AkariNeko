@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
 import { useOnlineUsers } from "@/contexts/OnlineUsersContext";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import {
   getCurrentPageTitle,
   getCurrentSearchPlaceholder,
@@ -91,18 +92,11 @@ export function DashboardTopBar({
           href="/profile"
           className="flex items-center gap-3 rounded-2xl border border-pink-100 bg-white px-3 py-2 shadow-sm transition hover:bg-pink-50"
         >
-          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-pink-50 text-sm font-black text-pink-500">
-            {profile?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatarUrl}
-                alt={profile.displayName}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              profile?.displayName?.charAt(0).toUpperCase() ?? "A"
-            )}
-          </div>
+          <UserAvatar
+            name={profile?.displayName}
+            avatarUrl={profile?.avatarUrl}
+            className="h-9 w-9 rounded-xl text-sm"
+          />
 
           <div className="hidden min-w-0 sm:block">
             <p className="max-w-[150px] truncate text-sm font-black text-slate-700">

@@ -4,6 +4,8 @@ import { Save, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateCurrentProfile } from "@/services/authService";
+import { AppSelect } from "@/components/ui/AppSelect";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 const jlptLevelOptions = ["N5", "N4", "N3", "N2", "N1"];
 
@@ -22,6 +24,7 @@ export function ProfilePage() {
             return;
         }
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setDisplayName(profile.displayName);
         setAvatarUrl(profile.avatarUrl ?? "");
         setCurrentJlptLevel(profile.currentJlptLevel || "N5");
@@ -74,20 +77,13 @@ export function ProfilePage() {
 
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
                 <div className="grid gap-5">
-                    <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+                    <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start">
                         <div>
-                            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-[32px] border border-pink-100 bg-pink-50 text-3xl font-black text-pink-500 shadow-sm">
-                                {avatarUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={avatarUrl}
-                                        alt={displayName}
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    displayName.charAt(0).toUpperCase() || "A"
-                                )}
-                            </div>
+                            <UserAvatar
+                                name={displayName}
+                                avatarUrl={avatarUrl}
+                                className="aspect-square w-full max-w-[320px] rounded-[32px] text-7xl"
+                            />
 
                             <p className="mt-3 text-sm font-bold text-slate-500">
                                 {profile?.email}
@@ -119,22 +115,12 @@ export function ProfilePage() {
                                 />
                             </label>
 
-                            <label className="grid gap-2">
-                                <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-                                    Current JLPT level
-                                </span>
-                                <select
-                                    value={currentJlptLevel}
-                                    className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
-                                    onChange={(event) => setCurrentJlptLevel(event.target.value)}
-                                >
-                                    {jlptLevelOptions.map((level) => (
-                                        <option key={level} value={level}>
-                                            {level}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
+                            <AppSelect
+                                label="Current JLPT level"
+                                items={jlptLevelOptions}
+                                value={currentJlptLevel}
+                                onChange={setCurrentJlptLevel}
+                            />
 
                             {profileError ? (
                                 <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-500">

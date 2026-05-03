@@ -190,8 +190,10 @@ export function VocabularyPage() {
   }, [searchKeyword, selectedLevel, selectedBook, selectedChapter, onlyDifficult]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadVocabularies(currentPage);
   }, [
+    loadVocabularies,
     currentPage,
     searchKeyword,
     selectedLevel,
@@ -515,7 +517,7 @@ export function VocabularyPage() {
 
             <button
               type="button"
-              className={`h-12 rounded-2xl border px-4 text-sm font-bold shadow-sm transition ${onlyDifficult
+              className={`h-12 w-full rounded-2xl border px-4 text-sm font-bold shadow-sm transition xl:w-auto ${onlyDifficult
                 ? "border-amber-200 bg-amber-50 text-amber-500"
                 : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
                 }`}
@@ -550,8 +552,8 @@ export function VocabularyPage() {
         </SoftPanel>
 
         <SoftPanel className="relative z-10 p-4 sm:p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h3 className="text-xl font-black text-slate-800">
                 Danh sách từ vựng
               </h3>
@@ -560,7 +562,7 @@ export function VocabularyPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
@@ -594,10 +596,10 @@ export function VocabularyPage() {
                   key={`${vocabulary.id}-vocab-mobile`}
                   className="rounded-2xl border border-pink-50 bg-white p-4 shadow-sm"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+                  <div className="grid gap-3">
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-xl font-black text-slate-800">
+                        <p className="min-w-0 break-words text-xl font-black text-slate-800">
                           {vocabulary.kanji}
                         </p>
                         <span className="rounded-xl bg-pink-100 px-2.5 py-1 text-xs font-bold text-pink-500">
@@ -609,20 +611,20 @@ export function VocabularyPage() {
                         {vocabulary.hiragana}
                       </p>
 
-                      <p className="mt-2 text-sm text-slate-500">
+                      <p className="mt-2 break-words text-sm text-slate-500">
                         {vocabulary.meaning}
                       </p>
 
-                      <p className="mt-2 text-xs font-bold text-slate-400">
+                      <p className="mt-2 break-words text-xs font-bold text-slate-400">
                         {vocabulary.book} ・ {vocabulary.chapter}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         disabled={updatingDifficultyId === vocabulary.id}
-                        className={`mt-3 rounded-xl border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50 ${vocabulary.isDifficult
+                        className={`rounded-xl border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50 ${vocabulary.isDifficult
                           ? "border-amber-100 bg-amber-50 text-amber-500"
                           : "border-pink-100 bg-white text-slate-500"
                           }`}
@@ -665,7 +667,8 @@ export function VocabularyPage() {
             )}
           </div>
 
-          <div className="hidden overflow-hidden rounded-[22px] border border-pink-50 md:block">
+          <div className="hidden overflow-x-auto rounded-[22px] border border-pink-50 md:block">
+            <div className="min-w-[940px]">
             <div className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-sm font-bold text-slate-500">
               <div>Kanji</div>
               <div>Hiragana</div>
@@ -760,6 +763,7 @@ export function VocabularyPage() {
                 Chưa có từ vựng nào. Hãy import file HTML trước.
               </div>
             )}
+            </div>
           </div>
 
           {filteredVocabularies.length > 0 ? (
