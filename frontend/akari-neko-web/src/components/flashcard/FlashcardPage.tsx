@@ -104,16 +104,16 @@ export function FlashcardPage() {
         }
     }, [selectedLevel, selectedBook, selectedChapters, onlyDifficult]);
 
-    function handleNextCard() {
+    const handleNextCard = useCallback(() => {
         if (vocabularies.length === 0) {
             return;
         }
 
         setCurrentIndex((current) => (current + 1) % vocabularies.length);
         setIsFlipped(false);
-    }
+    }, [vocabularies.length]);
 
-    function handlePreviousCard() {
+    const handlePreviousCard = useCallback(() => {
         if (vocabularies.length === 0) {
             return;
         }
@@ -122,7 +122,7 @@ export function FlashcardPage() {
             current === 0 ? vocabularies.length - 1 : current - 1,
         );
         setIsFlipped(false);
-    }
+    }, [vocabularies.length]);
 
     function getFlashcardPriorityScore(vocabulary: VocabularyListItem) {
         const difficultScore = vocabulary.isDifficult ? 100 : 0;
@@ -187,6 +187,41 @@ export function FlashcardPage() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadFlashcards();
     }, [loadFlashcards]);
+
+    useEffect(() => {
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+                return;
+            }
+
+            const target = event.target as HTMLElement | null;
+            const isTypingTarget =
+                target?.tagName === "INPUT" ||
+                target?.tagName === "SELECT" ||
+                target?.tagName === "TEXTAREA" ||
+                target?.isContentEditable;
+
+            if (isTypingTarget) {
+                return;
+            }
+
+            if (event.key === "ArrowRight") {
+                event.preventDefault();
+                handleNextCard();
+            }
+
+            if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                handlePreviousCard();
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [handleNextCard, handlePreviousCard]);
 
     const levelOptions = ["All", ...availableLevels];
     const bookOptions = ["All", ...availableBooks];
