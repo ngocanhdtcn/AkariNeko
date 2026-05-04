@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+:root {
+  --akari-font-sans:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    "Segoe UI Variable",
+    "Segoe UI",
+    "Nunito",
+    "Quicksand",
+    "Noto Sans",
+    Arial,
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
 html,
 body {
   width: 100%;
@@ -10,14 +26,23 @@ body {
 body {
   min-height: 100vh;
   min-height: 100dvh;
+  font-family: var(--akari-font-sans);
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-sans {
+  font-family: var(--akari-font-sans);
+}
+
+:lang(ja) {
   font-family:
-    "Segoe UI",
-    "Noto Sans",
     "Noto Sans JP",
-    "Yu Gothic",
     "Hiragino Sans",
-    Arial,
-    sans-serif;
+    "Yu Gothic",
+    "Meiryo",
+    var(--akari-font-sans);
 }
 
 :is(html.dark, body.dark) {
