@@ -26,7 +26,7 @@ export function ImportModalFooter({
     onConfirmImport,
 }: ImportModalFooterProps) {
     return (
-        <div className="flex flex-col-reverse gap-3 border-t border-pink-50 pt-5 sm:flex-row sm:justify-end">
+        <div className="shrink-0 flex flex-col-reverse gap-3 border-t border-pink-50 bg-white px-6 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
             {importStep !== "completed" ? (
                 <button
                     type="button"

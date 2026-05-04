@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { HtmlFilePreviewGrid } from "./import/HtmlFilePreviewGrid";
 import { VocabularyPreviewGrid } from "./import/VocabularyPreviewGrid";
 import { ImportDropzone } from "./import/ImportDropzone";
@@ -11,6 +11,7 @@ import { ImportCompletedCard } from "./import/ImportCompletedCard";
 import { ImportModalHeader } from "./import/ImportModalHeader";
 import { ImportStepIndicator } from "./import/ImportStepIndicator";
 import { useVocabularyImport } from "@/hooks/useVocabularyImport";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 // import { importVocabularies } from "@/services/vocabularyImportService";
 
 import type { ImportSourceType } from "@/types/vocabularyImport";
@@ -59,27 +60,7 @@ export function ImportVocabularyModal({
     resetImportState,
   } = useVocabularyImport({ sourceType });
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const originalOverflow = document.body.style.overflow;
-    const originalPaddingRight = document.body.style.paddingRight;
-    const scrollbarWidth =
-      window.innerWidth - document.documentElement.clientWidth;
-
-    document.body.style.overflow = "hidden";
-
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.paddingRight = originalPaddingRight;
-    };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   function handleOpenFilePicker() {
     if (isFolderImport) {
@@ -98,7 +79,7 @@ export function ImportVocabularyModal({
   return (
     <AnimatePresence>
       {isOpen ? (
-        <div className="fixed inset-0 z-[100] grid place-items-center px-3 sm:px-4">
+        <div className="fixed inset-0 z-[1000] grid place-items-center overflow-hidden overscroll-none px-3 py-3 sm:px-4 sm:py-4">
           <motion.button
             type="button"
             aria-label="Close import modal overlay"
@@ -117,7 +98,7 @@ export function ImportVocabularyModal({
               duration: 0.2,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="relative max-h-[88vh] w-full max-w-6xl overflow-hidden rounded-[32px] border border-pink-100 bg-white shadow-[0_28px_80px_rgba(236,72,153,0.24)]"
+            className="relative flex max-h-[calc(var(--akari-visual-viewport-height,100dvh)-24px)] w-full max-w-6xl flex-col overflow-hidden rounded-[32px] border border-pink-100 bg-white shadow-[0_28px_80px_rgba(236,72,153,0.24)] sm:max-h-[calc(var(--akari-visual-viewport-height,100dvh)-32px)]"
           >
             <input
               ref={fileInputRef}
@@ -162,7 +143,7 @@ export function ImportVocabularyModal({
 
             <ImportModalHeader isFolderImport={isFolderImport} onClose={handleClose} />
 
-            <div className="grid max-h-[calc(88vh-112px)] gap-5 overflow-y-auto p-6">
+            <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto overscroll-contain p-6">
               <ImportStepIndicator
                 importStep={importStep}
                 selectedFileCount={selectedFiles.length}
@@ -242,25 +223,26 @@ export function ImportVocabularyModal({
                 />
               </div>
 
-              <ImportModalFooter
-                importStep={importStep}
-                hasPreviewData={previewRows.length > 0 && parsedImportFiles.length > 0}
-                hasValidationError={hasMetadataValidationError}
-                selectedFileCount={selectedFiles.length}
-                parsedRowsCount={parsedRowsCount}
-                isPreviewing={isPreviewing}
-                isImporting={isImporting}
-                onClose={handleClose}
-                onPreviewImport={handlePreviewImport}
-                onConfirmImport={async () => {
-                  const isCompleted = await handleConfirmImport();
-
-                  if (isCompleted) {
-                    onImportCompleted?.();
-                  }
-                }}
-              />
             </div>
+
+            <ImportModalFooter
+              importStep={importStep}
+              hasPreviewData={previewRows.length > 0 && parsedImportFiles.length > 0}
+              hasValidationError={hasMetadataValidationError}
+              selectedFileCount={selectedFiles.length}
+              parsedRowsCount={parsedRowsCount}
+              isPreviewing={isPreviewing}
+              isImporting={isImporting}
+              onClose={handleClose}
+              onPreviewImport={handlePreviewImport}
+              onConfirmImport={async () => {
+                const isCompleted = await handleConfirmImport();
+
+                if (isCompleted) {
+                  onImportCompleted?.();
+                }
+              }}
+            />
           </motion.section>
         </div>
       ) : null}

@@ -48,7 +48,7 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto overscroll-contain bg-slate-900/30 px-4 py-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[1000] grid place-items-center overflow-y-auto overscroll-contain bg-slate-900/30 px-4 py-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-[30px] border border-pink-100 bg-white p-5 shadow-[0_24px_80px_rgba(236,72,153,0.22)]">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 shadow-sm">

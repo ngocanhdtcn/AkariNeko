@@ -63,7 +63,7 @@ export function AddVocabularyModal({
     return (
         <AnimatePresence>
             {isOpen ? (
-                <div className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto overscroll-contain px-4 py-4 sm:py-6">
+                <div className="fixed inset-0 z-[1000] grid place-items-center overflow-hidden overscroll-none px-4 py-4 sm:py-6">
                     <motion.button
                         type="button"
                         aria-label="Close add modal overlay"
@@ -82,7 +82,7 @@ export function AddVocabularyModal({
                             duration: 0.2,
                             ease: [0.22, 1, 0.36, 1],
                         }}
-                        className="relative flex max-h-[calc(100dvh-32px)] w-full max-w-2xl flex-col overflow-hidden rounded-[30px] border border-pink-100 bg-white shadow-[0_28px_80px_rgba(236,72,153,0.24)] sm:max-h-[calc(100dvh-48px)]"
+                        className="relative flex max-h-[calc(var(--akari-visual-viewport-height,100dvh)-32px)] w-full max-w-2xl flex-col overflow-hidden rounded-[30px] border border-pink-100 bg-white shadow-[0_28px_80px_rgba(236,72,153,0.24)] sm:max-h-[calc(var(--akari-visual-viewport-height,100dvh)-48px)]"
                     >
                         <div className="shrink-0 flex items-start justify-between gap-4 border-b border-pink-50 bg-gradient-to-r from-pink-50 to-violet-50 px-6 py-5">
                             <div>
@@ -103,7 +103,7 @@ export function AddVocabularyModal({
                             </button>
                         </div>
 
-                        <div className="grid min-h-0 gap-4 overflow-y-auto overscroll-contain p-6">
+                        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain p-6">
                             {errorMessage ? (
                                 <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
                                     {errorMessage}
@@ -199,24 +199,25 @@ export function AddVocabularyModal({
                                 </label>
                             </div>
 
-                            <div className="flex justify-end gap-3 border-t border-pink-50 pt-5">
-                                <button
-                                    type="button"
-                                    className="h-12 rounded-2xl border border-pink-100 bg-white px-5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                                    onClick={onClose}
-                                >
-                                    Cancel
-                                </button>
+                        </div>
 
-                                <button
-                                    type="button"
-                                    disabled={isSaving || !canSave}
-                                    className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
-                                    onClick={() => onSave(vocabulary)}
-                                >
-                                    {isSaving ? "Saving..." : "Add word"}
-                                </button>
-                            </div>
+                        <div className="shrink-0 flex justify-end gap-3 border-t border-pink-50 bg-white px-6 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+                            <button
+                                type="button"
+                                className="h-12 rounded-2xl border border-pink-100 bg-white px-5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+                                onClick={onClose}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled={isSaving || !canSave}
+                                className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                                onClick={() => onSave(vocabulary)}
+                            >
+                                {isSaving ? "Saving..." : "Add word"}
+                            </button>
                         </div>
                     </motion.section>
                 </div>
