@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type UserAvatarProps = {
   name?: string | null;
   avatarUrl?: string | null;
@@ -17,17 +19,11 @@ function getSafeAvatarUrl(avatarUrl?: string | null) {
   }
 
   try {
-    const { hostname } = new URL(avatarUrl);
-    const blockedHosts = ["fbcdn.net", "facebook.com", "facebook.net"];
-
-    if (blockedHosts.some((host) => hostname === host || hostname.endsWith(`.${host}`))) {
-      return null;
-    }
+    const { protocol } = new URL(avatarUrl);
+    return protocol === "http:" || protocol === "https:" ? avatarUrl : null;
   } catch {
     return null;
   }
-
-  return avatarUrl;
 }
 
 export function UserAvatar({
@@ -37,14 +33,22 @@ export function UserAvatar({
   imageClassName = "h-full w-full object-cover",
 }: UserAvatarProps) {
   const safeAvatarUrl = getSafeAvatarUrl(avatarUrl);
+  const [hasImageError, setHasImageError] = useState(false);
+  const shouldShowImage = safeAvatarUrl && !hasImageError;
 
   return (
     <div
       className={`flex shrink-0 items-center justify-center overflow-hidden border border-pink-100 bg-pink-50 font-black text-pink-500 shadow-sm ${className}`}
     >
-      {safeAvatarUrl ? (
+      {shouldShowImage ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={safeAvatarUrl} alt={name || "Akari user"} className={imageClassName} />
+        <img
+          src={safeAvatarUrl}
+          alt={name || "Akari user"}
+          className={imageClassName}
+          referrerPolicy="no-referrer"
+          onError={() => setHasImageError(true)}
+        />
       ) : (
         getInitial(name)
       )}
