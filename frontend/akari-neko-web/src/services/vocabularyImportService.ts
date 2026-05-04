@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { normalizeVocabularyTextFields } from "@/lib/vocabularyTextNormalizer";
 import { getCurrentUserId } from "@/services/authService";
 import type {
   ImportVocabularyPayload,
@@ -136,16 +137,20 @@ export async function importVocabularies(
       );
     }
 
-    const vocabularyRows = file.vocabularies.map((vocabulary) => ({
-      book: file.book.trim(),
-      level: file.level.trim(),
-      chapter: file.chapter.trim(),
-      kanji: vocabulary.kanji.trim(),
-      hiragana: vocabulary.hiragana.trim(),
-      meaning: vocabulary.meaning.trim(),
-      source_file_name: file.fileName,
-      import_batch_file_id: batchFile.id,
-    }));
+    const vocabularyRows = file.vocabularies.map((vocabulary) => {
+      const normalizedVocabulary = normalizeVocabularyTextFields(vocabulary);
+
+      return {
+        book: file.book.trim(),
+        level: file.level.trim(),
+        chapter: file.chapter.trim(),
+        kanji: normalizedVocabulary.kanji.trim(),
+        hiragana: normalizedVocabulary.hiragana.trim(),
+        meaning: normalizedVocabulary.meaning.trim(),
+        source_file_name: file.fileName,
+        import_batch_file_id: batchFile.id,
+      };
+    });
 
     const { data: existingRows, error: existingRowsError } = await supabase
       .from("vocabularies")

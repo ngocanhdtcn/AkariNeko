@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { normalizeVocabularyTextFields } from "@/lib/vocabularyTextNormalizer";
 
 export type VocabularyListItem = {
     id: string;
@@ -240,8 +241,9 @@ export async function getVocabularyFilterOptions({
     level = "All",
     book = "All",
 }: GetVocabularyFilterOptionsParams = {}): Promise<VocabularyFilterOptions> {
-    const [allRows, chapterRows] = await Promise.all([
+    const [allRows, bookRows, chapterRows] = await Promise.all([
         getAllVocabularyOptionRows(),
+        getAllVocabularyOptionRows({ level }),
         getAllVocabularyOptionRows({ level, book }),
     ]);
 
@@ -249,7 +251,7 @@ export async function getVocabularyFilterOptions({
         levels: sortJlptLevels(
             getUniqueStringOptions(allRows.map((row) => row.level)),
         ),
-        books: getUniqueStringOptions(allRows.map((row) => row.book)),
+        books: getUniqueStringOptions(bookRows.map((row) => row.book)),
         chapters: getUniqueStringOptions(chapterRows.map((row) => row.chapter)),
     };
 }
@@ -276,15 +278,17 @@ export type UpdateVocabularyInput = {
 };
 
 export async function updateVocabulary(input: UpdateVocabularyInput): Promise<void> {
+    const normalizedInput = normalizeVocabularyTextFields(input);
+
     const { data: existingVocabulary, error: duplicateCheckError } = await supabase
         .from("vocabularies")
         .select("id")
-        .eq("book", input.book.trim())
-        .eq("level", input.level.trim())
-        .eq("chapter", input.chapter.trim())
-        .eq("kanji", input.kanji.trim())
-        .eq("hiragana", input.hiragana.trim())
-        .neq("id", input.id)
+        .eq("book", normalizedInput.book.trim())
+        .eq("level", normalizedInput.level.trim())
+        .eq("chapter", normalizedInput.chapter.trim())
+        .eq("kanji", normalizedInput.kanji.trim())
+        .eq("hiragana", normalizedInput.hiragana.trim())
+        .neq("id", normalizedInput.id)
         .maybeSingle();
 
     if (duplicateCheckError) {
@@ -298,15 +302,15 @@ export async function updateVocabulary(input: UpdateVocabularyInput): Promise<vo
     const { error } = await supabase
         .from("vocabularies")
         .update({
-            book: input.book.trim(),
-            level: input.level.trim(),
-            chapter: input.chapter.trim(),
-            kanji: input.kanji.trim(),
-            hiragana: input.hiragana.trim(),
-            meaning: input.meaning.trim(),
+            book: normalizedInput.book.trim(),
+            level: normalizedInput.level.trim(),
+            chapter: normalizedInput.chapter.trim(),
+            kanji: normalizedInput.kanji.trim(),
+            hiragana: normalizedInput.hiragana.trim(),
+            meaning: normalizedInput.meaning.trim(),
             updated_at: new Date().toISOString(),
         })
-        .eq("id", input.id);
+        .eq("id", normalizedInput.id);
 
     if (error) {
         throw error;
@@ -325,14 +329,16 @@ export type CreateVocabularyInput = {
 export async function createVocabulary(
     input: CreateVocabularyInput,
 ): Promise<void> {
+    const normalizedInput = normalizeVocabularyTextFields(input);
+
     const { data: existingVocabulary, error: duplicateCheckError } = await supabase
         .from("vocabularies")
         .select("id")
-        .eq("book", input.book.trim())
-        .eq("level", input.level.trim())
-        .eq("chapter", input.chapter.trim())
-        .eq("kanji", input.kanji.trim())
-        .eq("hiragana", input.hiragana.trim())
+        .eq("book", normalizedInput.book.trim())
+        .eq("level", normalizedInput.level.trim())
+        .eq("chapter", normalizedInput.chapter.trim())
+        .eq("kanji", normalizedInput.kanji.trim())
+        .eq("hiragana", normalizedInput.hiragana.trim())
         .maybeSingle();
 
     if (duplicateCheckError) {
@@ -344,12 +350,12 @@ export async function createVocabulary(
     }
 
     const { error } = await supabase.from("vocabularies").insert({
-        book: input.book.trim(),
-        level: input.level.trim(),
-        chapter: input.chapter.trim(),
-        kanji: input.kanji.trim(),
-        hiragana: input.hiragana.trim(),
-        meaning: input.meaning.trim(),
+        book: normalizedInput.book.trim(),
+        level: normalizedInput.level.trim(),
+        chapter: normalizedInput.chapter.trim(),
+        kanji: normalizedInput.kanji.trim(),
+        hiragana: normalizedInput.hiragana.trim(),
+        meaning: normalizedInput.meaning.trim(),
     });
 
     if (error) {

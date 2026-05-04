@@ -2,8 +2,14 @@
 
 import { Eye, EyeOff, RotateCcw, Shuffle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
+import {
+    hasActiveStudyFilters,
+    readPersistedStudyFilters,
+    writePersistedStudyFilters,
+} from "@/hooks/useStudyFilterPersistence";
 import {
     createFlashcardStudySession,
     getFlashcardVocabularies,
@@ -16,6 +22,12 @@ import {
 } from "@/services/vocabularyService";
 
 export function FlashcardPage() {
+    const { profile, isLoadingProfile } = useAuth();
+    const [persistedFilters] = useState(() =>
+        readPersistedStudyFilters("flashcard"),
+    );
+    const hasPersistedFilters = hasActiveStudyFilters(persistedFilters);
+    const didApplyProfileLevelRef = useRef(false);
     const [vocabularies, setVocabularies] = useState<VocabularyListItem[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
@@ -43,15 +55,29 @@ export function FlashcardPage() {
         forgotCount: 0,
     });
 
-    const [selectedLevel, setSelectedLevel] = useState("All");
-    const [selectedBook, setSelectedBook] = useState("All");
-    const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
-    const [onlyDifficult, setOnlyDifficult] = useState(false);
+    const [selectedLevel, setSelectedLevel] = useState(
+        hasPersistedFilters ? persistedFilters?.level ?? "All" : "All",
+    );
+    const [selectedBook, setSelectedBook] = useState(
+        hasPersistedFilters ? persistedFilters?.book ?? "All" : "All",
+    );
+    const [selectedChapters, setSelectedChapters] = useState<string[]>(
+        hasPersistedFilters ? persistedFilters?.chapters ?? [] : [],
+    );
+    const [onlyDifficult, setOnlyDifficult] = useState(
+        hasPersistedFilters && Boolean(persistedFilters?.onlyDifficult),
+    );
     const [showHiragana, setShowHiragana] = useState(true);
 
     const [availableLevels, setAvailableLevels] = useState<string[]>([]);
     const [availableBooks, setAvailableBooks] = useState<string[]>([]);
     const [availableChapters, setAvailableChapters] = useState<string[]>([]);
+    const shouldApplyProfileLevel =
+        !hasPersistedFilters &&
+        selectedLevel === "All" &&
+        Boolean(profile?.currentJlptLevel);
+    const areStudyFiltersReady =
+        hasPersistedFilters || (!isLoadingProfile && !shouldApplyProfileLevel);
 
     const currentVocabulary = vocabularies[currentIndex] ?? null;
 
@@ -64,6 +90,10 @@ export function FlashcardPage() {
     }, [currentIndex, vocabularies.length]);
 
     const loadFlashcards = useCallback(async () => {
+        if (!areStudyFiltersReady) {
+            return;
+        }
+
         const requestId = flashcardsRequestIdRef.current + 1;
         flashcardsRequestIdRef.current = requestId;
         setIsLoading(true);
@@ -102,7 +132,13 @@ export function FlashcardPage() {
                 setIsLoading(false);
             }
         }
-    }, [selectedLevel, selectedBook, selectedChapters, onlyDifficult]);
+    }, [
+        areStudyFiltersReady,
+        selectedLevel,
+        selectedBook,
+        selectedChapters,
+        onlyDifficult,
+    ]);
 
     const handleNextCard = useCallback(() => {
         if (vocabularies.length === 0) {
@@ -169,6 +205,25 @@ export function FlashcardPage() {
             setAvailableLevels(options.levels);
             setAvailableBooks(options.books);
             setAvailableChapters(options.chapters);
+            setSelectedBook((currentBook) =>
+                currentBook === "All" || options.books.includes(currentBook)
+                    ? currentBook
+                    : "All",
+            );
+            setSelectedChapters((currentChapters) =>
+            {
+                const nextChapters = currentChapters.filter((chapter) =>
+                    options.chapters.includes(chapter),
+                );
+
+                return nextChapters.length === currentChapters.length &&
+                    nextChapters.every(
+                        (chapter, index) => chapter === currentChapters[index],
+                    )
+                    ? currentChapters
+                    : nextChapters;
+            },
+            );
         } catch (error) {
             console.error("Failed to load flashcard filter options:", error);
         } finally {
@@ -179,9 +234,48 @@ export function FlashcardPage() {
     }, [selectedLevel, selectedBook]);
 
     useEffect(() => {
+        if (!areStudyFiltersReady) {
+            return;
+        }
+
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadFilterOptions(selectedLevel, selectedBook);
-    }, [selectedLevel, selectedBook, loadFilterOptions]);
+    }, [areStudyFiltersReady, selectedLevel, selectedBook, loadFilterOptions]);
+
+    useEffect(() => {
+        if (!areStudyFiltersReady) {
+            return;
+        }
+
+        writePersistedStudyFilters("flashcard", {
+            level: selectedLevel,
+            book: selectedBook,
+            chapters: selectedChapters,
+            onlyDifficult,
+        });
+    }, [
+        areStudyFiltersReady,
+        onlyDifficult,
+        selectedBook,
+        selectedChapters,
+        selectedLevel,
+    ]);
+
+    useEffect(() => {
+        if (
+            didApplyProfileLevelRef.current ||
+            hasPersistedFilters ||
+            selectedLevel !== "All" ||
+            !profile?.currentJlptLevel
+        ) {
+            return;
+        }
+
+        didApplyProfileLevelRef.current = true;
+        setSelectedLevel(profile.currentJlptLevel);
+        setSelectedBook("All");
+        setSelectedChapters([]);
+    }, [hasPersistedFilters, profile?.currentJlptLevel, selectedLevel]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -229,6 +323,7 @@ export function FlashcardPage() {
 
     function handleLevelChange(level: string) {
         setSelectedLevel(level);
+        setSelectedBook("All");
         setSelectedChapters([]);
         setAvailableChapters([]);
     }
@@ -282,28 +377,26 @@ export function FlashcardPage() {
         }));
     }
 
-    async function handleReviewFlashcard(result: ReviewFlashcardResult) {
+    function handleReviewFlashcard(result: ReviewFlashcardResult) {
         if (!currentVocabulary || isReviewing) {
             return;
         }
 
+        const reviewedVocabulary = currentVocabulary;
+
         setIsReviewing(true);
         setLoadError(null);
+        updateReviewedVocabularyLocally(reviewedVocabulary.id, result);
+        setSessionSavedMessage(null);
+        setIsSessionSaved(false);
+        updateSessionStats(result);
+        handleNextCard();
+        setIsReviewing(false);
 
-        try {
-            await reviewFlashcard(currentVocabulary, result);
-
-            updateReviewedVocabularyLocally(currentVocabulary.id, result);
-            setSessionSavedMessage(null);
-            setIsSessionSaved(false);
-            updateSessionStats(result);
-            handleNextCard();
-        } catch (error) {
+        void reviewFlashcard(reviewedVocabulary, result).catch((error) => {
             console.error("Failed to review flashcard:", error);
             setLoadError("Không thể lưu kết quả ôn tập.");
-        } finally {
-            setIsReviewing(false);
-        }
+        });
     }
 
     function handleResetSession() {
@@ -328,7 +421,6 @@ export function FlashcardPage() {
         setSelectedBook("All");
         setSelectedChapters([]);
         setOnlyDifficult(false);
-        void loadFilterOptions("All", "All");
     }
 
     async function handleSaveStudySession() {
@@ -544,7 +636,7 @@ export function FlashcardPage() {
                                         <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
                                             Meaning
                                         </p>
-                                        <p className="mt-4 text-3xl font-black leading-relaxed text-slate-800">
+                                        <p className="mt-4 whitespace-pre-wrap break-words font-sans text-2xl font-semibold leading-10 tracking-normal text-slate-800 sm:text-3xl sm:leading-relaxed">
                                             {currentVocabulary.meaning}
                                         </p>
                                         <p className="mt-6 text-sm font-bold text-slate-400">

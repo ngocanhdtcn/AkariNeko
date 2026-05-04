@@ -14,12 +14,19 @@ import { motion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SoftPanel } from "../ui/SoftPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { normalizeVocabularyTextFields } from "@/lib/vocabularyTextNormalizer";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal";
 import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
 import { ImportVocabularyModal } from "./ImportVocabularyModal";
+import {
+  hasActiveStudyFilters,
+  readPersistedStudyFilters,
+  writePersistedStudyFilters,
+} from "@/hooks/useStudyFilterPersistence";
 import {
   createVocabulary,
   deleteVocabulary,
@@ -115,6 +122,30 @@ export function VocabularyPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { profile, isLoadingProfile } = useAuth();
+  const [persistedFilters] = useState(() =>
+    readPersistedStudyFilters("vocabulary"),
+  );
+  const hasPersistedFilters = hasActiveStudyFilters(persistedFilters);
+  const hasPersistedLevelFilter = Boolean(
+    persistedFilters && persistedFilters.level !== "All",
+  );
+  const [hasInitialUrlFilters] = useState(() =>
+    Boolean(
+      searchParams.get("level") ||
+      searchParams.get("book") ||
+      searchParams.get("chapters") ||
+      searchParams.get("chapter") ||
+      searchParams.get("search") ||
+      searchParams.get("difficult") ||
+      searchParams.get("page"),
+    ),
+  );
+  const [hasInitialUrlLevelFilter] = useState(() =>
+    Boolean(searchParams.get("level")),
+  );
+  const didApplyProfileLevelRef = useRef(false);
+  const didHandleInitialUrlSyncRef = useRef(false);
   const isSyncingUrlRef = useRef(false);
   const [deletingVocabularyId, setDeletingVocabularyId] = useState<string | null>(
     null,
@@ -146,13 +177,19 @@ export function VocabularyPage() {
   const [availableBooks, setAvailableBooks] = useState<string[]>([]);
   const [availableChapters, setAvailableChapters] = useState<string[]>([]);
   const [searchKeyword, setSearchKeyword] = useState(
-    searchParams.get("search") ?? "",
+    searchParams.get("search") ??
+    (hasPersistedFilters ? persistedFilters?.searchKeyword : undefined) ??
+    "",
   );
   const [selectedLevel, setSelectedLevel] = useState(
-    searchParams.get("level") ?? "All",
+    searchParams.get("level") ??
+    (hasPersistedFilters ? persistedFilters?.level : undefined) ??
+    "All",
   );
   const [selectedBook, setSelectedBook] = useState(
-    searchParams.get("book") ?? "All",
+    searchParams.get("book") ??
+    (hasPersistedFilters ? persistedFilters?.book : undefined) ??
+    "All",
   );
   const [selectedChapters, setSelectedChapters] = useState(() => {
     const chaptersParam = searchParams.get("chapters");
@@ -164,7 +201,9 @@ export function VocabularyPage() {
 
     return legacyChapterParam && legacyChapterParam !== "All"
       ? [legacyChapterParam]
-      : [];
+      : hasPersistedFilters
+        ? persistedFilters?.chapters ?? []
+        : [];
   });
   const [isLoadingFilterOptions, setIsLoadingFilterOptions] = useState(false);
   const [isLoadingVocabularies, setIsLoadingVocabularies] = useState(false);
@@ -173,12 +212,29 @@ export function VocabularyPage() {
   );
   const [currentPage, setCurrentPage] = useState(() => {
     const pageParam = Number(searchParams.get("page") ?? "1");
-    return Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+    return Number.isFinite(pageParam) && pageParam > 0
+      ? pageParam
+      : hasPersistedFilters
+        ? persistedFilters?.page ?? 1
+        : 1;
   });
   const [onlyDifficult, setOnlyDifficult] = useState(
-    searchParams.get("difficult") === "1",
+    searchParams.get("difficult") === "1" ||
+    (!searchParams.has("difficult") &&
+      hasPersistedFilters &&
+      Boolean(persistedFilters?.onlyDifficult)),
   );
   const filterOptionsRequestIdRef = useRef(0);
+  const profileLevelFilter = profile?.currentJlptLevel?.toUpperCase();
+  const shouldApplyProfileLevel =
+    !hasInitialUrlLevelFilter &&
+    !hasPersistedLevelFilter &&
+    selectedLevel === "All" &&
+    Boolean(profileLevelFilter);
+  const areStudyFiltersReady =
+    hasInitialUrlLevelFilter ||
+    hasPersistedLevelFilter ||
+    (!isLoadingProfile && !shouldApplyProfileLevel);
 
   const updateVocabularyUrl = useCallback(
     ({
@@ -242,6 +298,10 @@ export function VocabularyPage() {
 
   const filteredVocabularies = vocabularies;
   const displayVocabularies = vocabularies;
+  const isInitialVocabularyLoading =
+    isLoadingVocabularies && displayVocabularies.length === 0;
+  const shouldShowVocabularyLoadingOverlay =
+    isLoadingVocabularies && displayVocabularies.length > 0;
 
   const totalPages = Math.max(
     1,
@@ -257,6 +317,32 @@ export function VocabularyPage() {
       isSyncingUrlRef.current = false;
       return;
     }
+
+    const hasCurrentUrlFilters = Boolean(
+      searchParams.get("level") ||
+      searchParams.get("book") ||
+      searchParams.get("chapters") ||
+      searchParams.get("chapter") ||
+      searchParams.get("search") ||
+      searchParams.get("difficult") ||
+      searchParams.get("page"),
+    );
+
+    if (!hasCurrentUrlFilters) {
+      didHandleInitialUrlSyncRef.current = true;
+      return;
+    }
+
+    if (
+      !didHandleInitialUrlSyncRef.current &&
+      !hasInitialUrlFilters &&
+      hasPersistedFilters
+    ) {
+      didHandleInitialUrlSyncRef.current = true;
+      return;
+    }
+
+    didHandleInitialUrlSyncRef.current = true;
 
     const pageParam = Number(searchParams.get("page") ?? "1");
     const nextPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
@@ -276,9 +362,66 @@ export function VocabularyPage() {
     setSearchKeyword(searchParams.get("search") ?? "");
     setOnlyDifficult(searchParams.get("difficult") === "1");
     setCurrentPage(nextPage);
-  }, [searchParams]);
+  }, [hasInitialUrlFilters, hasPersistedFilters, searchParams]);
+
+  useEffect(() => {
+    if (!areStudyFiltersReady) {
+      return;
+    }
+
+    writePersistedStudyFilters("vocabulary", {
+      level: selectedLevel,
+      book: selectedBook,
+      chapters: selectedChapters,
+      onlyDifficult,
+      searchKeyword,
+      page: currentPage,
+    });
+  }, [
+    areStudyFiltersReady,
+    currentPage,
+    onlyDifficult,
+    searchKeyword,
+    selectedBook,
+    selectedChapters,
+    selectedLevel,
+  ]);
+
+  useEffect(() => {
+    if (
+      didApplyProfileLevelRef.current ||
+      hasInitialUrlLevelFilter ||
+      hasPersistedLevelFilter ||
+      selectedLevel !== "All" ||
+      !profileLevelFilter
+    ) {
+      return;
+    }
+
+    didApplyProfileLevelRef.current = true;
+    setSelectedLevel(profileLevelFilter);
+    setSelectedBook("All");
+    setSelectedChapters([]);
+    setCurrentPage(1);
+    updateVocabularyUrl({
+      level: profileLevelFilter,
+      book: "All",
+      chapters: [],
+      page: 1,
+    });
+  }, [
+    hasInitialUrlLevelFilter,
+    hasPersistedLevelFilter,
+    profileLevelFilter,
+    selectedLevel,
+    updateVocabularyUrl,
+  ]);
 
   const loadVocabularies = useCallback(async (page: number) => {
+    if (!areStudyFiltersReady) {
+      return;
+    }
+
     setIsLoadingVocabularies(true);
     setVocabularyLoadError(null);
 
@@ -301,7 +444,14 @@ export function VocabularyPage() {
     } finally {
       setIsLoadingVocabularies(false);
     }
-  }, [searchKeyword, selectedLevel, selectedBook, selectedChapters, onlyDifficult]);
+  }, [
+    areStudyFiltersReady,
+    searchKeyword,
+    selectedLevel,
+    selectedBook,
+    selectedChapters,
+    onlyDifficult,
+  ]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -324,10 +474,11 @@ export function VocabularyPage() {
 
   function handleLevelChange(level: string) {
     setSelectedLevel(level);
+    setSelectedBook("All");
     setSelectedChapters([]);
     setAvailableChapters([]);
     setCurrentPage(1);
-    updateVocabularyUrl({ level, chapters: [], page: 1 });
+    updateVocabularyUrl({ level, book: "All", chapters: [], page: 1 });
   }
 
   function handleBookChange(book: string) {
@@ -388,6 +539,23 @@ export function VocabularyPage() {
       setAvailableLevels(options.levels);
       setAvailableBooks(options.books);
       setAvailableChapters(options.chapters);
+      setSelectedBook((currentBook) =>
+        currentBook === "All" || options.books.includes(currentBook)
+          ? currentBook
+          : "All",
+      );
+      setSelectedChapters((currentChapters) =>
+      {
+        const nextChapters = currentChapters.filter((chapter) =>
+          options.chapters.includes(chapter),
+        );
+
+        return nextChapters.length === currentChapters.length &&
+          nextChapters.every((chapter, index) => chapter === currentChapters[index])
+          ? currentChapters
+          : nextChapters;
+      },
+      );
     } catch (error) {
       console.error("Failed to load vocabulary filter options:", error);
     } finally {
@@ -398,10 +566,19 @@ export function VocabularyPage() {
   }, [selectedLevel, selectedBook]);
 
   useEffect(() => {
+    if (!areStudyFiltersReady) {
+      return;
+    }
+
     // Filter options are loaded from Supabase when the page mounts.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadVocabularyFilterOptions(selectedLevel, selectedBook);
-  }, [selectedLevel, selectedBook, loadVocabularyFilterOptions]);
+  }, [
+    areStudyFiltersReady,
+    selectedLevel,
+    selectedBook,
+    loadVocabularyFilterOptions,
+  ]);
 
   async function handleConfirmDeleteVocabulary() {
     if (!vocabularyPendingDelete) {
@@ -423,42 +600,67 @@ export function VocabularyPage() {
   }
   const [editingVocabulary, setEditingVocabulary] =
     useState<VocabularyListItem | null>(null);
-  const [isSavingVocabulary, setIsSavingVocabulary] = useState(false);
+  const isSavingVocabulary = false;
   const [editVocabularyError, setEditVocabularyError] = useState<string | null>(
     null,
   );
 
-  async function handleSaveVocabulary(vocabulary: VocabularyListItem) {
-    setIsSavingVocabulary(true);
+  function handleSaveVocabulary(vocabulary: VocabularyListItem) {
+    const previousVocabulary = editingVocabulary;
+    const normalizedVocabulary = normalizeVocabularyTextFields(vocabulary);
+
     setEditVocabularyError(null);
     setVocabularyLoadError(null);
+    setVocabularies((currentVocabularies) =>
+      currentVocabularies.map((currentVocabulary) =>
+        currentVocabulary.id === normalizedVocabulary.id
+          ? {
+            ...currentVocabulary,
+            book: normalizedVocabulary.book,
+            level: normalizedVocabulary.level,
+            chapter: normalizedVocabulary.chapter,
+            kanji: normalizedVocabulary.kanji,
+            hiragana: normalizedVocabulary.hiragana,
+            meaning: normalizedVocabulary.meaning,
+          }
+          : currentVocabulary,
+      ),
+    );
+    setEditingVocabulary(null);
 
-    try {
-      await updateVocabulary({
-        id: vocabulary.id,
-        book: vocabulary.book,
-        level: vocabulary.level,
-        chapter: vocabulary.chapter,
-        kanji: vocabulary.kanji,
-        hiragana: vocabulary.hiragana,
-        meaning: vocabulary.meaning,
+    void updateVocabulary({
+        id: normalizedVocabulary.id,
+        book: normalizedVocabulary.book,
+        level: normalizedVocabulary.level,
+        chapter: normalizedVocabulary.chapter,
+        kanji: normalizedVocabulary.kanji,
+        hiragana: normalizedVocabulary.hiragana,
+        meaning: normalizedVocabulary.meaning,
+      })
+      .then(() => {
+        void loadVocabularyFilterOptions();
+      })
+      .catch((error) => {
+        console.error("Failed to update vocabulary:", error);
+
+        if (previousVocabulary) {
+          setVocabularies((currentVocabularies) =>
+            currentVocabularies.map((currentVocabulary) =>
+              currentVocabulary.id === previousVocabulary.id
+                ? previousVocabulary
+                : currentVocabulary,
+            ),
+          );
+        }
+
+        setEditingVocabulary(normalizedVocabulary);
+        setEditVocabularyError(
+          error instanceof DuplicateVocabularyError
+            ? "Từ vựng này đã tồn tại trong cùng Book / Level / Chapter."
+            : "Không thể cập nhật từ vựng. Vui lòng thử lại.",
+        );
+        setVocabularyLoadError("Không thể cập nhật từ vựng. Vui lòng thử lại.");
       });
-
-      setEditingVocabulary(null);
-      await loadVocabularies(currentPage);
-      await loadVocabularyFilterOptions();
-    } catch (error) {
-      console.error("Failed to update vocabulary:", error);
-      setEditVocabularyError(
-        error instanceof DuplicateVocabularyError
-          ? "Từ vựng này đã tồn tại trong cùng Book / Level / Chapter."
-          : "Không thể cập nhật từ vựng. Vui lòng thử lại.",
-      );
-      setVocabularyLoadError("Không thể cập nhật từ vựng. Vui lòng thử lại.");
-      setVocabularyLoadError(null);
-    } finally {
-      setIsSavingVocabulary(false);
-    }
   }
 
   const [isAddVocabularyOpen, setIsAddVocabularyOpen] = useState(false);
@@ -478,8 +680,8 @@ export function VocabularyPage() {
       setIsAddVocabularyOpen(false);
       setCurrentPage(1);
 
-      await loadVocabularies(1);
-      await loadVocabularyFilterOptions();
+      void loadVocabularies(1);
+      void loadVocabularyFilterOptions();
     } catch (error) {
       console.error("Failed to create vocabulary:", error);
       setCreateVocabularyError(
@@ -716,8 +918,8 @@ export function VocabularyPage() {
             </div>
           ) : null}
 
-          <div className="grid gap-3 md:hidden">
-            {isLoadingVocabularies ? (
+          <div className="relative grid min-h-[420px] gap-3 md:hidden">
+            {isInitialVocabularyLoading ? (
               <div className="rounded-2xl border border-pink-50 bg-white p-5 text-center text-sm font-bold text-slate-400 shadow-sm">
                 Đang tải danh sách từ vựng...
               </div>
@@ -796,9 +998,18 @@ export function VocabularyPage() {
                 Chưa có từ vựng nào. Hãy import file HTML trước.
               </div>
             )}
+
+            {shouldShowVocabularyLoadingOverlay ? (
+              <div className="absolute inset-0 z-20 grid place-items-center rounded-2xl bg-white/70 backdrop-blur-[2px]">
+                <div className="flex items-center gap-3 rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold text-pink-500 shadow-sm">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-pink-200 border-t-pink-500" />
+                  Đang tải dữ liệu...
+                </div>
+              </div>
+            ) : null}
           </div>
 
-          <div className="hidden overflow-x-auto rounded-[22px] border border-pink-50 md:block">
+          <div className="relative hidden min-h-[680px] overflow-x-auto rounded-[22px] border border-pink-50 md:block">
             <div className="min-w-[940px]">
             <div className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-sm font-bold text-slate-500">
               <div>Kanji</div>
@@ -810,8 +1021,8 @@ export function VocabularyPage() {
               <div>Action</div>
             </div>
 
-            {isLoadingVocabularies ? (
-              <div className="border-t border-pink-50 px-4 py-8 text-center text-sm font-bold text-slate-400">
+            {isInitialVocabularyLoading ? (
+              <div className="grid min-h-[620px] place-items-center border-t border-pink-50 px-4 py-8 text-center text-sm font-bold text-slate-400">
                 Đang tải danh sách từ vựng...
               </div>
             ) : displayVocabularies.length > 0 ? (
@@ -895,6 +1106,15 @@ export function VocabularyPage() {
               </div>
             )}
             </div>
+
+            {shouldShowVocabularyLoadingOverlay ? (
+              <div className="absolute inset-0 z-20 grid place-items-center bg-white/70 backdrop-blur-[2px]">
+                <div className="flex items-center gap-3 rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold text-pink-500 shadow-sm">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-pink-200 border-t-pink-500" />
+                  Đang tải dữ liệu...
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {filteredVocabularies.length > 0 ? (

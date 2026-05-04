@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import type { VocabularyListItem } from "@/services/vocabularyService";
 
 const jlptLevelOptions = ["N5", "N4", "N3", "N2", "N1"];
@@ -24,6 +25,8 @@ export function EditVocabularyModal({
 }: EditVocabularyModalProps) {
     const [editingVocabulary, setEditingVocabulary] =
         useState<VocabularyListItem | null>(null);
+
+    useBodyScrollLock(Boolean(vocabulary));
 
     useEffect(() => {
         // Keep the editable draft in sync when a different row is selected.
@@ -49,7 +52,7 @@ export function EditVocabularyModal({
     return (
         <AnimatePresence>
             {vocabulary ? (
-                <div className="fixed inset-0 z-[110] grid place-items-center px-4">
+                <div className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto overscroll-contain px-4 py-4 sm:py-6">
                     <motion.button
                         type="button"
                         aria-label="Close edit modal overlay"
@@ -68,9 +71,9 @@ export function EditVocabularyModal({
                             duration: 0.2,
                             ease: [0.22, 1, 0.36, 1],
                         }}
-                        className="relative w-full max-w-2xl overflow-hidden rounded-[30px] border border-pink-100 bg-white shadow-[0_28px_80px_rgba(236,72,153,0.24)]"
+                        className="relative flex max-h-[calc(100dvh-32px)] w-full max-w-2xl flex-col overflow-hidden rounded-[30px] border border-pink-100 bg-white shadow-[0_28px_80px_rgba(236,72,153,0.24)] sm:max-h-[calc(100dvh-48px)]"
                     >
-                        <div className="flex items-start justify-between gap-4 border-b border-pink-50 bg-gradient-to-r from-pink-50 to-violet-50 px-6 py-5">
+                        <div className="shrink-0 flex items-start justify-between gap-4 border-b border-pink-50 bg-gradient-to-r from-pink-50 to-violet-50 px-6 py-5">
                             <div>
                                 <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
                                     Edit vocabulary
@@ -89,7 +92,7 @@ export function EditVocabularyModal({
                             </button>
                         </div>
 
-                        <div className="grid gap-4 p-6">
+                        <div className="grid min-h-0 gap-4 overflow-y-auto overscroll-contain p-6">
                             {errorMessage ? (
                                 <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
                                     {errorMessage}

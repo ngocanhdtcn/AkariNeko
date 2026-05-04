@@ -1,3 +1,5 @@
+import { normalizeVocabularyTextFields } from "@/lib/vocabularyTextNormalizer";
+
 export type ParsedVocabularyItem = {
   kanji: string;
   hiragana: string;
@@ -361,10 +363,11 @@ function uniqueVocabularyItems(items: ParsedVocabularyItem[]) {
   const uniqueMap = new Map<string, ParsedVocabularyItem>();
 
   items.forEach((item) => {
-    const key = `${item.kanji}|${item.hiragana}|${item.meaning}`;
+    const normalizedItem = normalizeVocabularyTextFields(item);
+    const key = `${normalizedItem.kanji}|${normalizedItem.hiragana}|${normalizedItem.meaning}`;
 
     if (!uniqueMap.has(key)) {
-      uniqueMap.set(key, item);
+      uniqueMap.set(key, normalizedItem);
     }
   });
 

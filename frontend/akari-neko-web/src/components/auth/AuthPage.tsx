@@ -116,8 +116,8 @@ export function AuthPage() {
                 }`}
             style={{
                 backgroundImage: `url(${isDarkAuth
-                    ? "/images/auth/login-background-dark.png"
-                    : "/images/auth/login-background-light.png"
+                    ? "/images/auth/login-background-dark.avif"
+                    : "/images/auth/login-background-light.avif"
                     })`,
             }}
         >

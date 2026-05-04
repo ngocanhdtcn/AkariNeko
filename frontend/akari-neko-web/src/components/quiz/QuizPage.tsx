@@ -8,8 +8,14 @@ import {
     XCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
+import {
+    hasActiveStudyFilters,
+    readPersistedStudyFilters,
+    writePersistedStudyFilters,
+} from "@/hooks/useStudyFilterPersistence";
 import {
     createQuizSession,
     getQuizVocabularies,
@@ -61,6 +67,10 @@ function buildQuizQuestions(vocabularies: VocabularyListItem[]) {
 }
 
 export function QuizPage() {
+    const { profile, isLoadingProfile } = useAuth();
+    const [persistedFilters] = useState(() => readPersistedStudyFilters("quiz"));
+    const hasPersistedFilters = hasActiveStudyFilters(persistedFilters);
+    const didApplyProfileLevelRef = useRef(false);
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -78,16 +88,31 @@ export function QuizPage() {
         string | null
     >(null);
     const isSavingQuizSessionRef = useRef(false);
+    const autoNextTimeoutRef = useRef<number | null>(null);
 
-    const [selectedLevel, setSelectedLevel] = useState("All");
-    const [selectedBook, setSelectedBook] = useState("All");
-    const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
-    const [onlyDifficult, setOnlyDifficult] = useState(false);
+    const [selectedLevel, setSelectedLevel] = useState(
+        hasPersistedFilters ? persistedFilters?.level ?? "All" : "All",
+    );
+    const [selectedBook, setSelectedBook] = useState(
+        hasPersistedFilters ? persistedFilters?.book ?? "All" : "All",
+    );
+    const [selectedChapters, setSelectedChapters] = useState<string[]>(
+        hasPersistedFilters ? persistedFilters?.chapters ?? [] : [],
+    );
+    const [onlyDifficult, setOnlyDifficult] = useState(
+        hasPersistedFilters && Boolean(persistedFilters?.onlyDifficult),
+    );
     const [showHiragana, setShowHiragana] = useState(true);
 
     const [availableLevels, setAvailableLevels] = useState<string[]>([]);
     const [availableBooks, setAvailableBooks] = useState<string[]>([]);
     const [availableChapters, setAvailableChapters] = useState<string[]>([]);
+    const shouldApplyProfileLevel =
+        !hasPersistedFilters &&
+        selectedLevel === "All" &&
+        Boolean(profile?.currentJlptLevel);
+    const areStudyFiltersReady =
+        hasPersistedFilters || (!isLoadingProfile && !shouldApplyProfileLevel);
 
     const currentQuestion = questions[currentQuestionIndex] ?? null;
     const isQuizCompleted =
@@ -118,6 +143,10 @@ export function QuizPage() {
         onlyDifficult;
 
     async function loadFilterOptions(level = selectedLevel, book = selectedBook) {
+        if (!areStudyFiltersReady) {
+            return;
+        }
+
         setIsLoadingFilterOptions(true);
 
         try {
@@ -129,6 +158,25 @@ export function QuizPage() {
             setAvailableLevels(options.levels);
             setAvailableBooks(options.books);
             setAvailableChapters(options.chapters);
+            setSelectedBook((currentBook) =>
+                currentBook === "All" || options.books.includes(currentBook)
+                    ? currentBook
+                    : "All",
+            );
+            setSelectedChapters((currentChapters) =>
+            {
+                const nextChapters = currentChapters.filter((chapter) =>
+                    options.chapters.includes(chapter),
+                );
+
+                return nextChapters.length === currentChapters.length &&
+                    nextChapters.every(
+                        (chapter, index) => chapter === currentChapters[index],
+                    )
+                    ? currentChapters
+                    : nextChapters;
+            },
+            );
         } catch (error) {
             console.error("Failed to load quiz filter options:", error);
         } finally {
@@ -137,6 +185,10 @@ export function QuizPage() {
     }
 
     async function loadQuiz() {
+        if (!areStudyFiltersReady) {
+            return;
+        }
+
         setIsLoading(true);
         setLoadError(null);
 
@@ -169,16 +221,15 @@ export function QuizPage() {
 
     function handleLevelChange(level: string) {
         setSelectedLevel(level);
+        setSelectedBook("All");
         setSelectedChapters([]);
         setAvailableChapters([]);
-        void loadFilterOptions(level, selectedBook);
     }
 
     function handleBookChange(book: string) {
         setSelectedBook(book);
         setSelectedChapters([]);
         setAvailableChapters([]);
-        void loadFilterOptions(selectedLevel, book);
     }
 
     function handleClearFilters() {
@@ -186,45 +237,65 @@ export function QuizPage() {
         setSelectedBook("All");
         setSelectedChapters([]);
         setOnlyDifficult(false);
-        void loadFilterOptions("All", "All");
     }
 
-    async function handleSelectAnswer(answer: string) {
+    function handleSelectAnswer(answer: string) {
         if (!currentQuestion || isAnswered || isSubmittingAnswer) {
             return;
         }
 
+        if (autoNextTimeoutRef.current !== null) {
+            window.clearTimeout(autoNextTimeoutRef.current);
+            autoNextTimeoutRef.current = null;
+        }
+
+        const answeredQuestion = currentQuestion;
         const result: QuizAnswerResult =
-            answer === currentQuestion.vocabulary.meaning ? "correct" : "wrong";
+            answer === answeredQuestion.vocabulary.meaning ? "correct" : "wrong";
 
         setSelectedAnswer(answer);
         setIsAnswered(true);
         setIsSubmittingAnswer(true);
         setLoadError(null);
 
-        try {
-            await reviewQuizAnswer(currentQuestion.vocabulary, result);
+        if (result === "correct") {
+            setCorrectCount((current) => current + 1);
+        } else {
+            setWrongCount((current) => current + 1);
+        }
 
-            if (result === "correct") {
-                setCorrectCount((current) => current + 1);
-            } else {
-                setWrongCount((current) => current + 1);
-            }
-        } catch (error) {
+        setIsSubmittingAnswer(false);
+
+        void reviewQuizAnswer(answeredQuestion.vocabulary, result).catch((error) => {
             console.error("Failed to submit quiz answer:", error);
             setLoadError("Không thể lưu kết quả trả lời.");
-        } finally {
-            setIsSubmittingAnswer(false);
+        });
+
+        if (result === "correct") {
+            autoNextTimeoutRef.current = window.setTimeout(() => {
+                autoNextTimeoutRef.current = null;
+                handleNextQuestion();
+            }, 450);
         }
     }
 
     function handleNextQuestion() {
+        if (autoNextTimeoutRef.current !== null) {
+            window.clearTimeout(autoNextTimeoutRef.current);
+            autoNextTimeoutRef.current = null;
+        }
+
         setSelectedAnswer(null);
         setIsAnswered(false);
         setCurrentQuestionIndex((current) => current + 1);
     }
 
     function handleRestartQuiz() {
+        if (autoNextTimeoutRef.current !== null) {
+            window.clearTimeout(autoNextTimeoutRef.current);
+            autoNextTimeoutRef.current = null;
+        }
+
         setCurrentQuestionIndex(0);
         setSelectedAnswer(null);
         setIsAnswered(false);
@@ -235,16 +306,67 @@ export function QuizPage() {
     }
 
     useEffect(() => {
+        if (!areStudyFiltersReady) {
+            return;
+        }
+
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        void loadFilterOptions();
+        void loadFilterOptions(selectedLevel, selectedBook);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [areStudyFiltersReady, selectedLevel, selectedBook]);
 
     useEffect(() => {
+        if (!areStudyFiltersReady) {
+            return;
+        }
+
+        writePersistedStudyFilters("quiz", {
+            level: selectedLevel,
+            book: selectedBook,
+            chapters: selectedChapters,
+            onlyDifficult,
+        });
+    }, [
+        areStudyFiltersReady,
+        onlyDifficult,
+        selectedBook,
+        selectedChapters,
+        selectedLevel,
+    ]);
+
+    useEffect(() => {
+        if (
+            didApplyProfileLevelRef.current ||
+            hasPersistedFilters ||
+            selectedLevel !== "All" ||
+            !profile?.currentJlptLevel
+        ) {
+            return;
+        }
+
+        didApplyProfileLevelRef.current = true;
+        setSelectedLevel(profile.currentJlptLevel);
+        setSelectedBook("All");
+        setSelectedChapters([]);
+    }, [hasPersistedFilters, profile?.currentJlptLevel, selectedLevel]);
+
+    useEffect(() => {
+        if (!areStudyFiltersReady) {
+            return;
+        }
+
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadQuiz();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedLevel, selectedBook, selectedChapters, onlyDifficult]);
+
+    useEffect(() => {
+        return () => {
+            if (autoNextTimeoutRef.current !== null) {
+                window.clearTimeout(autoNextTimeoutRef.current);
+            }
+        };
+    }, []);
 
     async function handleSaveQuizSession() {
         if (
