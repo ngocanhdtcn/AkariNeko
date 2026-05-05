@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { updateCurrentProfile } from "@/services/authService";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { clearPersistedStudyFilters } from "@/hooks/useStudyFilterPersistence";
 
 const jlptLevelOptions = ["N5", "N4", "N3", "N2", "N1"];
 
@@ -34,6 +35,7 @@ export function ProfilePage() {
         setIsSaving(true);
         setProfileError(null);
         setProfileMessage(null);
+        const previousJlptLevel = profile?.currentJlptLevel;
 
         try {
             await updateCurrentProfile({
@@ -41,6 +43,10 @@ export function ProfilePage() {
                 avatarUrl: avatarUrl.trim() || null,
                 currentJlptLevel,
             });
+
+            if (previousJlptLevel && previousJlptLevel !== currentJlptLevel) {
+                ["vocabulary", "flashcard", "quiz"].forEach(clearPersistedStudyFilters);
+            }
 
             await refreshProfile();
 

@@ -32,6 +32,13 @@ type QuizQuestion = {
     choices: string[];
 };
 
+type QuizPoolState = {
+    filterKey: string;
+    unseenIds: string[];
+    wrongIds: string[];
+    correctIds: string[];
+};
+
 function shuffleArray<T>(items: T[]) {
     const shuffled = [...items];
 
@@ -46,10 +53,82 @@ function shuffleArray<T>(items: T[]) {
     return shuffled;
 }
 
-function buildQuizQuestions(vocabularies: VocabularyListItem[]) {
-    const candidates = vocabularies.filter((item) => item.meaning.trim());
+function getQuizFilterKey({
+    level,
+    book,
+    chapters,
+    onlyDifficult,
+}: {
+    level: string;
+    book: string;
+    chapters: string[];
+    onlyDifficult: boolean;
+}) {
+    return JSON.stringify({
+        level,
+        book,
+        chapters: [...chapters].sort(),
+        onlyDifficult,
+    });
+}
 
-    return shuffleArray(candidates)
+function getUniqueIds(ids: string[]) {
+    return Array.from(new Set(ids));
+}
+
+function isMasteredVocabulary(vocabulary: VocabularyListItem) {
+    return vocabulary.correctCount - vocabulary.wrongCount >= 5;
+}
+
+function buildQuizQuestions(
+    vocabularies: VocabularyListItem[],
+    poolState: QuizPoolState | null,
+) {
+    const candidates = vocabularies.filter((item) => item.meaning.trim());
+    const candidateIds = new Set(candidates.map((item) => item.id));
+    const pickedIds = new Set<string>();
+
+    function takeByIds(ids: string[]) {
+        const idSet = new Set(ids);
+
+        return shuffleArray(
+            candidates.filter((item) => idSet.has(item.id) && !pickedIds.has(item.id)),
+        ).map((item) => {
+            pickedIds.add(item.id);
+            return item;
+        });
+    }
+
+    const unseenItems = poolState
+        ? takeByIds(poolState.unseenIds.filter((id) => candidateIds.has(id)))
+        : [];
+    const recentWrongItems = poolState
+        ? takeByIds(poolState.wrongIds.filter((id) => candidateIds.has(id)))
+        : [];
+    const difficultItems = shuffleArray(
+        candidates.filter(
+            (item) =>
+                !pickedIds.has(item.id) &&
+                (item.isDifficult || item.wrongCount > item.correctCount),
+        ),
+    ).map((item) => {
+        pickedIds.add(item.id);
+        return item;
+    });
+    const correctItems = poolState
+        ? takeByIds(poolState.correctIds.filter((id) => candidateIds.has(id)))
+        : [];
+    const remainingItems = shuffleArray(
+        candidates.filter((item) => !pickedIds.has(item.id)),
+    );
+
+    return [
+        ...unseenItems,
+        ...recentWrongItems,
+        ...difficultItems,
+        ...correctItems,
+        ...remainingItems,
+    ]
         .slice(0, 10)
         .map((vocabulary) => {
             const wrongChoices = shuffleArray(
@@ -72,6 +151,11 @@ export function QuizPage() {
     const hasPersistedFilters = hasActiveStudyFilters(persistedFilters);
     const didApplyProfileLevelRef = useRef(false);
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+    const [quizPool, setQuizPool] = useState<QuizPoolState | null>(null);
+    const quizPoolRef = useRef<QuizPoolState | null>(null);
+    const [answerResults, setAnswerResults] = useState<
+        Record<string, QuizAnswerResult>
+    >({});
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
@@ -198,10 +282,79 @@ export function QuizPage() {
                 book: selectedBook,
                 chapters: selectedChapters,
                 onlyDifficult,
-                limitCount: 60,
             });
+            const filterKey = getQuizFilterKey({
+                level: selectedLevel,
+                book: selectedBook,
+                chapters: selectedChapters,
+                onlyDifficult,
+            });
+            const candidates = vocabularies.filter((item) => item.meaning.trim());
+            const candidateIds = candidates.map((item) => item.id);
+            const candidateIdSet = new Set(candidateIds);
+            const masteredCandidateIds = new Set(
+                candidates
+                    .filter((item) => isMasteredVocabulary(item))
+                    .map((item) => item.id),
+            );
+            const currentPool = quizPoolRef.current;
+            const knownPoolIds = new Set(
+                currentPool
+                    ? [
+                        ...currentPool.unseenIds,
+                        ...currentPool.wrongIds,
+                        ...currentPool.correctIds,
+                    ]
+                    : [],
+            );
+            const newCandidateIds = candidateIds.filter((id) => !knownPoolIds.has(id));
+            const newUnseenIds = newCandidateIds.filter(
+                (id) => !masteredCandidateIds.has(id),
+            );
+            const newCorrectIds = newCandidateIds.filter((id) =>
+                masteredCandidateIds.has(id),
+            );
+            const nextPool =
+                currentPool?.filterKey === filterKey
+                    ? {
+                        filterKey,
+                        unseenIds: [
+                            ...currentPool.unseenIds.filter((id) =>
+                                candidateIdSet.has(id) &&
+                                !masteredCandidateIds.has(id),
+                            ),
+                            ...newUnseenIds,
+                        ],
+                        wrongIds: currentPool.wrongIds.filter((id) =>
+                            candidateIdSet.has(id),
+                        ),
+                        correctIds: getUniqueIds(
+                            [
+                                ...currentPool.correctIds.filter((id) =>
+                                    candidateIdSet.has(id),
+                                ),
+                                ...currentPool.unseenIds.filter((id) =>
+                                    masteredCandidateIds.has(id),
+                                ),
+                                ...newCorrectIds,
+                            ],
+                        ),
+                    }
+                    : {
+                        filterKey,
+                        unseenIds: candidateIds.filter(
+                            (id) => !masteredCandidateIds.has(id),
+                        ),
+                        wrongIds: [],
+                        correctIds: candidateIds.filter((id) =>
+                            masteredCandidateIds.has(id),
+                        ),
+                    };
 
-            const nextQuestions = buildQuizQuestions(vocabularies);
+            quizPoolRef.current = nextPool;
+            setQuizPool(nextPool);
+
+            const nextQuestions = buildQuizQuestions(vocabularies, nextPool);
 
             setQuestions(nextQuestions);
             setCurrentQuestionIndex(0);
@@ -209,6 +362,7 @@ export function QuizPage() {
             setIsAnswered(false);
             setCorrectCount(0);
             setWrongCount(0);
+            setAnswerResults({});
             setIsQuizSessionSaved(false);
             setQuizSessionSavedMessage(null);
         } catch (error) {
@@ -264,6 +418,11 @@ export function QuizPage() {
             setWrongCount((current) => current + 1);
         }
 
+        setAnswerResults((current) => ({
+            ...current,
+            [answeredQuestion.vocabulary.id]: result,
+        }));
+
         setIsSubmittingAnswer(false);
 
         void reviewQuizAnswer(answeredQuestion.vocabulary, result).catch((error) => {
@@ -301,6 +460,7 @@ export function QuizPage() {
         setIsAnswered(false);
         setCorrectCount(0);
         setWrongCount(0);
+        setAnswerResults({});
         setIsQuizSessionSaved(false);
         setQuizSessionSavedMessage(null);
     }
@@ -396,7 +556,38 @@ export function QuizPage() {
             });
 
             setIsQuizSessionSaved(true);
-            setQuizSessionSavedMessage("Đã lưu kết quả quiz.");
+            setQuizSessionSavedMessage("Đã lưu kết quả quiz. Đang tạo quiz mới...");
+
+            const answeredIds = questions.map((question) => question.vocabulary.id);
+            const answeredIdSet = new Set(answeredIds);
+            const wrongIds = answeredIds.filter(
+                (id) => answerResults[id] === "wrong",
+            );
+            const correctIds = answeredIds.filter(
+                (id) => answerResults[id] === "correct",
+            );
+            const currentPool = quizPoolRef.current;
+
+            if (currentPool) {
+                const nextPool = {
+                    filterKey: currentPool.filterKey,
+                    unseenIds: currentPool.unseenIds.filter(
+                        (id) => !answeredIdSet.has(id),
+                    ),
+                    wrongIds: getUniqueIds([...wrongIds, ...currentPool.wrongIds]).filter(
+                        (id) => !correctIds.includes(id),
+                    ),
+                    correctIds: getUniqueIds([
+                        ...currentPool.correctIds.filter((id) => !wrongIds.includes(id)),
+                        ...correctIds,
+                    ]),
+                };
+
+                quizPoolRef.current = nextPool;
+                setQuizPool(nextPool);
+            }
+
+            await loadQuiz();
         } catch (error) {
             console.error("Failed to save quiz session:", error);
             setLoadError("Không thể lưu kết quả quiz.");
@@ -459,7 +650,14 @@ export function QuizPage() {
                     />
 
                     <div className="rounded-2xl bg-pink-50 px-4 py-3 text-sm font-bold text-pink-500">
-                        {isLoading ? "Đang tải..." : `${questions.length} câu hỏi`}
+                        <div>
+                            {isLoading ? "Đang tải..." : `${questions.length} câu hỏi`}
+                        </div>
+                        {quizPool ? (
+                            <div className="mt-1 text-xs text-pink-400">
+                                Chưa gặp: {quizPool.unseenIds.length}
+                            </div>
+                        ) : null}
                     </div>
 
                     <button
@@ -555,14 +753,6 @@ export function QuizPage() {
                                     onClick={handleRestartQuiz}
                                 >
                                     Restart
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="h-12 rounded-2xl border border-pink-100 bg-white px-5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                                    onClick={() => void loadQuiz()}
-                                >
-                                    New quiz
                                 </button>
                             </div>
                         </div>

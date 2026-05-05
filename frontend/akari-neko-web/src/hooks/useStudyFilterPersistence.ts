@@ -72,6 +72,14 @@ export function writePersistedStudyFilters(
   window.localStorage.setItem(getStorageKey(scope), JSON.stringify(filters));
 }
 
+export function clearPersistedStudyFilters(scope: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getStorageKey(scope));
+}
+
 export function hasActiveStudyFilters(filters: PersistedStudyFilters | null) {
   if (!filters) {
     return false;

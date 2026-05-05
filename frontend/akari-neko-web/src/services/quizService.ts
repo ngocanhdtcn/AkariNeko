@@ -16,6 +16,8 @@ type VocabularyRow = {
     created_at: string;
 };
 
+const QUIZ_VOCABULARY_PAGE_SIZE = 1000;
+
 function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
     return {
         id: row.id,
@@ -49,57 +51,76 @@ export async function getQuizVocabularies({
     chapter = "All",
     chapters,
     onlyDifficult = false,
-    limitCount = 40,
+    limitCount = QUIZ_VOCABULARY_PAGE_SIZE,
 }: GetQuizVocabulariesParams): Promise<VocabularyListItem[]> {
-    let query = supabase
-        .from("vocabularies")
-        .select(
-            [
-                "id",
-                "book",
-                "level",
-                "chapter",
-                "kanji",
-                "hiragana",
-                "meaning",
-                "correct_count",
-                "wrong_count",
-                "is_difficult",
-                "created_at",
-            ].join(","),
-        )
-        .order("created_at", { ascending: false })
-        .limit(limitCount);
+    const rows: VocabularyRow[] = [];
+    let from = 0;
 
-    if (level !== "All") {
-        query = query.eq("level", level);
+    while (rows.length < limitCount) {
+        const to = Math.min(
+            from + QUIZ_VOCABULARY_PAGE_SIZE - 1,
+            limitCount - 1,
+        );
+
+        let query = supabase
+            .from("vocabularies")
+            .select(
+                [
+                    "id",
+                    "book",
+                    "level",
+                    "chapter",
+                    "kanji",
+                    "hiragana",
+                    "meaning",
+                    "correct_count",
+                    "wrong_count",
+                    "is_difficult",
+                    "created_at",
+                ].join(","),
+            )
+            .order("created_at", { ascending: false })
+            .range(from, to);
+
+        if (level !== "All") {
+            query = query.eq("level", level);
+        }
+
+        if (book !== "All") {
+            query = query.eq("book", book);
+        }
+
+        const selectedChapters =
+            chapters?.filter((item) => item && item !== "All") ??
+            (chapter !== "All" ? [chapter] : []);
+
+        if (selectedChapters.length > 0) {
+            query = query.in("chapter", selectedChapters);
+        } else if (chapter !== "All") {
+            query = query.eq("chapter", chapter);
+        }
+
+        if (onlyDifficult) {
+            query = query.eq("is_difficult", true);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            throw error;
+        }
+
+        const pageRows = (data ?? []) as unknown as VocabularyRow[];
+        rows.push(...pageRows);
+
+        if (pageRows.length < to - from + 1) {
+            break;
+        }
+
+        from += QUIZ_VOCABULARY_PAGE_SIZE;
     }
 
-    if (book !== "All") {
-        query = query.eq("book", book);
-    }
-
-    const selectedChapters =
-        chapters?.filter((item) => item && item !== "All") ??
-        (chapter !== "All" ? [chapter] : []);
-
-    if (selectedChapters.length > 0) {
-        query = query.in("chapter", selectedChapters);
-    } else if (chapter !== "All") {
-        query = query.eq("chapter", chapter);
-    }
-
-    if (onlyDifficult) {
-        query = query.eq("is_difficult", true);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-        throw error;
-    }
-
-    return ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow);
+    return rows.map(mapVocabularyRow);
 }
 
 export async function reviewQuizAnswer(

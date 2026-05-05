@@ -63,7 +63,7 @@ export function AppShell({ children, rightPanel }: AppShellProps) {
             onToggleSidebar={toggleSidebar}
           />
 
-          <div className="min-w-0 overflow-x-hidden pb-28 lg:min-h-0 lg:overflow-y-auto lg:pb-0 lg:pr-1">
+          <div className="min-w-0 overflow-x-hidden pb-44 lg:min-h-0 lg:overflow-y-auto lg:pb-0 lg:pr-1">
             {rightPanel ? (
               <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <section className="grid min-w-0 content-start gap-4">

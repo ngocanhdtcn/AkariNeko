@@ -1124,7 +1124,39 @@ export function VocabularyPage() {
                 {displayVocabularies.length} / {totalVocabularyCount} từ
               </p>
 
-              <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:hidden">
+                <button
+                  type="button"
+                  disabled={safeCurrentPage <= 1}
+                  className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
+                  onClick={() => {
+                    const nextPage = Math.max(1, safeCurrentPage - 1);
+                    setCurrentPage(nextPage);
+                    updateVocabularyUrl({ page: nextPage });
+                  }}
+                >
+                  Prev
+                </button>
+
+                <div className="min-w-0 rounded-2xl border border-pink-100 bg-pink-50 px-3 py-2 text-center text-sm font-black text-pink-500">
+                  {safeCurrentPage} / {totalPages}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={safeCurrentPage >= totalPages}
+                  className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-45"
+                  onClick={() => {
+                    const nextPage = Math.min(totalPages, safeCurrentPage + 1);
+                    setCurrentPage(nextPage);
+                    updateVocabularyUrl({ page: nextPage });
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+
+              <div className="-mx-1 hidden items-center gap-2 overflow-x-auto px-1 pb-1 sm:flex">
                 <button
                   type="button"
                   disabled={safeCurrentPage <= 1}

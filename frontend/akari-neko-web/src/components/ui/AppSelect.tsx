@@ -21,6 +21,7 @@ export function AppSelect({
   isLoading = false,
 }: AppSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [shouldOpenUp, setShouldOpenUp] = useState(false);
   const selectRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -53,7 +54,19 @@ export function AppSelect({
       return;
     }
 
-    setIsOpen((current) => !current);
+    setIsOpen((current) => {
+      const nextIsOpen = !current;
+
+      if (nextIsOpen && selectRef.current) {
+        const rect = selectRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+
+        setShouldOpenUp(spaceBelow < 300 && spaceAbove > spaceBelow);
+      }
+
+      return nextIsOpen;
+    });
   }
 
   function handleSelect(item: string) {
@@ -94,7 +107,13 @@ export function AppSelect({
       </button>
 
       {isOpen ? (
-        <div className="akari-select-menu absolute left-0 top-[calc(100%+8px)] z-[100] max-h-64 w-full min-w-28 overflow-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max">
+        <div
+          className={`akari-select-menu absolute left-0 z-[100] max-h-64 w-full min-w-28 overflow-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max ${
+            shouldOpenUp
+              ? "bottom-[calc(100%+8px)]"
+              : "top-[calc(100%+8px)]"
+          }`}
+        >
           {items.map((item) => {
             const isSelected = item === value;
 
