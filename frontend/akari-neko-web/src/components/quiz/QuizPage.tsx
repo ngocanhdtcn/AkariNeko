@@ -39,6 +39,13 @@ type QuizPoolState = {
     correctIds: string[];
 };
 
+const QUIZ_QUESTION_COUNT = 25;
+const QUIZ_GROUP_TARGETS = {
+    unseen: 18,
+    wrong: 5,
+    correct: 2,
+};
+
 function shuffleArray<T>(items: T[]) {
     const shuffled = [...items];
 
@@ -80,6 +87,35 @@ function isMasteredVocabulary(vocabulary: VocabularyListItem) {
     return vocabulary.correctCount - vocabulary.wrongCount >= 5;
 }
 
+function isWrongPriorityVocabulary(vocabulary: VocabularyListItem) {
+    return vocabulary.wrongCount > vocabulary.correctCount;
+}
+
+function isCorrectPriorityVocabulary(vocabulary: VocabularyListItem) {
+    return vocabulary.correctCount > vocabulary.wrongCount;
+}
+
+function buildAnswerChoices(
+    vocabulary: VocabularyListItem,
+    candidates: VocabularyListItem[],
+) {
+    const correctChoice = vocabulary.meaning.trim();
+    const seenChoices = new Set([correctChoice]);
+    const wrongChoices = shuffleArray(candidates)
+        .map((item) => item.meaning.trim())
+        .filter((meaning) => {
+            if (!meaning || seenChoices.has(meaning)) {
+                return false;
+            }
+
+            seenChoices.add(meaning);
+            return true;
+        })
+        .slice(0, 3);
+
+    return shuffleArray([correctChoice, ...wrongChoices]);
+}
+
 function buildQuizQuestions(
     vocabularies: VocabularyListItem[],
     poolState: QuizPoolState | null,
@@ -88,58 +124,65 @@ function buildQuizQuestions(
     const candidateIds = new Set(candidates.map((item) => item.id));
     const pickedIds = new Set<string>();
 
-    function takeByIds(ids: string[]) {
-        const idSet = new Set(ids);
+    function takeItems(items: VocabularyListItem[], count: number) {
+        if (count <= 0) {
+            return [];
+        }
 
-        return shuffleArray(
-            candidates.filter((item) => idSet.has(item.id) && !pickedIds.has(item.id)),
-        ).map((item) => {
-            pickedIds.add(item.id);
-            return item;
-        });
+        return shuffleArray(items)
+            .filter((item) => !pickedIds.has(item.id))
+            .slice(0, count)
+            .map((item) => {
+                pickedIds.add(item.id);
+                return item;
+            });
     }
 
-    const unseenItems = poolState
-        ? takeByIds(poolState.unseenIds.filter((id) => candidateIds.has(id)))
+    function getItemsByIds(ids: string[]) {
+        const idSet = new Set(ids);
+
+        return candidates.filter((item) => idSet.has(item.id));
+    }
+
+    const poolUnseenItems = poolState
+        ? getItemsByIds(poolState.unseenIds.filter((id) => candidateIds.has(id)))
         : [];
-    const recentWrongItems = poolState
-        ? takeByIds(poolState.wrongIds.filter((id) => candidateIds.has(id)))
+    const poolWrongItems = poolState
+        ? getItemsByIds(poolState.wrongIds.filter((id) => candidateIds.has(id)))
         : [];
-    const difficultItems = shuffleArray(
-        candidates.filter(
+    const poolCorrectItems = poolState
+        ? getItemsByIds(poolState.correctIds.filter((id) => candidateIds.has(id)))
+        : [];
+    const unseenItems = poolUnseenItems.filter(
+        (item) => !isMasteredVocabulary(item) && !isWrongPriorityVocabulary(item),
+    );
+    const wrongItems = [
+        ...poolWrongItems,
+        ...candidates.filter((item) => isWrongPriorityVocabulary(item)),
+    ];
+    const correctItems = [
+        ...poolCorrectItems,
+        ...candidates.filter(
             (item) =>
-                !pickedIds.has(item.id) &&
-                (item.isDifficult || item.wrongCount > item.correctCount),
+                isMasteredVocabulary(item) || isCorrectPriorityVocabulary(item),
         ),
-    ).map((item) => {
-        pickedIds.add(item.id);
-        return item;
-    });
-    const correctItems = poolState
-        ? takeByIds(poolState.correctIds.filter((id) => candidateIds.has(id)))
-        : [];
-    const remainingItems = shuffleArray(
-        candidates.filter((item) => !pickedIds.has(item.id)),
+    ];
+
+    const selectedItems = [
+        ...takeItems(unseenItems, QUIZ_GROUP_TARGETS.unseen),
+        ...takeItems(wrongItems, QUIZ_GROUP_TARGETS.wrong),
+        ...takeItems(correctItems, QUIZ_GROUP_TARGETS.correct),
+    ];
+    selectedItems.push(
+        ...takeItems(candidates, QUIZ_QUESTION_COUNT - selectedItems.length),
     );
 
-    return [
-        ...unseenItems,
-        ...recentWrongItems,
-        ...difficultItems,
-        ...correctItems,
-        ...remainingItems,
-    ]
-        .slice(0, 10)
+    return selectedItems
+        .slice(0, QUIZ_QUESTION_COUNT)
         .map((vocabulary) => {
-            const wrongChoices = shuffleArray(
-                candidates
-                    .filter((item) => item.id !== vocabulary.id)
-                    .map((item) => item.meaning),
-            ).slice(0, 3);
-
             return {
                 vocabulary,
-                choices: shuffleArray([vocabulary.meaning, ...wrongChoices]),
+                choices: buildAnswerChoices(vocabulary, candidates),
             };
         })
         .filter((question) => question.choices.length >= 2);
@@ -405,7 +448,9 @@ export function QuizPage() {
 
         const answeredQuestion = currentQuestion;
         const result: QuizAnswerResult =
-            answer === answeredQuestion.vocabulary.meaning ? "correct" : "wrong";
+            answer === answeredQuestion.vocabulary.meaning.trim()
+                ? "correct"
+                : "wrong";
 
         setSelectedAnswer(answer);
         setIsAnswered(true);
@@ -790,14 +835,14 @@ export function QuizPage() {
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-2">
-                            {currentQuestion.choices.map((choice) => {
+                            {currentQuestion.choices.map((choice, choiceIndex) => {
                                 const isCorrectChoice =
-                                    choice === currentQuestion.vocabulary.meaning;
+                                    choice === currentQuestion.vocabulary.meaning.trim();
                                 const isSelectedChoice = selectedAnswer === choice;
 
                                 return (
                                     <button
-                                        key={choice}
+                                        key={`${currentQuestion.vocabulary.id}-${choiceIndex}-${choice}`}
                                         type="button"
                                         disabled={isAnswered || isSubmittingAnswer}
                                         className={`min-h-16 rounded-2xl border px-5 py-4 text-left text-sm font-bold shadow-sm transition disabled:cursor-not-allowed ${isAnswered && isCorrectChoice
