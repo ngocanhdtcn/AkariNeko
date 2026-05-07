@@ -110,10 +110,10 @@ export function AppMultiSelect({
       </button>
 
       {isOpen ? (
-        <div className="akari-select-menu absolute left-0 top-[calc(100%+8px)] z-[100] max-h-72 w-full min-w-56 overflow-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max">
+        <div className="akari-select-menu absolute left-0 top-[calc(100%+8px)] z-[100] max-h-72 w-full min-w-full overflow-x-hidden overflow-y-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max sm:max-w-56">
           <button
             type="button"
-            className={`flex w-full min-w-48 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
+            className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
               values.length === 0
                 ? "bg-pink-50 text-pink-500"
                 : "text-slate-600 hover:bg-violet-50 hover:text-violet-500"
@@ -131,7 +131,7 @@ export function AppMultiSelect({
               <button
                 key={item}
                 type="button"
-                className={`flex w-full min-w-48 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
+                className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
                   isSelected
                     ? "bg-pink-50 text-pink-500"
                     : "text-slate-600 hover:bg-violet-50 hover:text-violet-500"

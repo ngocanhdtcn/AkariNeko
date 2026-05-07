@@ -108,7 +108,7 @@ export function AppSelect({
 
       {isOpen ? (
         <div
-          className={`akari-select-menu absolute left-0 z-[100] max-h-64 w-full min-w-28 overflow-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max ${
+          className={`akari-select-menu absolute left-0 z-[100] max-h-64 w-full min-w-28 overflow-x-hidden overflow-y-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] sm:w-max ${
             shouldOpenUp
               ? "bottom-[calc(100%+8px)]"
               : "top-[calc(100%+8px)]"
@@ -121,7 +121,7 @@ export function AppSelect({
               <button
                 key={item}
                 type="button"
-                className={`flex min-w-24 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
+                className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition sm:min-w-24 ${
                   isSelected
                     ? "bg-pink-50 text-pink-500"
                     : "text-slate-600 hover:bg-violet-50 hover:text-violet-500"
