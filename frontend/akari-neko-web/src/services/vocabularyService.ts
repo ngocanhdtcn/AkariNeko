@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeVocabularyTextFields } from "@/lib/vocabularyTextNormalizer";
+import {
+    getDifficultVocabularyIds,
+    mergeVocabulariesWithCurrentUserProgress,
+    setVocabularyDifficult,
+} from "@/services/userVocabularyProgressService";
 
 export type VocabularyListItem = {
     id: string;
@@ -39,9 +44,6 @@ type VocabularyRow = {
     kanji: string;
     hiragana: string;
     meaning: string;
-    correct_count: number;
-    wrong_count: number;
-    is_difficult: boolean;
     created_at: string;
 };
 
@@ -70,9 +72,9 @@ function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
         kanji: row.kanji,
         hiragana: row.hiragana,
         meaning: row.meaning,
-        correctCount: row.correct_count,
-        wrongCount: row.wrong_count,
-        isDifficult: row.is_difficult,
+        correctCount: 0,
+        wrongCount: 0,
+        isDifficult: false,
         createdAt: row.created_at,
     };
 }
@@ -164,6 +166,16 @@ export async function getVocabularies({
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     const normalizedSearchKeyword = searchKeyword.trim();
+    const difficultVocabularyIds = onlyDifficult
+        ? await getDifficultVocabularyIds()
+        : [];
+
+    if (onlyDifficult && difficultVocabularyIds.length === 0) {
+        return {
+            items: [],
+            totalCount: 0,
+        };
+    }
 
     let query = supabase
         .from("vocabularies")
@@ -176,9 +188,6 @@ export async function getVocabularies({
                 "kanji",
                 "hiragana",
                 "meaning",
-                "correct_count",
-                "wrong_count",
-                "is_difficult",
                 "created_at",
             ].join(","),
             { count: "exact" },
@@ -205,7 +214,7 @@ export async function getVocabularies({
     }
 
     if (onlyDifficult) {
-        query = query.eq("is_difficult", true);
+        query = query.in("id", difficultVocabularyIds);
     }
 
     if (normalizedSearchKeyword.length > 0) {
@@ -226,8 +235,12 @@ export async function getVocabularies({
         throw error;
     }
 
+    const items = ((data ?? []) as unknown as VocabularyRow[]).map(
+        mapVocabularyRow,
+    );
+
     return {
-        items: ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow),
+        items: await mergeVocabulariesWithCurrentUserProgress(items),
         totalCount: count ?? 0,
     };
 }
@@ -377,9 +390,6 @@ export async function getRecentVocabularies(
                 "kanji",
                 "hiragana",
                 "meaning",
-                "correct_count",
-                "wrong_count",
-                "is_difficult",
                 "created_at",
             ].join(","),
         )
@@ -390,22 +400,14 @@ export async function getRecentVocabularies(
         throw error;
     }
 
-    return ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow);
+    const items = ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow);
+
+    return mergeVocabulariesWithCurrentUserProgress(items);
 }
 
 export async function updateVocabularyDifficulty(
     vocabularyId: string,
     isDifficult: boolean,
 ): Promise<void> {
-    const { error } = await supabase
-        .from("vocabularies")
-        .update({
-            is_difficult: isDifficult,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", vocabularyId);
-
-    if (error) {
-        throw error;
-    }
+    await setVocabularyDifficult(vocabularyId, isDifficult);
 }

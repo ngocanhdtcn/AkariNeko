@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId } from "@/services/authService";
+import { countCurrentUserDifficultVocabularies } from "@/services/userVocabularyProgressService";
 
 export type VocabularyLevelStat = {
     level: string;
@@ -154,7 +155,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
     const [
         vocabularyCountResult,
-        difficultCountResult,
+        difficultVocabularyCount,
         vocabularyLevelsResult,
         recentImportBatchesResult,
         todayFlashcardSessionsResult,
@@ -166,13 +167,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
             head: true,
         }),
 
-        supabase
-            .from("vocabularies")
-            .select("id", {
-                count: "exact",
-                head: true,
-            })
-            .eq("is_difficult", true),
+        countCurrentUserDifficultVocabularies(),
 
         supabase.from("vocabularies").select("level"),
 
@@ -235,10 +230,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         throw vocabularyCountResult.error;
     }
 
-    if (difficultCountResult.error) {
-        throw difficultCountResult.error;
-    }
-
     if (vocabularyLevelsResult.error) {
         throw vocabularyLevelsResult.error;
     }
@@ -280,7 +271,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
                 createdAt: row.created_at,
             })),
         totalVocabularyCount: vocabularyCountResult.count ?? 0,
-        difficultVocabularyCount: difficultCountResult.count ?? 0,
+        difficultVocabularyCount,
         levelStats: countByLevel(
             (vocabularyLevelsResult.data ?? []) as VocabularyLevelRow[],
         ),

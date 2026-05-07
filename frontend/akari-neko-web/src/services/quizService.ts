@@ -1,6 +1,11 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { VocabularyListItem } from "@/services/vocabularyService";
 import { getCurrentUserId } from "@/services/authService";
+import {
+    getDifficultVocabularyIds,
+    mergeVocabulariesWithCurrentUserProgress,
+    upsertVocabularyProgressReview,
+} from "@/services/userVocabularyProgressService";
 
 type VocabularyRow = {
     id: string;
@@ -10,9 +15,6 @@ type VocabularyRow = {
     kanji: string;
     hiragana: string;
     meaning: string;
-    correct_count: number;
-    wrong_count: number;
-    is_difficult: boolean;
     created_at: string;
 };
 
@@ -27,9 +29,9 @@ function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
         kanji: row.kanji,
         hiragana: row.hiragana,
         meaning: row.meaning,
-        correctCount: row.correct_count,
-        wrongCount: row.wrong_count,
-        isDifficult: row.is_difficult,
+        correctCount: 0,
+        wrongCount: 0,
+        isDifficult: false,
         createdAt: row.created_at,
     };
 }
@@ -55,6 +57,13 @@ export async function getQuizVocabularies({
 }: GetQuizVocabulariesParams): Promise<VocabularyListItem[]> {
     const rows: VocabularyRow[] = [];
     let from = 0;
+    const difficultVocabularyIds = onlyDifficult
+        ? await getDifficultVocabularyIds()
+        : [];
+
+    if (onlyDifficult && difficultVocabularyIds.length === 0) {
+        return [];
+    }
 
     while (rows.length < limitCount) {
         const to = Math.min(
@@ -73,9 +82,6 @@ export async function getQuizVocabularies({
                     "kanji",
                     "hiragana",
                     "meaning",
-                    "correct_count",
-                    "wrong_count",
-                    "is_difficult",
                     "created_at",
                 ].join(","),
             )
@@ -101,7 +107,7 @@ export async function getQuizVocabularies({
         }
 
         if (onlyDifficult) {
-            query = query.eq("is_difficult", true);
+            query = query.in("id", difficultVocabularyIds);
         }
 
         const { data, error } = await query;
@@ -120,35 +126,14 @@ export async function getQuizVocabularies({
         from += QUIZ_VOCABULARY_PAGE_SIZE;
     }
 
-    return rows.map(mapVocabularyRow);
+    return mergeVocabulariesWithCurrentUserProgress(rows.map(mapVocabularyRow));
 }
 
 export async function reviewQuizAnswer(
     vocabulary: VocabularyListItem,
     result: QuizAnswerResult,
 ): Promise<void> {
-    const nextCorrectCount =
-        result === "correct" ? vocabulary.correctCount + 1 : vocabulary.correctCount;
-
-    const nextWrongCount =
-        result === "wrong" ? vocabulary.wrongCount + 1 : vocabulary.wrongCount;
-
-    const shouldMarkDifficult =
-        vocabulary.isDifficult || nextWrongCount >= nextCorrectCount + 2;
-
-    const { error } = await supabase
-        .from("vocabularies")
-        .update({
-            correct_count: nextCorrectCount,
-            wrong_count: nextWrongCount,
-            is_difficult: shouldMarkDifficult,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", vocabulary.id);
-
-    if (error) {
-        throw error;
-    }
+    await upsertVocabularyProgressReview(vocabulary, result === "correct");
 }
 
 export type CreateQuizSessionInput = {

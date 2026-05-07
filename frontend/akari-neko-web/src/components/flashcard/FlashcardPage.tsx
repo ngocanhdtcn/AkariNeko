@@ -359,7 +359,9 @@ export function FlashcardPage() {
                     correctCount: nextCorrectCount,
                     wrongCount: nextWrongCount,
                     isDifficult:
-                        vocabulary.isDifficult || nextWrongCount >= nextCorrectCount + 2,
+                        result === "forgot" ||
+                        vocabulary.isDifficult ||
+                        nextWrongCount >= nextCorrectCount + 2,
                 };
             }),
         );

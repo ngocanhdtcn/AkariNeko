@@ -1,6 +1,11 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { VocabularyListItem } from "@/services/vocabularyService";
 import { getCurrentUserId } from "@/services/authService";
+import {
+    getDifficultVocabularyIds,
+    mergeVocabulariesWithCurrentUserProgress,
+    upsertVocabularyProgressReview,
+} from "@/services/userVocabularyProgressService";
 
 type VocabularyRow = {
     id: string;
@@ -10,9 +15,6 @@ type VocabularyRow = {
     kanji: string;
     hiragana: string;
     meaning: string;
-    correct_count: number;
-    wrong_count: number;
-    is_difficult: boolean;
     created_at: string;
 };
 
@@ -25,9 +27,9 @@ function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
         kanji: row.kanji,
         hiragana: row.hiragana,
         meaning: row.meaning,
-        correctCount: row.correct_count,
-        wrongCount: row.wrong_count,
-        isDifficult: row.is_difficult,
+        correctCount: 0,
+        wrongCount: 0,
+        isDifficult: false,
         createdAt: row.created_at,
     };
 }
@@ -49,6 +51,14 @@ export async function getFlashcardVocabularies({
     onlyDifficult = false,
     limitCount = 100,
 }: GetFlashcardVocabulariesParams): Promise<VocabularyListItem[]> {
+    const difficultVocabularyIds = onlyDifficult
+        ? await getDifficultVocabularyIds()
+        : [];
+
+    if (onlyDifficult && difficultVocabularyIds.length === 0) {
+        return [];
+    }
+
     let query = supabase
         .from("vocabularies")
         .select(
@@ -60,9 +70,6 @@ export async function getFlashcardVocabularies({
                 "kanji",
                 "hiragana",
                 "meaning",
-                "correct_count",
-                "wrong_count",
-                "is_difficult",
                 "created_at",
             ].join(","),
         )
@@ -88,7 +95,7 @@ export async function getFlashcardVocabularies({
     }
 
     if (onlyDifficult) {
-        query = query.eq("is_difficult", true);
+        query = query.in("id", difficultVocabularyIds);
     }
 
     const { data, error } = await query;
@@ -97,7 +104,9 @@ export async function getFlashcardVocabularies({
         throw error;
     }
 
-    return ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow);
+    const items = ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow);
+
+    return mergeVocabulariesWithCurrentUserProgress(items);
 }
 
 export type ReviewFlashcardResult = "remember" | "forgot";
@@ -106,30 +115,7 @@ export async function reviewFlashcard(
     vocabulary: VocabularyListItem,
     result: ReviewFlashcardResult,
 ): Promise<void> {
-    const nextCorrectCount =
-        result === "remember"
-            ? vocabulary.correctCount + 1
-            : vocabulary.correctCount;
-
-    const nextWrongCount =
-        result === "forgot" ? vocabulary.wrongCount + 1 : vocabulary.wrongCount;
-
-    const shouldMarkDifficult =
-        vocabulary.isDifficult || nextWrongCount >= nextCorrectCount + 2;
-
-    const { error } = await supabase
-        .from("vocabularies")
-        .update({
-            correct_count: nextCorrectCount,
-            wrong_count: nextWrongCount,
-            is_difficult: shouldMarkDifficult,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", vocabulary.id);
-
-    if (error) {
-        throw error;
-    }
+    await upsertVocabularyProgressReview(vocabulary, result === "remember");
 }
 
 export type CreateFlashcardStudySessionInput = {

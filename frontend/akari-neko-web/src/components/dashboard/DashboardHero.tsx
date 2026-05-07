@@ -1,9 +1,14 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { AkariNekoWordmark } from "../branding/AkariNekoWordmark";
 
 export function DashboardHero() {
+  const { profile } = useAuth();
+  const displayName =
+    profile?.displayName?.trim() || profile?.email?.split("@")[0] || "Akari";
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 10 }}
@@ -61,7 +66,7 @@ export function DashboardHero() {
           }}
           className="text-xl font-black tracking-tight text-slate-800 sm:text-2xl"
         >
-          ようこそ、Ngọc Ánhさん！🌸
+          ようこそ、{displayName}さん！🌸
         </motion.p>
 
         <motion.p
