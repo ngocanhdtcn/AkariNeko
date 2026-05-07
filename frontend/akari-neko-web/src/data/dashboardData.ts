@@ -28,6 +28,8 @@ import type {
   StudyStatistic,
 } from "@/types/dashboard";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+
 export const dashboardMenuItems: DashboardMenuItem[] = [
   {
     icon: Home,
@@ -128,15 +130,19 @@ export const dashboardMenuItems: DashboardMenuItem[] = [
     activeIconClassName: "bg-slate-400 text-white",
     activeItemClassName: "bg-slate-50 text-slate-600",
   },
-  {
-    icon: Activity,
-    label: "Dev Check",
-    href: "/dev-check",
-    active: false,
-    iconClassName: "bg-slate-50 text-slate-400",
-    activeIconClassName: "bg-slate-400 text-white",
-    activeItemClassName: "bg-slate-50 text-slate-600",
-  }
+  ...(isDevelopment
+    ? [
+      {
+        icon: Activity,
+        label: "Dev Check",
+        href: "/dev-check",
+        active: false,
+        iconClassName: "bg-slate-50 text-slate-400",
+        activeIconClassName: "bg-slate-400 text-white",
+        activeItemClassName: "bg-slate-50 text-slate-600",
+      },
+    ]
+    : []),
 ];
 
 export const mobileNavItems: MobileNavItem[] = [
