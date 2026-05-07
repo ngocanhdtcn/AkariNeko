@@ -18,7 +18,7 @@ type VocabularyRow = {
     created_at: string;
 };
 
-const QUIZ_VOCABULARY_PAGE_SIZE = 1000;
+const QUIZ_VOCABULARY_PAGE_SIZE = 250;
 
 function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
     return {

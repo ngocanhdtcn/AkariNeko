@@ -55,6 +55,13 @@ export type VocabularyFilterOptions = {
 
 const JLPT_LEVEL_ORDER = ["N5", "N4", "N3", "N2", "N1"];
 const VOCABULARY_OPTION_PAGE_SIZE = 1000;
+const VOCABULARY_FILTER_OPTIONS_CACHE_TTL_MS = 60_000;
+let vocabularyOptionRowsCache:
+    | {
+        expiresAt: number;
+        promise: Promise<VocabularyOptionRow[]>;
+    }
+    | null = null;
 
 export class DuplicateVocabularyError extends Error {
     constructor() {
@@ -112,27 +119,20 @@ function getUniqueStringOptions(values: Array<string | null | undefined>) {
     ).sort();
 }
 
-async function getAllVocabularyOptionRows({
-    level = "All",
-    book = "All",
-}: GetVocabularyFilterOptionsParams = {}): Promise<VocabularyOptionRow[]> {
+export function invalidateVocabularyFilterOptionsCache() {
+    vocabularyOptionRowsCache = null;
+}
+
+async function fetchAllVocabularyOptionRows(): Promise<VocabularyOptionRow[]> {
     const rows: VocabularyOptionRow[] = [];
     let from = 0;
 
     while (true) {
         const to = from + VOCABULARY_OPTION_PAGE_SIZE - 1;
-        let query = supabase
+        const query = supabase
             .from("vocabularies")
             .select("level, book, chapter")
             .range(from, to);
-
-        if (level !== "All") {
-            query = query.eq("level", level);
-        }
-
-        if (book !== "All") {
-            query = query.eq("book", book);
-        }
 
         const { data, error } = await query;
 
@@ -151,6 +151,21 @@ async function getAllVocabularyOptionRows({
     }
 
     return rows;
+}
+
+function getCachedVocabularyOptionRows(): Promise<VocabularyOptionRow[]> {
+    const now = Date.now();
+
+    if (vocabularyOptionRowsCache && vocabularyOptionRowsCache.expiresAt > now) {
+        return vocabularyOptionRowsCache.promise;
+    }
+
+    vocabularyOptionRowsCache = {
+        expiresAt: now + VOCABULARY_FILTER_OPTIONS_CACHE_TTL_MS,
+        promise: fetchAllVocabularyOptionRows(),
+    };
+
+    return vocabularyOptionRowsCache.promise;
 }
 
 export async function getVocabularies({
@@ -254,11 +269,14 @@ export async function getVocabularyFilterOptions({
     level = "All",
     book = "All",
 }: GetVocabularyFilterOptionsParams = {}): Promise<VocabularyFilterOptions> {
-    const [allRows, bookRows, chapterRows] = await Promise.all([
-        getAllVocabularyOptionRows(),
-        getAllVocabularyOptionRows({ level }),
-        getAllVocabularyOptionRows({ level, book }),
-    ]);
+    const allRows = await getCachedVocabularyOptionRows();
+    const bookRows =
+        level === "All"
+            ? allRows
+            : allRows.filter((row) => row.level === level);
+    const chapterRows = bookRows.filter(
+        (row) => book === "All" || row.book === book,
+    );
 
     return {
         levels: sortJlptLevels(
@@ -278,6 +296,8 @@ export async function deleteVocabulary(vocabularyId: string): Promise<void> {
     if (error) {
         throw error;
     }
+
+    invalidateVocabularyFilterOptionsCache();
 }
 
 export type UpdateVocabularyInput = {
@@ -328,6 +348,8 @@ export async function updateVocabulary(input: UpdateVocabularyInput): Promise<vo
     if (error) {
         throw error;
     }
+
+    invalidateVocabularyFilterOptionsCache();
 }
 
 export type CreateVocabularyInput = {
@@ -374,6 +396,8 @@ export async function createVocabulary(
     if (error) {
         throw error;
     }
+
+    invalidateVocabularyFilterOptionsCache();
 }
 
 export async function getRecentVocabularies(

@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeVocabularyTextFields } from "@/lib/vocabularyTextNormalizer";
 import { getCurrentUserId } from "@/services/authService";
+import { invalidateVocabularyFilterOptionsCache } from "@/services/vocabularyService";
 import type {
   ImportVocabularyPayload,
   ParsedImportFile,
@@ -233,6 +234,8 @@ export async function importVocabularies(
       error_count: errorCount,
     })
     .eq("id", batch.id);
+
+  invalidateVocabularyFilterOptionsCache();
 
   return {
     importedCount,

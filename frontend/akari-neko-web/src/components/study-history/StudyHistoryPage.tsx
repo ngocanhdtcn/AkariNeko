@@ -62,7 +62,7 @@ function getVisiblePageNumbers(currentPage: number, totalPages: number) {
     const halfVisiblePages = Math.floor(maxVisiblePages / 2);
 
     let startPage = Math.max(1, currentPage - halfVisiblePages);
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
     if (endPage - startPage + 1 < maxVisiblePages) {
         startPage = Math.max(1, endPage - maxVisiblePages + 1);
@@ -159,8 +159,14 @@ export function StudyHistoryPage() {
         }
     }
     useEffect(() => {
-        void loadStudyHistories(currentPage);
-        void loadStudyHistorySummary();
+        const timeoutId = window.setTimeout(() => {
+            void loadStudyHistories(currentPage);
+            void loadStudyHistorySummary();
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
     }, [currentPage, selectedRange, loadStudyHistories, loadStudyHistorySummary]);
 
     return (
