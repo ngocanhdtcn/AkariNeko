@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/contexts/AuthContext";
 import "./globals.css";
 import { OnlineUsersProvider } from "@/contexts/OnlineUsersContext";
@@ -25,6 +26,7 @@ export default function RootLayout({
             </OnlineUsersProvider>
           </AuthProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
