@@ -542,7 +542,7 @@ export function FlashcardPage() {
 
                     <button
                         type="button"
-                        className={`flex h-12 items-center gap-2 rounded-2xl border px-4 text-sm font-bold shadow-sm transition ${showHiragana
+                        className={`hidden h-12 items-center gap-2 rounded-2xl border px-4 text-sm font-bold shadow-sm transition sm:flex ${showHiragana
                             ? "border-pink-200 bg-pink-50 text-pink-500"
                             : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
                             }`}
@@ -602,6 +602,18 @@ export function FlashcardPage() {
                                 <span className="rounded-full bg-rose-50 px-3 py-1 text-rose-500">
                                     Wrong {currentVocabulary.wrongCount}
                                 </span>
+
+                                <button
+                                    type="button"
+                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold shadow-sm transition sm:hidden ${showHiragana
+                                        ? "border-pink-200 bg-pink-50 text-pink-500"
+                                        : "border-pink-100 bg-white text-slate-600"
+                                        }`}
+                                    onClick={() => setShowHiragana((current) => !current)}
+                                >
+                                    {showHiragana ? <Eye size={15} /> : <EyeOff size={15} />}
+                                    Hiragana
+                                </button>
 
                                 {currentVocabulary.isDifficult ? (
                                     <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-500">

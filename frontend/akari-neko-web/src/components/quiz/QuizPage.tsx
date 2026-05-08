@@ -718,7 +718,7 @@ export function QuizPage() {
 
                     <button
                         type="button"
-                        className={`flex h-12 items-center gap-2 rounded-2xl border px-4 text-sm font-bold shadow-sm transition ${showHiragana
+                        className={`hidden h-12 items-center gap-2 rounded-2xl border px-4 text-sm font-bold shadow-sm transition sm:flex ${showHiragana
                             ? "border-pink-200 bg-pink-50 text-pink-500"
                             : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
                             }`}
@@ -869,23 +869,35 @@ export function QuizPage() {
                             })}
                         </div>
 
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-bold">
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-emerald-600 shadow-sm">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex min-w-0 items-center justify-center gap-2 text-sm font-bold sm:flex-wrap sm:justify-start">
+                                <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-center text-emerald-600 shadow-sm">
                                     <CheckCircle2 size={15} />
-                                    Correct {correctCount}
+                                    <span className="leading-tight">Correct {correctCount}</span>
                                 </span>
 
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-rose-500 shadow-sm">
+                                <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-center text-rose-500 shadow-sm">
                                     <XCircle size={15} />
-                                    Wrong {wrongCount}
+                                    <span className="leading-tight">Wrong {wrongCount}</span>
                                 </span>
+
+                                <button
+                                    type="button"
+                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-bold shadow-sm transition sm:hidden ${showHiragana
+                                        ? "border-pink-200 bg-pink-50 text-pink-500"
+                                        : "border-pink-100 bg-white text-slate-600"
+                                        }`}
+                                    onClick={() => setShowHiragana((current) => !current)}
+                                >
+                                    {showHiragana ? <Eye size={15} /> : <EyeOff size={15} />}
+                                    Hiragana
+                                </button>
                             </div>
 
                             <button
                                 type="button"
                                 disabled={!isAnswered || isSubmittingAnswer}
-                                className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-6 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                                className="h-12 w-full rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-6 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
                                 onClick={handleNextQuestion}
                             >
                                 Next
