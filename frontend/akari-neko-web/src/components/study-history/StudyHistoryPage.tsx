@@ -1,9 +1,11 @@
 ﻿"use client";
 
-import { RefreshCcw, Trash2 } from "lucide-react";
+import { History, RefreshCcw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useNotification } from "@/contexts/NotificationContext";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import {
     deleteStudyHistory,
     getStudyHistories,
@@ -292,8 +294,8 @@ export function StudyHistoryPage() {
                             </div>
 
                             {isLoadingHistories ? (
-                                <div className="border-t border-pink-50 px-4 py-8 text-center text-sm font-bold text-slate-400">
-                                    Đang tải lịch sử học...
+                                <div className="border-t border-pink-50 p-4">
+                                    <LoadingSkeleton variant="table" rows={5} />
                                 </div>
                             ) : histories.length > 0 ? (
                                 histories.map((history) => (
@@ -347,8 +349,29 @@ export function StudyHistoryPage() {
                                     </div>
                                 ))
                             ) : (
-                                <div className="border-t border-pink-50 px-4 py-8 text-center text-sm font-medium text-slate-400">
-                                    Chưa có phiên học nào. Hãy học Flashcard rồi bấm Kết thúc phiên.
+                                <div className="border-t border-pink-50 p-6">
+                                    <EmptyState
+                                        icon={<History size={24} />}
+                                        title={
+                                            selectedRange === "all"
+                                                ? "Chưa có lịch sử học"
+                                                : "Không có phiên học trong bộ lọc"
+                                        }
+                                        description={
+                                            selectedRange === "all"
+                                                ? "Hãy học Flashcard rồi lưu phiên để theo dõi tiến độ."
+                                                : "Thử chọn All để xem toàn bộ phiên học đã lưu."
+                                        }
+                                        actionLabel={selectedRange === "all" ? undefined : "Xem tất cả"}
+                                        onAction={
+                                            selectedRange === "all"
+                                                ? undefined
+                                                : () => {
+                                                    setSelectedRange("all");
+                                                    setCurrentPage(1);
+                                                }
+                                        }
+                                    />
                                 </div>
                             )}
                         </div>

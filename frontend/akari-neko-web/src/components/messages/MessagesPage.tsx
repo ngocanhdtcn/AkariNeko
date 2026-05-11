@@ -1,12 +1,14 @@
 "use client";
 
-import { Send, UsersRound } from "lucide-react";
+import { MessageCircle, Send, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useOnlineUsers } from "@/contexts/OnlineUsersContext";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import {
     getPublicProfilesByIds,
     type PublicProfile,
@@ -224,9 +226,7 @@ export function MessagesPage() {
                         className="grid h-[540px] content-start gap-3 overflow-y-auto bg-gradient-to-b from-white via-white to-pink-50/20 px-5 py-5"
                     >
                         {isLoadingMessages ? (
-                            <div className="rounded-2xl border border-pink-50 bg-white px-4 py-6 text-center text-sm font-bold text-slate-400">
-                                Đang tải tin nhắn...
-                            </div>
+                            <LoadingSkeleton variant="list" rows={6} />
                         ) : messages.length > 0 ? (
                             messages.map((message) => {
                                 const isOwnMessage = message.senderId === profile?.id;
@@ -287,9 +287,12 @@ export function MessagesPage() {
                                 );
                             })
                         ) : (
-                            <div className="rounded-2xl border border-pink-50 bg-white px-4 py-6 text-center text-sm font-medium text-slate-400">
-                                Chưa có tin nhắn nào.
-                            </div>
+                            <EmptyState
+                                icon={<MessageCircle size={24} />}
+                                title="Chưa có tin nhắn"
+                                description="Gửi lời chào đầu tiên để phòng chat AkariNeko bắt đầu nhộn nhịp."
+                                className="min-h-[220px]"
+                            />
                         )}
                     </div>
 

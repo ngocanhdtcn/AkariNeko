@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    BookOpen,
     CheckCircle2,
     Eye,
     EyeOff,
@@ -12,6 +13,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import {
     hasActiveStudyFilters,
     readPersistedStudyFilters,
@@ -760,9 +763,7 @@ export function QuizPage() {
 
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
                 {isLoading ? (
-                    <div className="grid min-h-[420px] place-items-center text-sm font-bold text-slate-400">
-                        Đang tải quiz...
-                    </div>
+                    <LoadingSkeleton variant="card" className="min-h-[420px]" />
                 ) : isQuizCompleted ? (
                     <div className="grid min-h-[420px] place-items-center text-center">
                         <div className="max-w-xl">
@@ -915,16 +916,18 @@ export function QuizPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid min-h-[420px] place-items-center text-center">
-                        <div>
-                            <p className="text-lg font-black text-slate-700">
-                                Chưa đủ dữ liệu để tạo quiz.
-                            </p>
-                            <p className="mt-2 text-sm text-slate-500">
-                                Cần ít nhất vài từ vựng trong cùng bộ lọc để tạo đáp án.
-                            </p>
-                        </div>
-                    </div>
+                    <EmptyState
+                        icon={<BookOpen size={24} />}
+                        title={hasActiveFilter ? "Không đủ từ theo bộ lọc" : "Chưa đủ dữ liệu quiz"}
+                        description={
+                            hasActiveFilter
+                                ? "Thử nới bộ lọc hoặc tắt Only difficult để AkariNeko tạo câu hỏi."
+                                : "Cần thêm vài từ vựng có nghĩa để tạo đáp án quiz chất lượng."
+                        }
+                        actionLabel={hasActiveFilter ? "Xoá bộ lọc" : undefined}
+                        onAction={hasActiveFilter ? handleClearFilters : undefined}
+                        className="min-h-[420px]"
+                    />
                 )}
             </section>
         </div>

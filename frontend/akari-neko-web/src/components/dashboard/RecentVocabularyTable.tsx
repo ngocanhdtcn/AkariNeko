@@ -8,6 +8,8 @@ import {
 } from "@/services/vocabularyService";
 import { SoftPanel } from "../ui/SoftPanel";
 import { useNotification } from "@/contexts/NotificationContext";
+import { EmptyState } from "../ui/EmptyState";
+import { LoadingSkeleton } from "../ui/LoadingSkeleton";
 
 type RecentVocabularyTableProps = {
   refreshKey?: number;
@@ -101,7 +103,16 @@ export function RecentVocabularyTable({
       </div>
 
       <div className="grid gap-3 md:hidden">
-        {recentVocabularies.slice(0, 3).map((vocabulary) => (
+        {isLoadingRecentVocabularies ? (
+          <LoadingSkeleton variant="list" rows={3} />
+        ) : recentVocabularies.length === 0 ? (
+          <EmptyState
+            icon={<BookOpen size={24} />}
+            title="Chưa có từ vựng gần đây"
+            description="Import hoặc thêm từ mới ở trang Vocabulary để danh sách này có dữ liệu."
+            className="py-6"
+          />
+        ) : recentVocabularies.slice(0, 3).map((vocabulary) => (
           <div
             key={`${vocabulary.kanji}-${vocabulary.hiragana}-mobile`}
             className="rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
@@ -161,9 +172,7 @@ export function RecentVocabularyTable({
         ) : null}
 
         {isLoadingRecentVocabularies ? (
-          <div className="rounded-2xl border border-pink-50 bg-white px-4 py-6 text-center text-sm font-bold text-slate-400">
-            Đang tải từ vựng gần đây...
-          </div>
+          <LoadingSkeleton variant="table" rows={4} />
         ) : recentVocabularies.length > 0 ? (
           recentVocabularies.map((vocabulary) => (
             <div
@@ -218,9 +227,12 @@ export function RecentVocabularyTable({
             </div>
           ))
         ) : (
-          <div className="rounded-2xl border border-pink-50 bg-white px-4 py-6 text-center text-sm font-medium text-slate-400">
-            Chưa có từ vựng nào. Hãy import ở trang Vocabulary trước.
-          </div>
+          <EmptyState
+            icon={<BookOpen size={24} />}
+            title="Chưa có từ vựng gần đây"
+            description="Import hoặc thêm từ mới ở trang Vocabulary để danh sách này có dữ liệu."
+            className="m-4"
+          />
         )}
       </div>
     </SoftPanel>

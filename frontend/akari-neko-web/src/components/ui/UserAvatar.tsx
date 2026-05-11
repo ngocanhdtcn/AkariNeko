@@ -38,7 +38,7 @@ export function UserAvatar({
 
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden border border-pink-100 bg-pink-50 font-black text-pink-500 shadow-sm ${className}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden border border-pink-100 bg-gradient-to-br from-pink-50 to-violet-50 font-black text-pink-500 shadow-sm ${className}`}
     >
       {shouldShowImage ? (
         // eslint-disable-next-line @next/next/no-img-element

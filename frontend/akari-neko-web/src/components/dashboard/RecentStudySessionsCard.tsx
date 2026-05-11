@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { History } from "lucide-react";
 import type { RecentStudySession } from "@/services/dashboardStatsService";
 import { SoftPanel } from "../ui/SoftPanel";
+import { EmptyState } from "../ui/EmptyState";
+import { LoadingSkeleton } from "../ui/LoadingSkeleton";
 
 type RecentStudySessionsCardProps = {
   sessions: RecentStudySession[];
@@ -47,9 +50,7 @@ export function RecentStudySessionsCard({
       </div>
 
       {isLoading ? (
-        <div className="rounded-2xl border border-pink-50 bg-white px-4 py-6 text-center text-sm font-bold text-slate-400">
-          Đang tải phiên học...
-        </div>
+        <LoadingSkeleton variant="list" rows={3} />
       ) : sessions.length > 0 ? (
         <div className="grid gap-3">
           {sessions.map((session) => (
@@ -96,9 +97,12 @@ export function RecentStudySessionsCard({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-pink-50 bg-white px-4 py-6 text-center text-sm font-medium text-slate-400">
-          Chưa có phiên học nào. Hãy học Flashcard rồi bấm Kết thúc phiên.
-        </div>
+        <EmptyState
+          icon={<History size={24} />}
+          title="Chưa có phiên học"
+          description="Hãy học Flashcard rồi lưu phiên để AkariNeko ghi lại tiến độ của bạn."
+          className="py-6"
+        />
       )}
     </SoftPanel>
   );

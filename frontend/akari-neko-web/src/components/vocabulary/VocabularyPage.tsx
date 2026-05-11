@@ -23,6 +23,8 @@ import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal
 import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
 import { ImportVocabularyModal } from "./ImportVocabularyModal";
 import { useNotification } from "@/contexts/NotificationContext";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import {
   hasActiveStudyFilters,
   readPersistedStudyFilters,
@@ -304,6 +306,12 @@ export function VocabularyPage() {
     isLoadingVocabularies && displayVocabularies.length === 0;
   const shouldShowVocabularyLoadingOverlay =
     isLoadingVocabularies && displayVocabularies.length > 0;
+  const hasActiveVocabularyFilter =
+    selectedLevel !== "All" ||
+    selectedBook !== "All" ||
+    selectedChapters.length > 0 ||
+    onlyDifficult ||
+    Boolean(searchKeyword.trim());
 
   const totalPages = Math.max(
     1,
@@ -941,9 +949,7 @@ export function VocabularyPage() {
 
           <div className="relative grid min-h-[420px] gap-3 md:hidden">
             {isInitialVocabularyLoading ? (
-              <div className="rounded-2xl border border-pink-50 bg-white p-5 text-center text-sm font-bold text-slate-400 shadow-sm">
-                Đang tải danh sách từ vựng...
-              </div>
+              <LoadingSkeleton variant="list" rows={5} />
             ) : displayVocabularies.length > 0 ? (
               displayVocabularies.map((vocabulary) => (
                 <div
@@ -1015,9 +1021,39 @@ export function VocabularyPage() {
                 </div>
               ))
             ) : (
-              <div className="rounded-2xl border border-pink-50 bg-white p-5 text-center text-sm font-medium text-slate-400 shadow-sm">
-                Chưa có từ vựng nào. Hãy import file HTML trước.
-              </div>
+              <EmptyState
+                icon={hasActiveVocabularyFilter ? <Search size={24} /> : <BookOpen size={24} />}
+                title={
+                  hasActiveVocabularyFilter
+                    ? "Không có từ phù hợp"
+                    : "Kho từ vựng còn trống"
+                }
+                description={
+                  hasActiveVocabularyFilter
+                    ? "Thử đổi bộ lọc hoặc xoá từ khoá tìm kiếm để xem thêm từ vựng."
+                    : "Hãy import file HTML hoặc thêm từ thủ công để bắt đầu học cùng AkariNeko."
+                }
+                actionLabel={hasActiveVocabularyFilter ? "Xoá bộ lọc" : "Import từ vựng"}
+                onAction={
+                  hasActiveVocabularyFilter
+                    ? () => {
+                      setSearchKeyword("");
+                      setSelectedLevel("All");
+                      setSelectedBook("All");
+                      setSelectedChapters([]);
+                      setOnlyDifficult(false);
+                      updateVocabularyUrl({
+                        level: "All",
+                        book: "All",
+                        chapters: [],
+                        search: "",
+                        difficult: false,
+                        page: 1,
+                      });
+                    }
+                    : () => openImportModal("file")
+                }
+              />
             )}
 
             {shouldShowVocabularyLoadingOverlay ? (
@@ -1043,8 +1079,8 @@ export function VocabularyPage() {
             </div>
 
             {isInitialVocabularyLoading ? (
-              <div className="grid min-h-[620px] place-items-center border-t border-pink-50 px-4 py-8 text-center text-sm font-bold text-slate-400">
-                Đang tải danh sách từ vựng...
+              <div className="border-t border-pink-50 p-4">
+                <LoadingSkeleton variant="table" rows={8} />
               </div>
             ) : displayVocabularies.length > 0 ? (
               displayVocabularies.map((vocabulary) => (
@@ -1122,8 +1158,40 @@ export function VocabularyPage() {
                 </div>
               ))
             ) : (
-              <div className="border-t border-pink-50 px-4 py-8 text-center text-sm font-medium text-slate-400">
-                Chưa có từ vựng nào. Hãy import file HTML trước.
+              <div className="border-t border-pink-50 p-6">
+                <EmptyState
+                  icon={hasActiveVocabularyFilter ? <Search size={24} /> : <BookOpen size={24} />}
+                  title={
+                    hasActiveVocabularyFilter
+                      ? "Không có từ phù hợp"
+                      : "Kho từ vựng còn trống"
+                  }
+                  description={
+                    hasActiveVocabularyFilter
+                      ? "Thử đổi bộ lọc hoặc xoá từ khoá tìm kiếm để xem thêm từ vựng."
+                      : "Hãy import file HTML hoặc thêm từ thủ công để bắt đầu học cùng AkariNeko."
+                  }
+                  actionLabel={hasActiveVocabularyFilter ? "Xoá bộ lọc" : "Import từ vựng"}
+                  onAction={
+                    hasActiveVocabularyFilter
+                      ? () => {
+                        setSearchKeyword("");
+                        setSelectedLevel("All");
+                        setSelectedBook("All");
+                        setSelectedChapters([]);
+                        setOnlyDifficult(false);
+                        updateVocabularyUrl({
+                          level: "All",
+                          book: "All",
+                          chapters: [],
+                          search: "",
+                          difficult: false,
+                          page: 1,
+                        });
+                      }
+                      : () => openImportModal("file")
+                  }
+                />
               </div>
             )}
             </div>

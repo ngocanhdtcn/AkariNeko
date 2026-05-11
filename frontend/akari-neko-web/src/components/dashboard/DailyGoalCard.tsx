@@ -4,6 +4,7 @@ import { Check, Target } from "lucide-react";
 import { motion } from "motion/react";
 import { IconBadge } from "../ui/IconBadge";
 import { SoftPanel } from "../ui/SoftPanel";
+import { LoadingSkeleton } from "../ui/LoadingSkeleton";
 
 type DailyGoalCardProps = {
   reviewedCount: number;
@@ -23,6 +24,10 @@ export function DailyGoalCard({
   const isCompleted = reviewedCount >= goalCount;
   const remainingCount = Math.max(0, goalCount - reviewedCount);
 
+  if (isLoading) {
+    return <LoadingSkeleton variant="card" className="min-h-[250px]" />;
+  }
+
   return (
     <SoftPanel className="relative min-h-[250px] overflow-hidden bg-gradient-to-br from-white via-white to-pink-50 p-5">
       <div className="mb-3 flex items-center gap-3">
@@ -35,7 +40,7 @@ export function DailyGoalCard({
 
       <div className="relative z-10 flex items-end gap-2">
         <p className="text-4xl font-black text-slate-800">
-          {isLoading ? "..." : reviewedCount}
+          {reviewedCount}
         </p>
         <p className="pb-1 text-base font-bold text-slate-500">
           / {goalCount} lượt ôn
@@ -46,7 +51,7 @@ export function DailyGoalCard({
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-pink-100">
           <div
             className="h-full rounded-full bg-gradient-to-r from-pink-500 to-violet-500 transition-all duration-300"
-            style={{ width: `${isLoading ? 0 : progressPercent}%` }}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
 
@@ -61,12 +66,10 @@ export function DailyGoalCard({
 
       <div className="relative z-10 mt-6 w-[58%] rounded-2xl border border-pink-100 bg-white/90 p-3 text-sm font-semibold leading-6 text-slate-600 shadow-sm backdrop-blur">
         <p className="font-black text-pink-500">
-          {isLoading ? "..." : `${progressPercent}%`}
+          {progressPercent}%
         </p>
         <p className="mt-1">
-          {isLoading
-            ? "Đang tải tiến độ hôm nay..."
-            : isCompleted
+          {isCompleted
               ? "Yay! Bạn đã hoàn thành mục tiêu hôm nay. Cố gắng tiếp tục nhé!"
               : `Còn ${remainingCount} lượt ôn nữa để hoàn thành.`}
         </p>

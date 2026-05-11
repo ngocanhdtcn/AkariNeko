@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 
 type AppShellProps = {
   children: ReactNode;
@@ -38,9 +39,7 @@ export function AppShell({ children, rightPanel }: AppShellProps) {
   if (isLoadingProfile) {
     return (
       <div className="grid min-h-screen place-items-center bg-gradient-to-br from-pink-50 via-white to-violet-50">
-        <div className="rounded-[28px] border border-pink-100 bg-white/90 px-6 py-5 text-sm font-bold text-slate-500 shadow-sm">
-          Đang tải AkariNeko...
-        </div>
+        <LoadingSkeleton variant="card" className="w-[min(92vw,420px)]" />
       </div>
     );
   }

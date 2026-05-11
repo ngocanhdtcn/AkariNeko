@@ -1,11 +1,13 @@
 ﻿"use client";
 
-import { Eye, EyeOff, RotateCcw, Shuffle } from "lucide-react";
+import { BookOpen, Eye, EyeOff, RotateCcw, Shuffle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import {
     hasActiveStudyFilters,
     readPersistedStudyFilters,
@@ -585,9 +587,7 @@ export function FlashcardPage() {
 
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
                 {isLoading ? (
-                    <div className="grid min-h-[360px] place-items-center text-sm font-bold text-slate-400">
-                        Đang tải flashcard...
-                    </div>
+                    <LoadingSkeleton variant="card" className="min-h-[360px]" />
                 ) : currentVocabulary ? (
                     <div className="grid gap-5">
                         <div className="grid gap-3">
@@ -776,16 +776,18 @@ export function FlashcardPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid min-h-[360px] place-items-center text-center">
-                        <div>
-                            <p className="text-lg font-black text-slate-700">
-                                Chưa có dữ liệu flashcard.
-                            </p>
-                            <p className="mt-2 text-sm text-slate-500">
-                                Hãy import hoặc thêm từ vựng ở trang Vocabulary trước.
-                            </p>
-                        </div>
-                    </div>
+                    <EmptyState
+                        icon={<BookOpen size={24} />}
+                        title={hasActiveFilter ? "Không có từ theo bộ lọc" : "Chưa có flashcard"}
+                        description={
+                            hasActiveFilter
+                                ? "Thử đổi level, book, chapter hoặc tắt Only difficult để luyện thêm từ."
+                                : "Hãy import hoặc thêm từ vựng ở trang Vocabulary trước khi ôn flashcard."
+                        }
+                        actionLabel={hasActiveFilter ? "Xoá bộ lọc" : undefined}
+                        onAction={hasActiveFilter ? handleClearFilters : undefined}
+                        className="min-h-[360px]"
+                    />
                 )}
             </section>
         </div>

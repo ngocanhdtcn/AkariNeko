@@ -15,6 +15,7 @@ import { StatisticCard } from "./StatisticCard";
 import { IconBadge } from "../ui/IconBadge";
 import { SoftPanel } from "../ui/SoftPanel";
 import { OnlineUsersCard } from "./OnlineUsersCard";
+import { LoadingSkeleton } from "../ui/LoadingSkeleton";
 
 type RightStatsPanelProps = {
   dashboardStats: DashboardStats | null;
@@ -134,18 +135,22 @@ export function RightStatsPanel({
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
-          {displayStudyStatistics.map((statistic) => (
-            <StatisticCard
-              key={statistic.label}
-              label={statistic.label}
-              value={statistic.value}
-              icon={statistic.icon}
-              iconClassName={statistic.iconClassName}
-              chartClassName={statistic.chartClassName}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <LoadingSkeleton variant="stats" rows={2} className="grid-cols-2" />
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {displayStudyStatistics.map((statistic) => (
+              <StatisticCard
+                key={statistic.label}
+                label={statistic.label}
+                value={statistic.value}
+                icon={statistic.icon}
+                iconClassName={statistic.iconClassName}
+                chartClassName={statistic.chartClassName}
+              />
+            ))}
+          </div>
+        )}
       </SoftPanel>
 
       <RecentStudySessionsCard
