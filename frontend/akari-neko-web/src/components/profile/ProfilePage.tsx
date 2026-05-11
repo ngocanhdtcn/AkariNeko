@@ -3,6 +3,7 @@
 import { Save, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotification } from "@/contexts/NotificationContext";
 import { updateCurrentProfile } from "@/services/authService";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -12,6 +13,7 @@ const jlptLevelOptions = ["N5", "N4", "N3", "N2", "N1"];
 
 export function ProfilePage() {
     const { profile, refreshProfile } = useAuth();
+    const { notifyError, notifySuccess } = useNotification();
 
     const [displayName, setDisplayName] = useState("");
     const [avatarUrl, setAvatarUrl] = useState("");
@@ -32,6 +34,23 @@ export function ProfilePage() {
     }, [profile]);
 
     async function handleSaveProfile() {
+        const normalizedAvatarUrl = avatarUrl.trim();
+
+        if (normalizedAvatarUrl) {
+            try {
+                const parsedAvatarUrl = new URL(normalizedAvatarUrl);
+
+                if (!["http:", "https:"].includes(parsedAvatarUrl.protocol)) {
+                    throw new Error("Avatar URL phải bắt đầu bằng http hoặc https.");
+                }
+            } catch (error) {
+                const fallbackMessage = "Avatar URL không hợp lệ.";
+                setProfileError(fallbackMessage);
+                notifyError(error, fallbackMessage);
+                return;
+            }
+        }
+
         setIsSaving(true);
         setProfileError(null);
         setProfileMessage(null);
@@ -40,7 +59,7 @@ export function ProfilePage() {
         try {
             await updateCurrentProfile({
                 displayName: displayName.trim() || profile?.email || "Akari user",
-                avatarUrl: avatarUrl.trim() || null,
+                avatarUrl: normalizedAvatarUrl || null,
                 currentJlptLevel,
             });
 
@@ -51,9 +70,12 @@ export function ProfilePage() {
             await refreshProfile();
 
             setProfileMessage("Đã cập nhật hồ sơ.");
+            notifySuccess("Đã cập nhật hồ sơ.");
         } catch (error) {
             console.error("Failed to update profile:", error);
-            setProfileError("Không thể cập nhật hồ sơ. Vui lòng thử lại.");
+            const fallbackMessage = "Không thể cập nhật hồ sơ. Vui lòng thử lại.";
+            setProfileError(fallbackMessage);
+            notifyError(error, fallbackMessage);
         } finally {
             setIsSaving(false);
         }
@@ -148,7 +170,7 @@ export function ProfilePage() {
                                     onClick={() => void handleSaveProfile()}
                                 >
                                     <Save size={17} />
-                                    {isSaving ? "Saving..." : "Save profile"}
+                                    {isSaving ? "Đang lưu..." : "Lưu hồ sơ"}
                                 </button>
                             </div>
                         </div>

@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import {
     getCurrentProfile,
     signOut,
@@ -8,6 +15,7 @@ import {
 } from "@/services/authService";
 import { supabase } from "@/lib/supabaseClient";
 import type { AuthChangeEvent } from "@supabase/supabase-js";
+import { useNotification } from "@/contexts/NotificationContext";
 
 type AuthContextValue = {
     profile: AuthProfile | null;
@@ -52,8 +60,9 @@ function shouldRefreshProfileForAuthEvent(event: AuthChangeEvent) {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [profile, setProfile] = useState<AuthProfile | null>(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+    const { notifyError, notifySuccess } = useNotification();
 
-    async function refreshProfile({ showLoading = true } = {}) {
+    const refreshProfile = useCallback(async ({ showLoading = true } = {}) => {
         if (showLoading) {
             setIsLoadingProfile(true);
         }
@@ -73,13 +82,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setIsLoadingProfile(false);
             }
         }
-    }
+    }, []);
 
-    async function logout() {
-        await signOut();
-        setProfile(null);
-        window.location.href = "/auth";
-    }
+    const logout = useCallback(async () => {
+        try {
+            await signOut();
+            setProfile(null);
+            notifySuccess("Đã đăng xuất.");
+            window.location.href = "/auth";
+        } catch (error) {
+            notifyError(error, "Không thể đăng xuất. Vui lòng thử lại.");
+        }
+    }, [notifyError, notifySuccess]);
 
     useEffect(() => {
         const {
@@ -101,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
             subscription.unsubscribe();
         };
-    }, []);
+    }, [refreshProfile]);
 
     const value = useMemo(
         () => ({
@@ -110,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             refreshProfile,
             logout,
         }),
-        [profile, isLoadingProfile],
+        [isLoadingProfile, logout, profile, refreshProfile],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

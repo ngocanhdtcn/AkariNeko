@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getDashboardStats,
   type DashboardStats,
@@ -11,8 +11,10 @@ import { MobileStatsSection } from "./MobileStatsSection";
 import { RecentVocabularyTable } from "./RecentVocabularyTable";
 import { RightStatsPanel } from "./RightStatsPanel";
 import { StudyShortcutCards } from "./StudyShortcutCards";
+import { useNotification } from "@/contexts/NotificationContext";
 
 export function DashboardLayout() {
+  const { notifyError } = useNotification();
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
     null,
   );
@@ -23,7 +25,7 @@ export function DashboardLayout() {
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const isLoadingDashboardStatsRef = useRef(false);
 
-  async function loadDashboardStats() {
+  const loadDashboardStats = useCallback(async () => {
     if (isLoadingDashboardStatsRef.current) {
       return;
     }
@@ -38,18 +40,20 @@ export function DashboardLayout() {
       setDashboardRefreshKey((current) => current + 1);
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
-      setDashboardStatsError("Không thể tải thống kê học tập.");
+      const fallbackMessage = "Không thể tải thống kê học tập.";
+      setDashboardStatsError(fallbackMessage);
+      notifyError(error, fallbackMessage);
     } finally {
       isLoadingDashboardStatsRef.current = false;
       setIsLoadingDashboardStats(false);
     }
-  }
+  }, [notifyError]);
 
   useEffect(() => {
     // Load dashboard stats when the dashboard mounts.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDashboardStats();
-  }, []);
+  }, [loadDashboardStats]);
 
   return (
     <AppShell

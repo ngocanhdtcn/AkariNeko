@@ -1,7 +1,14 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
     getUnreadMessageCount,
@@ -26,16 +33,16 @@ export function MessageNotificationProvider({
     const { profile } = useAuth();
     const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
-    async function resetUnreadMessageCount() {
+    const resetUnreadMessageCount = useCallback(async () => {
         try {
             await markMessagesAsRead();
             setUnreadMessageCount(0);
         } catch (error) {
             console.error("Failed to mark messages as read:", error);
         }
-    }
+    }, []);
 
-    async function loadUnreadMessageCount() {
+    const loadUnreadMessageCount = useCallback(async () => {
         try {
             const count = await getUnreadMessageCount();
             setUnreadMessageCount(count);
@@ -43,26 +50,39 @@ export function MessageNotificationProvider({
             console.error("Failed to load unread message count:", error);
             setUnreadMessageCount(0);
         }
-    }
+    }, []);
 
     useEffect(() => {
         if (!profile) {
-            setUnreadMessageCount(0);
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setUnreadMessageCount(0);
+            }, 0);
+
+            return () => window.clearTimeout(timeoutId);
         }
 
         if (pathname === "/messages") {
-            void resetUnreadMessageCount();
-            return;
+            const timeoutId = window.setTimeout(() => {
+                void resetUnreadMessageCount();
+            }, 0);
+
+            return () => window.clearTimeout(timeoutId);
         }
 
-        void loadUnreadMessageCount();
-    }, [pathname, profile]);
+        const timeoutId = window.setTimeout(() => {
+            void loadUnreadMessageCount();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [loadUnreadMessageCount, pathname, profile, resetUnreadMessageCount]);
 
     useEffect(() => {
         if (!profile) {
-            setUnreadMessageCount(0);
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setUnreadMessageCount(0);
+            }, 0);
+
+            return () => window.clearTimeout(timeoutId);
         }
 
         const unsubscribe = subscribeToMessages((message) => {
@@ -82,14 +102,14 @@ export function MessageNotificationProvider({
         });
 
         return unsubscribe;
-    }, [profile, pathname]);
+    }, [pathname, profile, resetUnreadMessageCount]);
 
     const value = useMemo(
         () => ({
             unreadMessageCount,
             resetUnreadMessageCount,
         }),
-        [unreadMessageCount],
+        [resetUnreadMessageCount, unreadMessageCount],
     );
 
     return (

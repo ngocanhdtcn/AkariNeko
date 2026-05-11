@@ -6,6 +6,7 @@ import "./globals.css";
 import { OnlineUsersProvider } from "@/contexts/OnlineUsersContext";
 import { MessageNotificationProvider } from "@/contexts/MessageNotificationContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 export const metadata: Metadata = {
   title: "AkariNeko",
@@ -21,11 +22,13 @@ export default function RootLayout({
     <html lang="vi" data-scroll-behavior="smooth">
       <body className="antialiased">
         <ThemeProvider>
-          <AuthProvider>
-            <OnlineUsersProvider>
-              <MessageNotificationProvider>{children}</MessageNotificationProvider>
-            </OnlineUsersProvider>
-          </AuthProvider>
+          <NotificationProvider>
+            <AuthProvider>
+              <OnlineUsersProvider>
+                <MessageNotificationProvider>{children}</MessageNotificationProvider>
+              </OnlineUsersProvider>
+            </AuthProvider>
+          </NotificationProvider>
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

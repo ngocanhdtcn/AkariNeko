@@ -20,6 +20,7 @@ import {
     signInWithEmail,
     signUpWithEmail,
 } from "@/services/authService";
+import { useNotification } from "@/contexts/NotificationContext";
 
 type AuthMode = "login" | "signup";
 
@@ -55,6 +56,7 @@ export function AuthPage() {
     const [hasMounted, setHasMounted] = useState(false);
     const router = useRouter();
     const { isDarkMode } = useTheme();
+    const { notifyError, notifySuccess } = useNotification();
 
     const isSignup = mode === "signup";
     const isDarkAuth = hasMounted && isDarkMode;
@@ -78,6 +80,7 @@ export function AuthPage() {
                 });
 
                 setAuthMessage("Đăng ký thành công. Bạn có thể vào app ngay.");
+                notifySuccess("Đăng ký thành công.");
                 router.push("/");
                 return;
             }
@@ -88,14 +91,15 @@ export function AuthPage() {
             });
 
             setAuthMessage("Đăng nhập thành công.");
+            notifySuccess("Đăng nhập thành công.");
             router.push("/");
         } catch (error) {
             console.error("Auth failed:", error);
-            setAuthError(
-                isSignup
-                    ? "Không thể đăng ký. Kiểm tra email/password hoặc tài khoản đã tồn tại."
-                    : "Không thể đăng nhập. Kiểm tra email/password.",
-            );
+            const fallbackMessage = isSignup
+                ? "Không thể đăng ký. Kiểm tra email/password hoặc tài khoản đã tồn tại."
+                : "Không thể đăng nhập. Kiểm tra email/password.";
+            setAuthError(fallbackMessage);
+            notifyError(error, fallbackMessage);
         } finally {
             setIsSubmitting(false);
         }

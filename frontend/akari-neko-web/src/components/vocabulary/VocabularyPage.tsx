@@ -22,6 +22,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal";
 import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
 import { ImportVocabularyModal } from "./ImportVocabularyModal";
+import { useNotification } from "@/contexts/NotificationContext";
 import {
   hasActiveStudyFilters,
   readPersistedStudyFilters,
@@ -123,6 +124,7 @@ export function VocabularyPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { profile, isLoadingProfile } = useAuth();
+  const { notifyError, notifySuccess } = useNotification();
   const [persistedFilters] = useState(() =>
     readPersistedStudyFilters("vocabulary"),
   );
@@ -440,12 +442,15 @@ export function VocabularyPage() {
       setTotalVocabularyCount(result.totalCount);
     } catch (error) {
       console.error("Failed to load vocabularies:", error);
-      setVocabularyLoadError("Không thể tải danh sách từ vựng.");
+      const fallbackMessage = "Không thể tải danh sách từ vựng.";
+      setVocabularyLoadError(fallbackMessage);
+      notifyError(error, fallbackMessage);
     } finally {
       setIsLoadingVocabularies(false);
     }
   }, [
     areStudyFiltersReady,
+    notifyError,
     searchKeyword,
     selectedLevel,
     selectedBook,
@@ -558,12 +563,13 @@ export function VocabularyPage() {
       );
     } catch (error) {
       console.error("Failed to load vocabulary filter options:", error);
+      notifyError(error, "Không thể tải bộ lọc từ vựng.");
     } finally {
       if (filterOptionsRequestIdRef.current === requestId) {
         setIsLoadingFilterOptions(false);
       }
     }
-  }, [selectedLevel, selectedBook]);
+  }, [notifyError, selectedLevel, selectedBook]);
 
   useEffect(() => {
     if (!areStudyFiltersReady) {
@@ -593,14 +599,16 @@ export function VocabularyPage() {
       await loadVocabularies(currentPage);
     } catch (error) {
       console.error("Failed to delete vocabulary:", error);
-      setVocabularyLoadError("Không thể xoá từ vựng. Vui lòng thử lại.");
+      const fallbackMessage = "Không thể xoá từ vựng. Vui lòng thử lại.";
+      setVocabularyLoadError(fallbackMessage);
+      notifyError(error, fallbackMessage);
     } finally {
       setDeletingVocabularyId(null);
     }
   }
   const [editingVocabulary, setEditingVocabulary] =
     useState<VocabularyListItem | null>(null);
-  const isSavingVocabulary = false;
+  const [isSavingVocabulary, setIsSavingVocabulary] = useState(false);
   const [editVocabularyError, setEditVocabularyError] = useState<string | null>(
     null,
   );
@@ -611,6 +619,7 @@ export function VocabularyPage() {
 
     setEditVocabularyError(null);
     setVocabularyLoadError(null);
+    setIsSavingVocabulary(true);
     setVocabularies((currentVocabularies) =>
       currentVocabularies.map((currentVocabulary) =>
         currentVocabulary.id === normalizedVocabulary.id
@@ -638,6 +647,7 @@ export function VocabularyPage() {
         meaning: normalizedVocabulary.meaning,
       })
       .then(() => {
+        notifySuccess("Đã cập nhật từ vựng.");
         void loadVocabularyFilterOptions();
       })
       .catch((error) => {
@@ -654,12 +664,16 @@ export function VocabularyPage() {
         }
 
         setEditingVocabulary(normalizedVocabulary);
-        setEditVocabularyError(
+        const fallbackMessage =
           error instanceof DuplicateVocabularyError
             ? "Từ vựng này đã tồn tại trong cùng Book / Level / Chapter."
-            : "Không thể cập nhật từ vựng. Vui lòng thử lại.",
-        );
-        setVocabularyLoadError("Không thể cập nhật từ vựng. Vui lòng thử lại.");
+            : "Không thể cập nhật từ vựng. Vui lòng thử lại.";
+        setEditVocabularyError(fallbackMessage);
+        setVocabularyLoadError(fallbackMessage);
+        notifyError(error, fallbackMessage);
+      })
+      .finally(() => {
+        setIsSavingVocabulary(false);
       });
   }
 
@@ -679,16 +693,18 @@ export function VocabularyPage() {
 
       setIsAddVocabularyOpen(false);
       setCurrentPage(1);
+      notifySuccess("Đã thêm từ vựng.");
 
       void loadVocabularies(1);
       void loadVocabularyFilterOptions();
     } catch (error) {
       console.error("Failed to create vocabulary:", error);
-      setCreateVocabularyError(
+      const fallbackMessage =
         error instanceof DuplicateVocabularyError
           ? "Từ vựng này đã tồn tại trong cùng Book / Level / Chapter."
-          : "Không thể thêm từ vựng. Vui lòng thử lại.",
-      );
+          : "Không thể thêm từ vựng. Vui lòng thử lại.";
+      setCreateVocabularyError(fallbackMessage);
+      notifyError(error, fallbackMessage);
     } finally {
       setIsCreatingVocabulary(false);
     }
@@ -712,6 +728,9 @@ export function VocabularyPage() {
 
     try {
       await updateVocabularyDifficulty(vocabulary.id, nextIsDifficult);
+      notifySuccess(
+        nextIsDifficult ? "Đã đánh dấu từ khó." : "Đã bỏ đánh dấu từ khó.",
+      );
     } catch (error) {
       console.error("Failed to update vocabulary difficulty:", error);
       setVocabularies((currentVocabularies) =>
@@ -724,7 +743,9 @@ export function VocabularyPage() {
             : currentVocabulary,
         ),
       );
-      setVocabularyLoadError("Không thể cập nhật trạng thái từ khó.");
+      const fallbackMessage = "Không thể cập nhật trạng thái từ khó.";
+      setVocabularyLoadError(fallbackMessage);
+      notifyError(error, fallbackMessage);
     } finally {
       setUpdatingDifficultyId(null);
     }
@@ -901,7 +922,7 @@ export function VocabularyPage() {
                 className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
                 onClick={() => void loadVocabularies(currentPage)}
               >
-                Refresh
+                Làm mới
               </button>
 
               <span className="rounded-2xl bg-pink-50 px-4 py-2 text-sm font-bold text-pink-500">

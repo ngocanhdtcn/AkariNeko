@@ -197,7 +197,7 @@ export function EditVocabularyModal({
                                 className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                                 onClick={() => onSave(editingVocabulary)}
                             >
-                                {isSaving ? "Saving..." : "Save changes"}
+                                {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                             </button>
                         </div>
                     </motion.section>

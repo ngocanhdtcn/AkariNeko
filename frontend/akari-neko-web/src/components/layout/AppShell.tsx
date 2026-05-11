@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { DashboardSidebar } from "../dashboard/DashboardSidebar";
 import { DashboardTopBar } from "../dashboard/DashboardTopBar";
 import { MobileBottomNav } from "../dashboard/MobileBottomNav";
@@ -9,6 +9,7 @@ import { MobileHeader } from "../dashboard/MobileHeader";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotification } from "@/contexts/NotificationContext";
 
 type AppShellProps = {
   children: ReactNode;
@@ -19,13 +20,20 @@ export function AppShell({ children, rightPanel }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { profile, isLoadingProfile } = useAuth();
+  const { notifyInfo } = useNotification();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const didNotifyMissingSessionRef = useRef(false);
 
   useEffect(() => {
     if (!isLoadingProfile && !profile && pathname !== "/auth") {
+      if (!didNotifyMissingSessionRef.current) {
+        didNotifyMissingSessionRef.current = true;
+        notifyInfo("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      }
+
       router.replace("/auth");
     }
-  }, [isLoadingProfile, profile, pathname, router]);
+  }, [isLoadingProfile, notifyInfo, pathname, profile, router]);
 
   if (isLoadingProfile) {
     return (

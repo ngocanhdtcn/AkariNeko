@@ -1,12 +1,13 @@
 "use client";
 
 import { BookOpen, MoreHorizontal, Star, Volume2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   getRecentVocabularies,
   type VocabularyListItem,
 } from "@/services/vocabularyService";
 import { SoftPanel } from "../ui/SoftPanel";
+import { useNotification } from "@/contexts/NotificationContext";
 
 type RecentVocabularyTableProps = {
   refreshKey?: number;
@@ -45,6 +46,7 @@ function getDifficultyStarCount(vocabulary: VocabularyListItem) {
 export function RecentVocabularyTable({
   refreshKey = 0,
 }: RecentVocabularyTableProps) {
+  const { notifyError } = useNotification();
   const [recentVocabularies, setRecentVocabularies] = useState<
     VocabularyListItem[]
   >([]);
@@ -54,7 +56,7 @@ export function RecentVocabularyTable({
     string | null
   >(null);
 
-  async function loadRecentVocabularies() {
+  const loadRecentVocabularies = useCallback(async () => {
     setIsLoadingRecentVocabularies(true);
     setRecentVocabularyError(null);
 
@@ -63,17 +65,19 @@ export function RecentVocabularyTable({
       setRecentVocabularies(data);
     } catch (error) {
       console.error("Failed to load recent vocabularies:", error);
-      setRecentVocabularyError("Không thể tải từ vựng gần đây.");
+      const fallbackMessage = "Không thể tải từ vựng gần đây.";
+      setRecentVocabularyError(fallbackMessage);
+      notifyError(error, fallbackMessage);
     } finally {
       setIsLoadingRecentVocabularies(false);
     }
-  }
+  }, [notifyError]);
 
   useEffect(() => {
     // Reload when the dashboard refresh button completes a stats refresh.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadRecentVocabularies();
-  }, [refreshKey]);
+  }, [loadRecentVocabularies, refreshKey]);
 
   return (
     <SoftPanel className="p-4 sm:p-5">

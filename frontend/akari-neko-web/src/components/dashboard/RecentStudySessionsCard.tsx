@@ -97,7 +97,7 @@ export function RecentStudySessionsCard({
         </div>
       ) : (
         <div className="rounded-2xl border border-pink-50 bg-white px-4 py-6 text-center text-sm font-medium text-slate-400">
-          Chưa có phiên học nào. Hãy học Flashcard rồi bấm End session.
+          Chưa có phiên học nào. Hãy học Flashcard rồi bấm Kết thúc phiên.
         </div>
       )}
     </SoftPanel>

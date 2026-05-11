@@ -28,7 +28,7 @@ export function StudyShortcutCards() {
             whileTap={{
               scale: 0.985,
             }}
-            className={`akari-study-shortcut-card group min-h-36 rounded-[24px] border border-pink-100/80 bg-gradient-to-br ${card.cardClassName} p-4 text-left shadow-[0_14px_34px_rgba(236,72,153,0.08)] will-change-transform sm:min-h-40 sm:p-5`}
+            className={`akari-study-shortcut-card group min-h-36 rounded-[24px] border border-pink-100/80 bg-gradient-to-br ${card.cardClassName} p-4 text-left shadow-[0_14px_34px_rgba(236,72,153,0.08)] sm:min-h-40 sm:p-5`}
           >
             <motion.div
               whileHover={{

@@ -124,7 +124,7 @@ export function RightStatsPanel({
             className="ml-auto rounded-2xl border border-pink-100 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={onRefresh}
           >
-            {isLoading ? "Loading..." : "Refresh"}
+            {isLoading ? "Đang tải..." : "Làm mới"}
           </button>
         </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCcw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     runDevChecks,
     type DevCheckItem,
@@ -11,7 +11,7 @@ export function DevCheckPage() {
     const [checkItems, setCheckItems] = useState<DevCheckItem[]>([]);
     const [isChecking, setIsChecking] = useState(false);
 
-    async function handleRunChecks() {
+    const handleRunChecks = useCallback(async () => {
         setIsChecking(true);
 
         try {
@@ -20,11 +20,15 @@ export function DevCheckPage() {
         } finally {
             setIsChecking(false);
         }
-    }
+    }, []);
 
     useEffect(() => {
-        void handleRunChecks();
-    }, []);
+        const timeoutId = window.setTimeout(() => {
+            void handleRunChecks();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [handleRunChecks]);
 
     const successCount = checkItems.filter(
         (item) => item.status === "success",
@@ -57,7 +61,7 @@ export function DevCheckPage() {
                         onClick={() => void handleRunChecks()}
                     >
                         <RefreshCcw size={16} />
-                        {isChecking ? "Checking..." : "Run checks"}
+                        {isChecking ? "Đang kiểm tra..." : "Chạy kiểm tra"}
                     </button>
                 </div>
             </section>

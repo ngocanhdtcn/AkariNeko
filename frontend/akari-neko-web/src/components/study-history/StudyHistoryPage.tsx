@@ -3,6 +3,7 @@
 import { RefreshCcw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useNotification } from "@/contexts/NotificationContext";
 import {
     deleteStudyHistory,
     getStudyHistories,
@@ -75,6 +76,7 @@ function getVisiblePageNumbers(currentPage: number, totalPages: number) {
 }
 
 export function StudyHistoryPage() {
+    const { notifyError, notifySuccess } = useNotification();
     const [histories, setHistories] = useState<StudyHistoryItem[]>([]);
     const [totalHistoryCount, setTotalHistoryCount] = useState(0);
     const [historySummary, setHistorySummary] = useState<StudyHistorySummary>({
@@ -120,11 +122,13 @@ export function StudyHistoryPage() {
             setTotalHistoryCount(result.totalCount);
         } catch (error) {
             console.error("Failed to load study histories:", error);
-            setHistoryLoadError("Không thể tải lịch sử học.");
+            const fallbackMessage = "Không thể tải lịch sử học.";
+            setHistoryLoadError(fallbackMessage);
+            notifyError(error, fallbackMessage);
         } finally {
             setIsLoadingHistories(false);
         }
-    }, [currentPage, selectedRange]);
+    }, [currentPage, notifyError, selectedRange]);
 
     const loadStudyHistorySummary = useCallback(async () => {
         try {
@@ -135,9 +139,11 @@ export function StudyHistoryPage() {
             setHistorySummary(summary);
         } catch (error) {
             console.error("Failed to load study history summary:", error);
-            setHistoryLoadError("Không thể tải tổng thống kê lịch sử học.");
+            const fallbackMessage = "Không thể tải tổng thống kê lịch sử học.";
+            setHistoryLoadError(fallbackMessage);
+            notifyError(error, fallbackMessage);
         }
-    }, [selectedRange]);
+    }, [notifyError, selectedRange]);
 
     async function handleConfirmDeleteStudyHistory() {
         if (!historyPendingDelete) {
@@ -151,9 +157,12 @@ export function StudyHistoryPage() {
             setHistoryPendingDelete(null);
             await loadStudyHistories(safeCurrentPage);
             await loadStudyHistorySummary();
+            notifySuccess("Đã xoá phiên học.");
         } catch (error) {
             console.error("Failed to delete study history:", error);
-            setHistoryLoadError("Không thể xoá phiên học. Vui lòng thử lại.");
+            const fallbackMessage = "Không thể xoá phiên học. Vui lòng thử lại.";
+            setHistoryLoadError(fallbackMessage);
+            notifyError(error, fallbackMessage);
         } finally {
             setDeletingHistoryId(null);
         }
@@ -192,7 +201,7 @@ export function StudyHistoryPage() {
                         onClick={() => void loadStudyHistories(safeCurrentPage)}
                     >
                         <RefreshCcw size={16} />
-                        Refresh
+                        Làm mới
                     </button>
                 </div>
             </section>
@@ -339,7 +348,7 @@ export function StudyHistoryPage() {
                                 ))
                             ) : (
                                 <div className="border-t border-pink-50 px-4 py-8 text-center text-sm font-medium text-slate-400">
-                                    Chưa có phiên học nào. Hãy học Flashcard rồi bấm End session.
+                                    Chưa có phiên học nào. Hãy học Flashcard rồi bấm Kết thúc phiên.
                                 </div>
                             )}
                         </div>

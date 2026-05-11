@@ -216,7 +216,7 @@ export function AddVocabularyModal({
                                 className="h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                                 onClick={() => onSave(vocabulary)}
                             >
-                                {isSaving ? "Saving..." : "Add word"}
+                                {isSaving ? "Đang lưu..." : "Thêm từ"}
                             </button>
                         </div>
                     </motion.section>

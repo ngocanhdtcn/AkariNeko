@@ -3,6 +3,7 @@
 import { Eye, EyeOff, RotateCcw, Shuffle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotification } from "@/contexts/NotificationContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
 import {
@@ -23,6 +24,7 @@ import {
 
 export function FlashcardPage() {
     const { profile, isLoadingProfile } = useAuth();
+    const { notifyError, notifySuccess } = useNotification();
     const [persistedFilters] = useState(() =>
         readPersistedStudyFilters("flashcard"),
     );
@@ -126,7 +128,9 @@ export function FlashcardPage() {
             setIsSessionSaved(false);
         } catch (error) {
             console.error("Failed to load flashcards:", error);
-            setLoadError("Không thể tải flashcard.");
+            const fallbackMessage = "Không thể tải flashcard.";
+            setLoadError(fallbackMessage);
+            notifyError(error, fallbackMessage);
         } finally {
             if (flashcardsRequestIdRef.current === requestId) {
                 setIsLoading(false);
@@ -134,6 +138,7 @@ export function FlashcardPage() {
         }
     }, [
         areStudyFiltersReady,
+        notifyError,
         selectedLevel,
         selectedBook,
         selectedChapters,
@@ -226,12 +231,13 @@ export function FlashcardPage() {
             );
         } catch (error) {
             console.error("Failed to load flashcard filter options:", error);
+            notifyError(error, "Không thể tải bộ lọc flashcard.");
         } finally {
             if (filterOptionsRequestIdRef.current === requestId) {
                 setIsLoadingFilterOptions(false);
             }
         }
-    }, [selectedLevel, selectedBook]);
+    }, [notifyError, selectedLevel, selectedBook]);
 
     useEffect(() => {
         if (!areStudyFiltersReady) {
@@ -397,7 +403,9 @@ export function FlashcardPage() {
 
         void reviewFlashcard(reviewedVocabulary, result).catch((error) => {
             console.error("Failed to review flashcard:", error);
-            setLoadError("Không thể lưu kết quả ôn tập.");
+            const fallbackMessage = "Không thể lưu kết quả ôn tập.";
+            setLoadError(fallbackMessage);
+            notifyError(error, fallbackMessage);
         });
     }
 
@@ -446,6 +454,7 @@ export function FlashcardPage() {
             });
 
             setSessionSavedMessage("Đã lưu phiên học. Hãy ôn thêm từ mới để bắt đầu phiên tiếp theo.");
+            notifySuccess("Đã lưu phiên học.");
             setIsSessionSaved(true);
             setSessionStats({
                 reviewedCount: 0,
@@ -454,7 +463,9 @@ export function FlashcardPage() {
             });
         } catch (error) {
             console.error("Failed to save flashcard study session:", error);
-            setLoadError("Không thể lưu phiên học.");
+            const fallbackMessage = "Không thể lưu phiên học.";
+            setLoadError(fallbackMessage);
+            notifyError(error, fallbackMessage);
         } finally {
             setIsSavingSession(false);
         }
@@ -484,7 +495,7 @@ export function FlashcardPage() {
                             onClick={() => void loadFlashcards()}
                         >
                             <RotateCcw size={16} className="mr-2 inline" />
-                            Reload
+                            Tải lại
                         </button>
 
                         <button
@@ -625,7 +636,7 @@ export function FlashcardPage() {
 
                         <button
                             type="button"
-                            className="min-h-[360px] rounded-[30px] border border-pink-100 bg-gradient-to-br from-white via-pink-50/60 to-violet-50 p-8 text-center shadow-inner transition hover:scale-[1.005]"
+                            className="min-h-[360px] rounded-[30px] border border-pink-100 bg-gradient-to-br from-white via-pink-50/60 to-violet-50 p-8 text-center shadow-inner transition lg:hover:scale-[1.005]"
                             onClick={() => setIsFlipped((current) => !current)}
                         >
                             {!isFlipped ? (
@@ -721,7 +732,7 @@ export function FlashcardPage() {
                                         className="h-10 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-4 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.18)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                                         onClick={() => void handleSaveStudySession()}
                                     >
-                                        {isSavingSession ? "Saving..." : "End session"}
+                                        {isSavingSession ? "Đang lưu..." : "Kết thúc phiên"}
                                     </button>
 
                                     <button
