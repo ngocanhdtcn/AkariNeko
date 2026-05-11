@@ -13,8 +13,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
+import { AppButton } from "@/components/ui/AppButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
     hasActiveStudyFilters,
     readPersistedStudyFilters,
@@ -657,30 +659,17 @@ export function QuizPage() {
 
     return (
         <div className="grid gap-5">
-            <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                        <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
-                            Quiz
-                        </p>
-                        <h1 className="mt-1 text-3xl font-black text-slate-800">
-                            Luyện chọn nghĩa đúng
-                        </h1>
-                        <p className="mt-2 text-sm text-slate-500">
-                            Quiz được tạo từ dữ liệu Vocabulary trong Supabase.
-                        </p>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                        onClick={() => void loadQuiz()}
-                    >
-                        <RefreshCcw size={16} />
+            <PageHeader
+                eyebrow="Quiz"
+                title="Luyện chọn nghĩa đúng"
+                description="Quiz được tạo từ dữ liệu Vocabulary trong Supabase."
+                icon={<BookOpen size={21} />}
+                action={
+                    <AppButton icon={<RefreshCcw size={16} />} onClick={() => void loadQuiz()}>
                         Tải lại quiz
-                    </button>
-                </div>
-            </section>
+                    </AppButton>
+                }
+            />
 
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
                 <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto_auto] xl:items-end">

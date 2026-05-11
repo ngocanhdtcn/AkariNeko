@@ -7,8 +7,12 @@ import { useMessageNotification } from "@/contexts/MessageNotificationContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useOnlineUsers } from "@/contexts/OnlineUsersContext";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { AppBadge } from "@/components/ui/AppBadge";
+import { AppButton } from "@/components/ui/AppButton";
+import { AppInput } from "@/components/ui/AppInput";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
     getPublicProfilesByIds,
     type PublicProfile,
@@ -185,26 +189,18 @@ export function MessagesPage() {
 
     return (
         <div className="grid gap-5">
-            <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                        <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
-                            Messages
-                        </p>
-                        <h1 className="mt-1 text-3xl font-black text-slate-800">
-                            Akari Chat
-                        </h1>
-                        <p className="mt-2 text-sm text-slate-500">
-                            Chat realtime đơn giản cho các user đang đăng nhập.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-600">
+            <PageHeader
+                eyebrow="Messages"
+                title="Akari Chat"
+                description="Chat realtime đơn giản cho các user đang đăng nhập."
+                icon={<MessageCircle size={21} />}
+                action={
+                    <AppBadge tone="emerald" className="gap-2 rounded-2xl px-4 py-3 text-sm">
                         <UsersRound size={18} />
                         {onlineUserCount} online
-                    </div>
-                </div>
-            </section>
+                    </AppBadge>
+                }
+            />
 
             <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="overflow-hidden rounded-[32px] border border-pink-100 bg-white/85 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
@@ -298,9 +294,9 @@ export function MessagesPage() {
 
                     <div className="border-t border-pink-50 bg-white/95 p-4">
                         <div className="flex gap-3">
-                            <input
+                            <AppInput
                                 value={messageText}
-                                className="h-12 min-w-0 flex-1 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
+                                className="min-w-0 flex-1"
                                 placeholder="Nhập tin nhắn..."
                                 onChange={(event) => setMessageText(event.target.value)}
                                 onKeyDown={(event) => {
@@ -311,15 +307,15 @@ export function MessagesPage() {
                                 }}
                             />
 
-                            <button
-                                type="button"
+                            <AppButton
+                                variant="primary"
+                                icon={<Send size={17} />}
                                 disabled={!messageText.trim() || isSendingMessage}
-                                className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                                className="h-12 px-5"
                                 onClick={() => void handleSendMessage()}
                             >
-                                <Send size={17} />
                                 {isSendingMessage ? "Đang gửi..." : "Gửi"}
-                            </button>
+                            </AppButton>
                         </div>
                     </div>
                 </div>

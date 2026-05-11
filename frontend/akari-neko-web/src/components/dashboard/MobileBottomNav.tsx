@@ -18,9 +18,9 @@ export function MobileBottomNav() {
           <Link
             key={item.label}
             href={item.href}
-            className={`m-1 flex flex-col items-center justify-center gap-1 rounded-[22px] text-xs font-bold transition ${
+            className={`m-1 flex flex-col items-center justify-center gap-1 rounded-[22px] text-xs font-bold outline-none transition focus-visible:ring-4 focus-visible:ring-pink-100 ${
               isActive
-                ? "bg-violet-50 text-violet-500"
+                ? "bg-gradient-to-br from-pink-50 to-violet-50 text-violet-500 shadow-sm"
                 : "text-slate-500 hover:bg-pink-50 hover:text-slate-700"
             }`}
           >

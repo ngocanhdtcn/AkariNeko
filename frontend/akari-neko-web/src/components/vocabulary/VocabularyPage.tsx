@@ -23,6 +23,8 @@ import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal
 import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
 import { ImportVocabularyModal } from "./ImportVocabularyModal";
 import { useNotification } from "@/contexts/NotificationContext";
+import { AppBadge } from "@/components/ui/AppBadge";
+import { AppButton } from "@/components/ui/AppButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import {
@@ -795,27 +797,22 @@ export function VocabularyPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                className="flex h-12 items-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+              <AppButton
+                icon={<Plus size={18} />}
+                className="h-12"
                 onClick={() => {
                   setCreateVocabularyError(null);
                   setIsAddVocabularyOpen(true);
                 }}
               >
-                <Plus size={18} />
                 Thêm từ vựng
-              </button>
+              </AppButton>
 
               <ImportButton onSelectSource={openImportModal} />
 
-              <button
-                type="button"
-                className="flex h-12 items-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-              >
-                <Download size={18} />
+              <AppButton icon={<Download size={18} />} className="h-12">
                 Export
-              </button>
+              </AppButton>
             </div>
           </div>
         </motion.section>
@@ -962,9 +959,9 @@ export function VocabularyPage() {
                         <p className="min-w-0 break-words text-xl font-black text-slate-800">
                           {vocabulary.kanji}
                         </p>
-                        <span className="rounded-xl bg-pink-100 px-2.5 py-1 text-xs font-bold text-pink-500">
+                        <AppBadge className="rounded-xl px-2.5 py-1">
                           {vocabulary.level}
-                        </span>
+                        </AppBadge>
                       </div>
 
                       <p className="mt-1 text-sm font-bold text-slate-600">
@@ -1105,9 +1102,9 @@ export function VocabularyPage() {
                   <div>{vocabulary.meaning}</div>
 
                   <div>
-                    <span className="rounded-xl bg-pink-100 px-3 py-1 font-bold text-pink-500">
+                    <AppBadge className="rounded-xl px-3 py-1">
                       {vocabulary.level}
-                    </span>
+                    </AppBadge>
                   </div>
 
                   <div className="font-bold text-emerald-600">

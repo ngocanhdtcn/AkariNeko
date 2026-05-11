@@ -6,8 +6,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
+import { AppButton } from "@/components/ui/AppButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
     hasActiveStudyFilters,
     readPersistedStudyFilters,
@@ -475,43 +477,27 @@ export function FlashcardPage() {
 
     return (
         <div className="grid gap-5">
-            <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
-                            Flashcard
-                        </p>
-                        <h1 className="mt-1 text-3xl font-black text-slate-800">
-                            Ôn từ vựng bằng thẻ
-                        </h1>
-                        <p className="mt-2 text-sm text-slate-500">
-                            Dữ liệu được lấy trực tiếp từ Supabase. Smart shuffle sẽ ưu tiên từ khó và từ
-                            sai nhiều.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            className="h-11 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                            onClick={() => void loadFlashcards()}
-                        >
-                            <RotateCcw size={16} className="mr-2 inline" />
+            <PageHeader
+                eyebrow="Flashcard"
+                title="Ôn từ vựng bằng thẻ"
+                description="Dữ liệu được lấy trực tiếp từ Supabase. Smart shuffle sẽ ưu tiên từ khó và từ sai nhiều."
+                icon={<BookOpen size={21} />}
+                action={
+                    <div className="flex flex-wrap items-center gap-2">
+                        <AppButton icon={<RotateCcw size={16} />} onClick={() => void loadFlashcards()}>
                             Tải lại
-                        </button>
-
-                        <button
-                            type="button"
+                        </AppButton>
+                        <AppButton
+                            variant="primary"
+                            icon={<Shuffle size={16} />}
                             disabled={vocabularies.length === 0}
-                            className="h-11 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-4 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                             onClick={handleShuffle}
                         >
-                            <Shuffle size={16} className="mr-2 inline" />
                             Smart shuffle
-                        </button>
+                        </AppButton>
                     </div>
-                </div>
-            </section>
+                }
+            />
 
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
                 <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto_auto] xl:items-end">

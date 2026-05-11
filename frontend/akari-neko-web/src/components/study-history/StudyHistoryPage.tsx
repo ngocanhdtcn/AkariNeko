@@ -4,8 +4,10 @@ import { History, RefreshCcw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useNotification } from "@/contexts/NotificationContext";
+import { AppButton } from "@/components/ui/AppButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
     deleteStudyHistory,
     getStudyHistories,
@@ -183,30 +185,18 @@ export function StudyHistoryPage() {
     return (
         <>
         <div className="akari-study-history grid gap-5">
-            <section className="akari-study-history-hero rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                        <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
-                            Study History
-                        </p>
-                        <h1 className="mt-1 text-3xl font-black text-slate-800">
-                            Lịch sử học Flashcard
-                        </h1>
-                        <p className="mt-2 text-sm text-slate-500">
-                            Theo dõi các phiên học đã lưu từ Flashcard.
-                        </p>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                        onClick={() => void loadStudyHistories(safeCurrentPage)}
-                    >
-                        <RefreshCcw size={16} />
+            <PageHeader
+                eyebrow="Study History"
+                title="Lịch sử học Flashcard"
+                description="Theo dõi các phiên học đã lưu từ Flashcard."
+                icon={<History size={21} />}
+                className="akari-study-history-hero"
+                action={
+                    <AppButton icon={<RefreshCcw size={16} />} onClick={() => void loadStudyHistories(safeCurrentPage)}>
                         Làm mới
-                    </button>
-                </div>
-            </section>
+                    </AppButton>
+                }
+            />
 
             <section className="grid gap-4 xl:grid-cols-3">
                 <div className="akari-study-history-stat rounded-[26px] border border-pink-100 bg-white/85 p-5 shadow-sm">

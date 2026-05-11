@@ -62,7 +62,7 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
                 <Link
                   href={item.href}
                   title={isCollapsed ? item.label : undefined}
-                  className={`flex w-full items-center rounded-2xl text-sm font-bold ${isCollapsed
+                  className={`flex w-full items-center rounded-2xl text-sm font-bold outline-none transition focus-visible:ring-4 focus-visible:ring-pink-100 ${isCollapsed
                     ? "justify-center px-0 py-3"
                     : "gap-3 px-4 py-2.5 text-left"
                     } ${isActive

@@ -90,7 +90,7 @@ export function AppSelect({
         type="button"
         disabled={disabled}
         aria-expanded={isOpen}
-        className={`flex h-12 w-full items-center justify-between gap-3 rounded-2xl border bg-white px-4 text-left text-sm font-bold shadow-sm outline-none transition ${
+        className={`flex h-12 w-full items-center justify-between gap-3 rounded-2xl border bg-white/85 px-4 text-left text-sm font-bold shadow-sm outline-none transition focus-visible:ring-4 focus-visible:ring-pink-100 ${
           isOpen
             ? "border-pink-300 text-pink-500 ring-4 ring-pink-100/70"
             : "border-pink-100 text-slate-700 hover:border-pink-200 hover:bg-pink-50/50"

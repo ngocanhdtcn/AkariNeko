@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { updateCurrentProfile } from "@/services/authService";
 import { AppSelect } from "@/components/ui/AppSelect";
+import { AppButton } from "@/components/ui/AppButton";
+import { AppInput } from "@/components/ui/AppInput";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { clearPersistedStudyFilters } from "@/hooks/useStudyFilterPersistence";
 
@@ -83,25 +86,12 @@ export function ProfilePage() {
 
     return (
         <div className="grid gap-5">
-            <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                        <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
-                            Profile
-                        </p>
-                        <h1 className="mt-1 text-3xl font-black text-slate-800">
-                            Hồ sơ học tập
-                        </h1>
-                        <p className="mt-2 text-sm text-slate-500">
-                            Quản lý tên hiển thị và cấp độ JLPT hiện tại của bạn.
-                        </p>
-                    </div>
-
-                    <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-pink-50 text-pink-500">
-                        <UserRound size={32} />
-                    </div>
-                </div>
-            </section>
+            <PageHeader
+                eyebrow="Profile"
+                title="Hồ sơ học tập"
+                description="Quản lý tên hiển thị và cấp độ JLPT hiện tại của bạn."
+                icon={<UserRound size={21} />}
+            />
 
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-6 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
                 <div className="grid gap-5">
@@ -123,9 +113,9 @@ export function ProfilePage() {
                                 <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
                                     Display name
                                 </span>
-                                <input
+                                <AppInput
                                     value={displayName}
-                                    className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
+                                    className="w-full"
                                     placeholder="Tên hiển thị"
                                     onChange={(event) => setDisplayName(event.target.value)}
                                 />
@@ -135,9 +125,9 @@ export function ProfilePage() {
                                 <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
                                     Avatar URL
                                 </span>
-                                <input
+                                <AppInput
                                     value={avatarUrl}
-                                    className="h-12 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70"
+                                    className="w-full"
                                     placeholder="https://..."
                                     onChange={(event) => setAvatarUrl(event.target.value)}
                                 />
@@ -163,15 +153,15 @@ export function ProfilePage() {
                             ) : null}
 
                             <div className="flex justify-end">
-                                <button
-                                    type="button"
+                                <AppButton
+                                    variant="primary"
+                                    icon={<Save size={17} />}
                                     disabled={isSaving}
-                                    className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 px-6 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                                    className="h-12 px-6"
                                     onClick={() => void handleSaveProfile()}
                                 >
-                                    <Save size={17} />
                                     {isSaving ? "Đang lưu..." : "Lưu hồ sơ"}
-                                </button>
+                                </AppButton>
                             </div>
                         </div>
                     </div>
