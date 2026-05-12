@@ -4,7 +4,6 @@ import { MessageCircle, Send, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
-import { useNotification } from "@/contexts/NotificationContext";
 import { useOnlineUsers } from "@/contexts/OnlineUsersContext";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { AppBadge } from "@/components/ui/AppBadge";
@@ -34,7 +33,6 @@ function formatMessageTime(value: string) {
 export function MessagesPage() {
     const { resetUnreadMessageCount } = useMessageNotification();
     const { profile } = useAuth();
-    const { notifyError } = useNotification();
     const { onlineUsers, onlineUserCount } = useOnlineUsers();
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -115,11 +113,10 @@ export function MessagesPage() {
             console.error("Failed to load messages:", error);
             const fallbackMessage = "Không thể tải tin nhắn.";
             setMessageError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         } finally {
             setIsLoadingMessages(false);
         }
-    }, [loadMissingSenderProfiles, notifyError]);
+    }, [loadMissingSenderProfiles]);
 
     async function handleSendMessage() {
         const content = messageText.trim();
@@ -138,7 +135,6 @@ export function MessagesPage() {
             console.error("Failed to send message:", error);
             const fallbackMessage = "Không thể gửi tin nhắn.";
             setMessageError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         } finally {
             setIsSendingMessage(false);
         }

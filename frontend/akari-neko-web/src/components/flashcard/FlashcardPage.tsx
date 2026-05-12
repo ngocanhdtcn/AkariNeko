@@ -3,7 +3,6 @@
 import { BookOpen, Eye, EyeOff, RotateCcw, Shuffle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNotification } from "@/contexts/NotificationContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
 import { AppButton } from "@/components/ui/AppButton";
@@ -28,7 +27,6 @@ import {
 
 export function FlashcardPage() {
     const { profile, isLoadingProfile } = useAuth();
-    const { notifyError, notifySuccess } = useNotification();
     const [persistedFilters] = useState(() =>
         readPersistedStudyFilters("flashcard"),
     );
@@ -134,7 +132,6 @@ export function FlashcardPage() {
             console.error("Failed to load flashcards:", error);
             const fallbackMessage = "Không thể tải flashcard.";
             setLoadError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         } finally {
             if (flashcardsRequestIdRef.current === requestId) {
                 setIsLoading(false);
@@ -142,7 +139,6 @@ export function FlashcardPage() {
         }
     }, [
         areStudyFiltersReady,
-        notifyError,
         selectedLevel,
         selectedBook,
         selectedChapters,
@@ -235,13 +231,13 @@ export function FlashcardPage() {
             );
         } catch (error) {
             console.error("Failed to load flashcard filter options:", error);
-            notifyError(error, "Không thể tải bộ lọc flashcard.");
+            setLoadError("Không thể tải bộ lọc flashcard.");
         } finally {
             if (filterOptionsRequestIdRef.current === requestId) {
                 setIsLoadingFilterOptions(false);
             }
         }
-    }, [notifyError, selectedLevel, selectedBook]);
+    }, [selectedLevel, selectedBook]);
 
     useEffect(() => {
         if (!areStudyFiltersReady) {
@@ -409,7 +405,6 @@ export function FlashcardPage() {
             console.error("Failed to review flashcard:", error);
             const fallbackMessage = "Không thể lưu kết quả ôn tập.";
             setLoadError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         });
     }
 
@@ -458,7 +453,6 @@ export function FlashcardPage() {
             });
 
             setSessionSavedMessage("Đã lưu phiên học. Hãy ôn thêm từ mới để bắt đầu phiên tiếp theo.");
-            notifySuccess("Đã lưu phiên học.");
             setIsSessionSaved(true);
             setSessionStats({
                 reviewedCount: 0,
@@ -469,7 +463,6 @@ export function FlashcardPage() {
             console.error("Failed to save flashcard study session:", error);
             const fallbackMessage = "Không thể lưu phiên học.";
             setLoadError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         } finally {
             setIsSavingSession(false);
         }

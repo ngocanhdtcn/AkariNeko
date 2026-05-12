@@ -22,7 +22,6 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EditVocabularyModal } from "@/components/vocabulary/EditVocabularyModal";
 import { AddVocabularyModal } from "@/components/vocabulary/AddVocabularyModal";
 import { ImportVocabularyModal } from "./ImportVocabularyModal";
-import { useNotification } from "@/contexts/NotificationContext";
 import { AppBadge } from "@/components/ui/AppBadge";
 import { AppButton } from "@/components/ui/AppButton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -128,7 +127,6 @@ export function VocabularyPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { profile, isLoadingProfile } = useAuth();
-  const { notifyError, notifySuccess } = useNotification();
   const [persistedFilters] = useState(() =>
     readPersistedStudyFilters("vocabulary"),
   );
@@ -454,13 +452,11 @@ export function VocabularyPage() {
       console.error("Failed to load vocabularies:", error);
       const fallbackMessage = "Không thể tải danh sách từ vựng.";
       setVocabularyLoadError(fallbackMessage);
-      notifyError(error, fallbackMessage);
     } finally {
       setIsLoadingVocabularies(false);
     }
   }, [
     areStudyFiltersReady,
-    notifyError,
     searchKeyword,
     selectedLevel,
     selectedBook,
@@ -573,13 +569,13 @@ export function VocabularyPage() {
       );
     } catch (error) {
       console.error("Failed to load vocabulary filter options:", error);
-      notifyError(error, "Không thể tải bộ lọc từ vựng.");
+      setVocabularyLoadError("Không thể tải bộ lọc từ vựng.");
     } finally {
       if (filterOptionsRequestIdRef.current === requestId) {
         setIsLoadingFilterOptions(false);
       }
     }
-  }, [notifyError, selectedLevel, selectedBook]);
+  }, [selectedLevel, selectedBook]);
 
   useEffect(() => {
     if (!areStudyFiltersReady) {
@@ -611,7 +607,6 @@ export function VocabularyPage() {
       console.error("Failed to delete vocabulary:", error);
       const fallbackMessage = "Không thể xoá từ vựng. Vui lòng thử lại.";
       setVocabularyLoadError(fallbackMessage);
-      notifyError(error, fallbackMessage);
     } finally {
       setDeletingVocabularyId(null);
     }
@@ -657,7 +652,6 @@ export function VocabularyPage() {
         meaning: normalizedVocabulary.meaning,
       })
       .then(() => {
-        notifySuccess("Đã cập nhật từ vựng.");
         void loadVocabularyFilterOptions();
       })
       .catch((error) => {
@@ -680,7 +674,6 @@ export function VocabularyPage() {
             : "Không thể cập nhật từ vựng. Vui lòng thử lại.";
         setEditVocabularyError(fallbackMessage);
         setVocabularyLoadError(fallbackMessage);
-        notifyError(error, fallbackMessage);
       })
       .finally(() => {
         setIsSavingVocabulary(false);
@@ -703,7 +696,6 @@ export function VocabularyPage() {
 
       setIsAddVocabularyOpen(false);
       setCurrentPage(1);
-      notifySuccess("Đã thêm từ vựng.");
 
       void loadVocabularies(1);
       void loadVocabularyFilterOptions();
@@ -714,7 +706,6 @@ export function VocabularyPage() {
           ? "Từ vựng này đã tồn tại trong cùng Book / Level / Chapter."
           : "Không thể thêm từ vựng. Vui lòng thử lại.";
       setCreateVocabularyError(fallbackMessage);
-      notifyError(error, fallbackMessage);
     } finally {
       setIsCreatingVocabulary(false);
     }
@@ -738,9 +729,6 @@ export function VocabularyPage() {
 
     try {
       await updateVocabularyDifficulty(vocabulary.id, nextIsDifficult);
-      notifySuccess(
-        nextIsDifficult ? "Đã đánh dấu từ khó." : "Đã bỏ đánh dấu từ khó.",
-      );
     } catch (error) {
       console.error("Failed to update vocabulary difficulty:", error);
       setVocabularies((currentVocabularies) =>
@@ -755,7 +743,6 @@ export function VocabularyPage() {
       );
       const fallbackMessage = "Không thể cập nhật trạng thái từ khó.";
       setVocabularyLoadError(fallbackMessage);
-      notifyError(error, fallbackMessage);
     } finally {
       setUpdatingDifficultyId(null);
     }

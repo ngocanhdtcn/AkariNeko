@@ -15,7 +15,6 @@ import {
 } from "@/services/authService";
 import { supabase } from "@/lib/supabaseClient";
 import type { AuthChangeEvent } from "@supabase/supabase-js";
-import { useNotification } from "@/contexts/NotificationContext";
 
 type AuthContextValue = {
     profile: AuthProfile | null;
@@ -60,7 +59,6 @@ function shouldRefreshProfileForAuthEvent(event: AuthChangeEvent) {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [profile, setProfile] = useState<AuthProfile | null>(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-    const { notifyError, notifySuccess } = useNotification();
 
     const refreshProfile = useCallback(async ({ showLoading = true } = {}) => {
         if (showLoading) {
@@ -88,12 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             await signOut();
             setProfile(null);
-            notifySuccess("Đã đăng xuất.");
             window.location.href = "/auth";
         } catch (error) {
-            notifyError(error, "Không thể đăng xuất. Vui lòng thử lại.");
+            console.error("Failed to sign out:", error);
+            window.location.href = "/auth";
         }
-    }, [notifyError, notifySuccess]);
+    }, []);
 
     useEffect(() => {
         const {

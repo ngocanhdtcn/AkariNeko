@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNotification } from "@/contexts/NotificationContext";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
 import { AppButton } from "@/components/ui/AppButton";
@@ -196,7 +195,6 @@ function buildQuizQuestions(
 
 export function QuizPage() {
     const { profile, isLoadingProfile } = useAuth();
-    const { notifyError, notifySuccess } = useNotification();
     const [persistedFilters] = useState(() => readPersistedStudyFilters("quiz"));
     const hasPersistedFilters = hasActiveStudyFilters(persistedFilters);
     const didApplyProfileLevelRef = useRef(false);
@@ -313,7 +311,7 @@ export function QuizPage() {
             );
         } catch (error) {
             console.error("Failed to load quiz filter options:", error);
-            notifyError(error, "Không thể tải bộ lọc quiz.");
+            setLoadError("Không thể tải bộ lọc quiz.");
         } finally {
             setIsLoadingFilterOptions(false);
         }
@@ -420,7 +418,6 @@ export function QuizPage() {
             console.error("Failed to load quiz:", error);
             const fallbackMessage = "Không thể tải quiz.";
             setLoadError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         } finally {
             setIsLoading(false);
         }
@@ -484,7 +481,6 @@ export function QuizPage() {
             console.error("Failed to submit quiz answer:", error);
             const fallbackMessage = "Không thể lưu kết quả trả lời.";
             setLoadError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         });
 
         if (result === "correct") {
@@ -614,7 +610,6 @@ export function QuizPage() {
 
             setIsQuizSessionSaved(true);
             setQuizSessionSavedMessage("Đã lưu kết quả quiz. Đang tạo quiz mới...");
-            notifySuccess("Đã lưu kết quả quiz.");
 
             const answeredIds = questions.map((question) => question.vocabulary.id);
             const answeredIdSet = new Set(answeredIds);
@@ -650,7 +645,6 @@ export function QuizPage() {
             console.error("Failed to save quiz session:", error);
             const fallbackMessage = "Không thể lưu kết quả quiz.";
             setLoadError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         } finally {
             isSavingQuizSessionRef.current = false;
             setIsSavingQuizSession(false);

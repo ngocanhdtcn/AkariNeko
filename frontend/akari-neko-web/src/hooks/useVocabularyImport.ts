@@ -18,7 +18,6 @@ import type {
 
 import { importVocabularies } from "@/services/vocabularyImportService";
 import { getVocabularyFilterOptions } from "@/services/vocabularyService";
-import { useNotification } from "@/contexts/NotificationContext";
 
 type ImportResult = {
     importedCount: number;
@@ -38,7 +37,6 @@ type UseVocabularyImportParams = {
 
 export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
     const isFolderImport = sourceType === "folder";
-    const { notifyError, notifyInfo, notifySuccess } = useNotification();
 
     const [selectedFiles, setSelectedFiles] = useState<SelectedHtmlFile[]>([]);
     const [isPreviewing, setIsPreviewing] = useState(false);
@@ -59,9 +57,9 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
             setBookOptions(options.books);
         } catch (error) {
             console.error("Failed to load import book options:", error);
-            notifyError(error, "Không thể tải danh sách book để import.");
+            setImportError("Không thể tải danh sách book để import.");
         }
-    }, [notifyError]);
+    }, []);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -102,10 +100,7 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
         setImportStep("select");
 
         if (fileList && fileList.length > 0 && htmlFiles.length === 0) {
-            notifyError(
-                new Error("File không đúng định dạng HTML hoặc folder không có file HTML hợp lệ."),
-                "File không đúng định dạng HTML.",
-            );
+            setImportError("File không đúng định dạng HTML.");
         }
     }
 
@@ -130,19 +125,17 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
 
     async function handlePreviewImport() {
         if (selectedFiles.length === 0) {
-            notifyInfo("Hãy chọn file HTML trước khi preview.");
+            setImportError("Hãy chọn file HTML trước khi preview.");
             return;
         }
 
         if (getMetadataValidationErrors().length > 0) {
-            notifyError(
-                new Error("Cần điền đủ JLPT level, book và chapter trước khi preview."),
-                "Thông tin import chưa đầy đủ.",
-            );
+            setImportError("Thông tin import chưa đầy đủ.");
             return;
         }
 
         setIsPreviewing(true);
+        setImportError(null);
 
         try {
             const parsedResults = await Promise.all(
@@ -241,13 +234,11 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
             setImportStep("preview");
 
             if (nextParsedImportFiles.every((file) => file.vocabularies.length === 0)) {
-                notifyError(
-                    new Error("File rỗng hoặc không có dòng từ vựng hợp lệ."),
-                    "Không có dữ liệu import hợp lệ.",
-                );
+                setImportError("Không có dữ liệu import hợp lệ.");
             }
         } catch (error) {
-            notifyError(error, "Không thể đọc file HTML. Vui lòng kiểm tra format.");
+            console.error("Failed to preview vocabulary import:", error);
+            setImportError("Không thể đọc file HTML. Vui lòng kiểm tra format.");
         } finally {
             setIsPreviewing(false);
         }
@@ -262,25 +253,19 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
 
     async function handleConfirmImport() {
         if (parsedImportFiles.length === 0) {
-            notifyInfo("Hãy preview dữ liệu trước khi import.");
+            setImportError("Hãy preview dữ liệu trước khi import.");
             return false;
         }
 
         if (getMetadataValidationErrors().length > 0) {
-            notifyError(
-                new Error("Cần kiểm tra lại JLPT level, book và chapter."),
-                "Thông tin import chưa đầy đủ.",
-            );
+            setImportError("Thông tin import chưa đầy đủ.");
             return false;
         }
 
         const payload = buildImportPayload();
 
         if (payload.files.length === 0) {
-            notifyError(
-                new Error("Không có từ vựng hợp lệ để import."),
-                "Không có dữ liệu import hợp lệ.",
-            );
+            setImportError("Không có dữ liệu import hợp lệ.");
             return false;
         }
 
@@ -297,9 +282,6 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
             });
 
             setImportStep("completed");
-            notifySuccess(
-                `Import xong: ${result.importedCount} từ mới, ${result.duplicateCount} trùng, ${result.errorCount} lỗi.`,
-            );
             return true;
         } catch (error) {
             const errorMessage =
@@ -313,7 +295,6 @@ export function useVocabularyImport({ sourceType }: UseVocabularyImportParams) {
                     ? error.message
                     : "Không thể import từ vựng. Vui lòng kiểm tra quyền Supabase.",
             );
-            notifyError(error, "Không thể import từ vựng. Vui lòng kiểm tra quyền Supabase.");
             return false;
         } finally {
             setIsImporting(false);

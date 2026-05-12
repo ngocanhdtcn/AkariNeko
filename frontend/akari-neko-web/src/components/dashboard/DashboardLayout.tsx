@@ -11,10 +11,8 @@ import { MobileStatsSection } from "./MobileStatsSection";
 import { RecentVocabularyTable } from "./RecentVocabularyTable";
 import { RightStatsPanel } from "./RightStatsPanel";
 import { StudyShortcutCards } from "./StudyShortcutCards";
-import { useNotification } from "@/contexts/NotificationContext";
 
 export function DashboardLayout() {
-  const { notifyError } = useNotification();
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
     null,
   );
@@ -42,12 +40,11 @@ export function DashboardLayout() {
       console.error("Failed to load dashboard stats:", error);
       const fallbackMessage = "Không thể tải thống kê học tập.";
       setDashboardStatsError(fallbackMessage);
-      notifyError(error, fallbackMessage);
     } finally {
       isLoadingDashboardStatsRef.current = false;
       setIsLoadingDashboardStats(false);
     }
-  }, [notifyError]);
+  }, []);
 
   useEffect(() => {
     // Load dashboard stats when the dashboard mounts.

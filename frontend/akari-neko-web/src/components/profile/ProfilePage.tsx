@@ -3,7 +3,6 @@
 import { Save, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNotification } from "@/contexts/NotificationContext";
 import { updateCurrentProfile } from "@/services/authService";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { AppButton } from "@/components/ui/AppButton";
@@ -16,7 +15,6 @@ const jlptLevelOptions = ["N5", "N4", "N3", "N2", "N1"];
 
 export function ProfilePage() {
     const { profile, refreshProfile } = useAuth();
-    const { notifyError, notifySuccess } = useNotification();
 
     const [displayName, setDisplayName] = useState("");
     const [avatarUrl, setAvatarUrl] = useState("");
@@ -46,10 +44,9 @@ export function ProfilePage() {
                 if (!["http:", "https:"].includes(parsedAvatarUrl.protocol)) {
                     throw new Error("Avatar URL phải bắt đầu bằng http hoặc https.");
                 }
-            } catch (error) {
+            } catch {
                 const fallbackMessage = "Avatar URL không hợp lệ.";
                 setProfileError(fallbackMessage);
-                notifyError(error, fallbackMessage);
                 return;
             }
         }
@@ -73,12 +70,10 @@ export function ProfilePage() {
             await refreshProfile();
 
             setProfileMessage("Đã cập nhật hồ sơ.");
-            notifySuccess("Đã cập nhật hồ sơ.");
         } catch (error) {
             console.error("Failed to update profile:", error);
             const fallbackMessage = "Không thể cập nhật hồ sơ. Vui lòng thử lại.";
             setProfileError(fallbackMessage);
-            notifyError(error, fallbackMessage);
         } finally {
             setIsSaving(false);
         }

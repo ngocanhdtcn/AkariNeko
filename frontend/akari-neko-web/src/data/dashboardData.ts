@@ -114,7 +114,7 @@ export const dashboardMenuItems: DashboardMenuItem[] = [
   },
   {
     icon: Settings,
-    label: "Settings",
+    label: "Cài đặt",
     href: "/settings",
     active: false,
     iconClassName: "bg-slate-50 text-slate-400",

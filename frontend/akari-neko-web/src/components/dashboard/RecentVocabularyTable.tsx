@@ -7,7 +7,6 @@ import {
   type VocabularyListItem,
 } from "@/services/vocabularyService";
 import { SoftPanel } from "../ui/SoftPanel";
-import { useNotification } from "@/contexts/NotificationContext";
 import { EmptyState } from "../ui/EmptyState";
 import { LoadingSkeleton } from "../ui/LoadingSkeleton";
 
@@ -48,7 +47,6 @@ function getDifficultyStarCount(vocabulary: VocabularyListItem) {
 export function RecentVocabularyTable({
   refreshKey = 0,
 }: RecentVocabularyTableProps) {
-  const { notifyError } = useNotification();
   const [recentVocabularies, setRecentVocabularies] = useState<
     VocabularyListItem[]
   >([]);
@@ -69,11 +67,10 @@ export function RecentVocabularyTable({
       console.error("Failed to load recent vocabularies:", error);
       const fallbackMessage = "Không thể tải từ vựng gần đây.";
       setRecentVocabularyError(fallbackMessage);
-      notifyError(error, fallbackMessage);
     } finally {
       setIsLoadingRecentVocabularies(false);
     }
-  }, [notifyError]);
+  }, []);
 
   useEffect(() => {
     // Reload when the dashboard refresh button completes a stats refresh.
