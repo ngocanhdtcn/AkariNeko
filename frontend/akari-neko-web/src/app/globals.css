@@ -487,3 +487,34 @@ body {
   border-color: rgb(196 181 253 / 0.18) !important;
   box-shadow: 0 20px 54px rgb(0 0 0 / 0.42) !important;
 }
+
+@keyframes akari-sakura-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-18deg);
+  }
+
+  50% {
+    transform: translate3d(9px, -10px, 0) rotate(14deg);
+  }
+}
+
+.akari-sakura-petal {
+  animation: akari-sakura-float 9s ease-in-out infinite;
+}
+
+.akari-sakura-petal:nth-of-type(2n) {
+  animation-duration: 11s;
+  animation-delay: -2.4s;
+}
+
+.akari-sakura-petal:nth-of-type(3n) {
+  animation-duration: 13s;
+  animation-delay: -4.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .akari-sakura-petal {
+    animation: none;
+  }
+}

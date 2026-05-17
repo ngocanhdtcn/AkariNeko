@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { SakuraIcon } from "@/components/grammar/SakuraIcon";
 import type { GrammarExample } from "@/services/grammarService";
 
 type GrammarExampleCardProps = {
@@ -10,30 +10,45 @@ type GrammarExampleCardProps = {
 
 export function GrammarExampleCard({ example, index }: GrammarExampleCardProps) {
   return (
-    <article className="rounded-2xl border border-pink-100 bg-white/90 p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <p lang="ja" className="min-w-0 break-words text-xl font-black leading-9 text-slate-800">
+    <article className="relative grid min-w-0 items-center gap-4 overflow-hidden rounded-2xl border border-pink-100/80 bg-white/95 p-4 shadow-[0_8px_24px_rgba(244,114,182,0.055)] sm:grid-cols-[minmax(0,1fr)_1px_minmax(180px,0.82fr)_auto]">
+      <span
+        aria-hidden="true"
+        className="akari-sakura-petal absolute right-16 top-3 h-2 w-1.5 rounded-[70%_30%_70%_30%] bg-pink-300/25"
+      />
+
+      <div className="min-w-0">
+        <p
+          lang="ja"
+          className="min-w-0 break-words text-xl font-black leading-8 text-slate-950"
+        >
           {example.jp || `Ví dụ ${index + 1}`}
         </p>
-        <span
-          aria-hidden="true"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-pink-100 bg-pink-50 text-pink-400"
-        >
-          <Sparkles size={17} />
-        </span>
+
+        {example.reading ? (
+          <p
+            lang="ja"
+            className="mt-1 break-words text-sm font-bold leading-6 text-[#64708e]"
+          >
+            {example.reading}
+          </p>
+        ) : null}
       </div>
 
-      {example.reading ? (
-        <p lang="ja" className="mt-2 break-words text-sm font-bold leading-6 text-violet-500">
-          {example.reading}
-        </p>
-      ) : null}
+      <div
+        aria-hidden="true"
+        className="hidden h-full min-h-10 border-l border-dashed border-pink-200 sm:block"
+      />
 
-      {example.vi ? (
-        <p className="mt-3 break-words text-sm font-semibold leading-7 text-slate-600">
-          {example.vi}
-        </p>
-      ) : null}
+      <p className="min-w-0 break-words text-sm font-semibold leading-7 text-[#4b5574]">
+        {example.vi || "Chưa có nghĩa tiếng Việt."}
+      </p>
+
+      <span
+        aria-hidden="true"
+        className="flex h-11 w-11 shrink-0 items-center justify-center justify-self-end rounded-full border border-pink-200 bg-white text-pink-400 shadow-[0_8px_18px_rgba(244,114,182,0.10)]"
+      >
+        <SakuraIcon size={22} />
+      </span>
     </article>
   );
 }
