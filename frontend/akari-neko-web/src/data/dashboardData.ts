@@ -13,7 +13,6 @@
   ShieldCheck,
   Star,
   Trophy,
-  UserRound,
   WalletCards,
   MessageCircle,
   Activity,
@@ -148,9 +147,9 @@ export const dashboardMenuItems: DashboardMenuItem[] = [
 export const mobileNavItems: MobileNavItem[] = [
   { icon: Home, label: "Home", href: "/", active: true },
   { icon: BookOpen, label: "Vocab", href: "/vocabulary", active: false },
+  { icon: GraduationCap, label: "Grammar", href: "/grammar", active: false },
   { icon: WalletCards, label: "Flashcard", href: "/flashcard", active: false },
   { icon: Trophy, label: "Quiz", href: "/quiz", active: false },
-  { icon: UserRound, label: "Profile", href: "/profile", active: false },
 ];
 
 export const studyShortcutCards: StudyShortcutCard[] = [

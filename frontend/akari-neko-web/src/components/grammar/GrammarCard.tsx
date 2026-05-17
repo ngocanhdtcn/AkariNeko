@@ -52,7 +52,7 @@ export function GrammarCard({
   const updatedDate = formatDate(grammar.updatedAt ?? grammar.createdAt);
 
   return (
-    <article className="group flex min-h-[228px] min-w-0 flex-col rounded-3xl border border-pink-100 bg-white/90 p-5 shadow-[0_14px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-[0_18px_42px_rgba(236,72,153,0.14)]">
+    <article className="group flex min-h-[244px] min-w-0 flex-col rounded-3xl border border-pink-100 bg-white/85 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-[0_18px_42px_rgba(236,72,153,0.12)]">
       <div className="flex items-start justify-between gap-3">
         <span
           className={`inline-flex min-h-7 items-center justify-center rounded-xl border px-2.5 py-1 text-xs font-black leading-none ${getJlptBadgeClassName(grammar.jlptLevel)}`}
@@ -65,7 +65,7 @@ export function GrammarCard({
             type="button"
             disabled={isBusy}
             aria-label="Sửa ngữ pháp"
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-300 opacity-0 transition hover:bg-violet-50 hover:text-violet-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+            className="hidden h-8 w-8 items-center justify-center rounded-xl text-slate-300 opacity-0 transition hover:bg-violet-50 hover:text-violet-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40 md:flex"
             onClick={() => onEdit(grammar)}
           >
             <Pencil size={15} />
@@ -74,7 +74,7 @@ export function GrammarCard({
             type="button"
             disabled={isBusy}
             aria-label="Xóa ngữ pháp"
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+            className="hidden h-8 w-8 items-center justify-center rounded-xl text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40 md:flex"
             onClick={() => onDelete(grammar)}
           >
             <Trash2 size={15} />
@@ -96,14 +96,20 @@ export function GrammarCard({
       </div>
 
       <div className="mt-5 min-w-0 flex-1">
-        <h2 className="break-words text-[21px] font-extrabold leading-[1.35] text-slate-900 sm:text-[22px]">
+        <h2
+          lang="ja"
+          className="whitespace-normal break-words text-[22px] font-extrabold leading-[1.35] text-slate-900 sm:text-[23px]"
+        >
           {grammar.title}
         </h2>
-        <p className="mt-3 line-clamp-1 break-words text-[15px] font-extrabold leading-6 text-slate-700">
+        <p className="mt-3 line-clamp-2 whitespace-normal break-words text-[15px] font-extrabold leading-6 text-slate-700">
           {grammar.structure || "Chưa có cấu trúc"}
         </p>
-        <p className="mt-3 line-clamp-2 text-[13px] font-semibold leading-6 text-slate-500 sm:text-sm">
-          {grammar.meaning}
+        <p className="mt-3 whitespace-normal break-words text-sm font-bold leading-6 text-pink-500">
+          {grammar.meaning || "Chưa có ý nghĩa."}
+        </p>
+        <p className="mt-2 line-clamp-2 whitespace-normal break-words text-[13px] font-semibold leading-6 text-slate-500 sm:text-sm">
+          {grammar.explanation || "Chưa có phần giải thích cách dùng."}
         </p>
       </div>
 
@@ -126,7 +132,7 @@ export function GrammarCard({
           className="inline-flex min-h-9 items-center gap-2 rounded-xl px-2 text-[13px] font-black leading-none text-pink-500 transition hover:bg-pink-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-pink-100"
         >
           Xem chi tiết
-          <span aria-hidden="true">-&gt;</span>
+          <span aria-hidden="true">→</span>
         </Link>
       </div>
     </article>

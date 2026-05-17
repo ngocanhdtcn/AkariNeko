@@ -5,8 +5,8 @@ import {
   Bookmark,
   Plus,
   RotateCcw,
+  ScrollText,
   Search,
-  Sparkles,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GrammarCard } from "@/components/grammar/GrammarCard";
@@ -16,8 +16,6 @@ import { AppInput } from "@/components/ui/AppInput";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { SoftPanel } from "@/components/ui/SoftPanel";
 import {
   addGrammarBookmark,
@@ -34,15 +32,31 @@ import {
 const GRAMMAR_PAGE_SIZE = 12;
 const CARD_GRID_MAX_WIDTH = "max-w-[1360px]";
 const jlptLevels: JlptLevel[] = ["N5", "N4", "N3", "N2", "N1"];
-const allLevelLabel = "Tất cả";
+const allLevelLabel = "All";
 
 function GrammarCardSkeletonGrid() {
   return (
     <div
-      className={`mx-auto grid w-full ${CARD_GRID_MAX_WIDTH} gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`}
+      className={`mx-auto grid w-full ${CARD_GRID_MAX_WIDTH} min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`}
     >
-      {Array.from({ length: GRAMMAR_PAGE_SIZE }).map((_, index) => (
-        <LoadingSkeleton key={index} variant="card" />
+      {Array.from({ length: 3 }).map((_, index) => (
+        <article
+          key={index}
+          className="min-h-[244px] rounded-3xl border border-pink-100 bg-white/85 p-5 shadow-sm"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="h-7 w-14 animate-pulse rounded-xl bg-pink-100/70" />
+            <div className="h-9 w-9 animate-pulse rounded-xl bg-pink-100/70" />
+          </div>
+          <div className="mt-6 h-8 w-3/4 animate-pulse rounded-2xl bg-pink-100/70" />
+          <div className="mt-4 h-5 w-11/12 animate-pulse rounded-2xl bg-pink-100/60" />
+          <div className="mt-4 h-5 w-full animate-pulse rounded-2xl bg-pink-100/50" />
+          <div className="mt-2 h-5 w-2/3 animate-pulse rounded-2xl bg-pink-100/50" />
+          <div className="mt-6 flex items-center justify-between gap-3 border-t border-pink-50 pt-4">
+            <div className="h-4 w-24 animate-pulse rounded-full bg-pink-100/60" />
+            <div className="h-5 w-24 animate-pulse rounded-full bg-pink-100/60" />
+          </div>
+        </article>
       ))}
     </div>
   );
@@ -152,8 +166,8 @@ export function GrammarPage() {
     setCurrentPage(1);
   }
 
-  function handleBookmarkedOnlyChange() {
-    setBookmarkedOnly((current) => !current);
+  function handleBookmarkFilterChange(nextBookmarkedOnly: boolean) {
+    setBookmarkedOnly(nextBookmarkedOnly);
     setCurrentPage(1);
   }
 
@@ -252,37 +266,44 @@ export function GrammarPage() {
   }
 
   return (
-    <div className="grid w-full min-w-0 gap-5">
-      <PageHeader
-        eyebrow="Grammar"
-        title="Ngữ pháp"
-        description="Lưu lại và ôn tập các mẫu ngữ pháp tiếng Nhật theo JLPT."
-        icon={<BookOpenText size={21} />}
-      />
+    <div className="grid w-full min-w-0 gap-4 pb-24 lg:pb-0">
+      <section className="relative z-40 overflow-hidden rounded-3xl border border-pink-100 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_48%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]">
+        <div className="relative z-10 flex min-w-0 flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="min-w-0">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-pink-500 shadow-sm">
+              <ScrollText size={24} strokeWidth={2.4} />
+            </div>
+
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-pink-500">
+              GRAMMAR LIBRARY
+            </p>
+
+            <h1 className="mt-2 break-words text-3xl font-black tracking-tight text-slate-800">
+              Ngữ pháp tiếng Nhật
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
+              Lưu lại và ôn tập các mẫu ngữ pháp theo JLPT, cấu trúc và ví dụ
+              minh họa.
+            </p>
+          </div>
+
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <AppButton
+              icon={<Plus size={18} />}
+              className="min-h-11 w-full min-[420px]:w-auto"
+              onClick={handleAdd}
+            >
+              Thêm ngữ pháp
+            </AppButton>
+          </div>
+        </div>
+      </section>
 
       <SoftPanel className="relative z-30 p-4 sm:p-5">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute right-5 top-4 hidden text-pink-200 sm:block"
-        >
-          <Sparkles size={24} />
-        </div>
-
-        <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(280px,1fr)_210px_210px_auto] xl:items-end">
-          <label className="grid min-w-0 gap-2">
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-              Search
-            </span>
-            <AppInput
-              icon={<Search size={17} />}
-              value={search}
-              placeholder="Tìm mẫu ngữ pháp, ý nghĩa, cấu trúc..."
-              onChange={(event) => handleSearchChange(event.target.value)}
-            />
-          </label>
-
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[190px_220px_minmax(280px,1fr)] xl:items-end">
           <AppSelect
-            label="JLPT"
+            label="JLPT LEVEL"
             items={[allLevelLabel, ...jlptLevels]}
             value={selectedLevel}
             onChange={handleLevelChange}
@@ -290,45 +311,62 @@ export function GrammarPage() {
 
           <label className="grid min-w-0 gap-2">
             <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-              Đã lưu
+              BOOKMARK
             </span>
-            <button
-              type="button"
-              aria-pressed={bookmarkedOnly}
-              className={`flex h-12 w-full items-center justify-between gap-3 rounded-2xl border px-4 text-left text-sm font-bold shadow-sm transition ${
-                bookmarkedOnly
-                  ? "border-pink-200 bg-pink-50 text-pink-500"
-                  : "border-pink-100 bg-white text-slate-700 hover:bg-pink-50"
-              }`}
-              onClick={handleBookmarkedOnlyChange}
-            >
-              <span>{bookmarkedOnly ? "Đã lưu" : "Tất cả"}</span>
-              <Bookmark
-                size={17}
-                className={bookmarkedOnly ? "text-pink-500" : "text-pink-400"}
-                fill={bookmarkedOnly ? "currentColor" : "none"}
-              />
-            </button>
+            <div className="grid min-w-0 grid-cols-2 gap-2">
+              <button
+                type="button"
+                aria-pressed={!bookmarkedOnly}
+                className={`h-12 min-w-0 rounded-2xl border px-3 text-sm font-bold shadow-sm transition ${
+                  !bookmarkedOnly
+                    ? "border-pink-200 bg-pink-50 text-pink-500"
+                    : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                }`}
+                onClick={() => handleBookmarkFilterChange(false)}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                aria-pressed={bookmarkedOnly}
+                className={`flex h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-bold shadow-sm transition ${
+                  bookmarkedOnly
+                    ? "border-pink-200 bg-pink-50 text-pink-500"
+                    : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                }`}
+                onClick={() => handleBookmarkFilterChange(true)}
+              >
+                <Bookmark
+                  size={16}
+                  className="shrink-0"
+                  fill={bookmarkedOnly ? "currentColor" : "none"}
+                />
+                <span className="min-w-0 truncate">Đã lưu</span>
+              </button>
+            </div>
           </label>
 
-          <AppButton
-            variant="primary"
-            icon={<Plus size={17} />}
-            className="h-12 w-full xl:w-auto"
-            onClick={handleAdd}
-          >
-            Thêm ngữ pháp
-          </AppButton>
+          <label className="grid min-w-0 gap-2">
+            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+              SEARCH
+            </span>
+            <AppInput
+              icon={<Search size={17} />}
+              value={search}
+              placeholder="Tìm mẫu ngữ pháp..."
+              onChange={(event) => handleSearchChange(event.target.value)}
+            />
+          </label>
         </div>
 
         {isFiltered ? (
           <div className="mt-4 flex justify-end">
             <button
               type="button"
-              className="rounded-2xl border border-pink-100 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
+              className="min-h-10 rounded-2xl border border-pink-100 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
               onClick={handleClearFilters}
             >
-              Clear filter
+              Xóa bộ lọc
             </button>
           </div>
         ) : null}
@@ -359,7 +397,7 @@ export function GrammarPage() {
       ) : items.length ? (
         <>
           <div
-            className={`mx-auto grid w-full ${CARD_GRID_MAX_WIDTH} min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`}
+            className={`mx-auto grid w-full ${CARD_GRID_MAX_WIDTH} min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`}
           >
             {displayItems.map((item) => (
               <GrammarCard
@@ -490,16 +528,16 @@ export function GrammarPage() {
         </>
       ) : (
         <EmptyState
-          icon={<BookOpenText size={24} />}
+          icon={isFiltered ? <Search size={24} /> : <BookOpenText size={24} />}
           title={
             isFiltered
-              ? "Không tìm thấy ngữ pháp phù hợp"
+              ? "Không tìm thấy ngữ pháp"
               : "Chưa có mẫu ngữ pháp nào"
           }
           description={
             isFiltered
               ? "Thử đổi từ khóa hoặc bộ lọc JLPT nhé."
-              : "Hãy thêm mẫu ngữ pháp đầu tiên để bắt đầu xây dựng kho học liệu."
+              : "Hãy thêm mẫu đầu tiên để bắt đầu xây dựng kho ngữ pháp nhé."
           }
           actionLabel={isFiltered ? undefined : "Thêm ngữ pháp"}
           onAction={isFiltered ? undefined : handleAdd}
