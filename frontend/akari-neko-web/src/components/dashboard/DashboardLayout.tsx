@@ -8,6 +8,7 @@ import {
 import { AppShell } from "../layout/AppShell";
 import { DashboardHero } from "./DashboardHero";
 import { MobileStatsSection } from "./MobileStatsSection";
+import { RecentGrammarTable } from "./RecentGrammarTable";
 import { RecentVocabularyTable } from "./RecentVocabularyTable";
 import { RightStatsPanel } from "./RightStatsPanel";
 import { StudyShortcutCards } from "./StudyShortcutCards";
@@ -67,6 +68,7 @@ export function DashboardLayout() {
       <MobileStatsSection />
       <StudyShortcutCards />
       <RecentVocabularyTable refreshKey={dashboardRefreshKey} />
+      <RecentGrammarTable refreshKey={dashboardRefreshKey} />
     </AppShell>
   );
 }

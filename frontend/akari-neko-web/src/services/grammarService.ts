@@ -91,6 +91,8 @@ const grammarPointColumns = [
   "updated_at",
 ].join(",");
 
+const JLPT_LEVEL_ORDER: JlptLevel[] = ["N5", "N4", "N3", "N2", "N1"];
+
 async function getSessionUserId() {
   const {
     data: { session },
@@ -242,6 +244,47 @@ export async function getGrammarPoints(
   return ((data ?? []) as unknown as GrammarPointRow[]).map((row) =>
     mapGrammarPointRow(row, bookmarkedGrammarIds),
   );
+}
+
+export async function getRecentGrammarPoints(
+  limitCount = 5,
+): Promise<GrammarPoint[]> {
+  const sessionUserId = await getSessionUserId();
+  const bookmarkedGrammarIds = sessionUserId
+    ? await getBookmarkedGrammarIds(sessionUserId)
+    : new Set<string>();
+
+  const { data, error } = await supabase
+    .from("grammar_points")
+    .select(grammarPointColumns)
+    .order("created_at", { ascending: false })
+    .limit(limitCount);
+
+  if (error) {
+    throw toFriendlyError(error, "KhÃ´ng thá»ƒ táº£i ngá»¯ phÃ¡p gáº§n Ä‘Ã¢y.");
+  }
+
+  return ((data ?? []) as unknown as GrammarPointRow[]).map((row) =>
+    mapGrammarPointRow(row, bookmarkedGrammarIds),
+  );
+}
+
+export async function getGrammarFilterLevels(): Promise<JlptLevel[]> {
+  const { data, error } = await supabase
+    .from("grammar_points")
+    .select("jlpt_level");
+
+  if (error) {
+    throw toFriendlyError(error, "KhÃ´ng thá»ƒ táº£i bá»™ lá»c JLPT.");
+  }
+
+  const levelSet = new Set(
+    ((data ?? []) as Array<{ jlpt_level: JlptLevel | null }>)
+      .map((row) => row.jlpt_level)
+      .filter((level): level is JlptLevel => Boolean(level)),
+  );
+
+  return JLPT_LEVEL_ORDER.filter((level) => levelSet.has(level));
 }
 
 export async function getGrammarPointById(

@@ -21,6 +21,7 @@ import {
   addGrammarBookmark,
   createGrammarPoint,
   deleteGrammarPoint,
+  getGrammarFilterLevels,
   getGrammarPoints,
   removeGrammarBookmark,
   updateGrammarPoint,
@@ -31,7 +32,6 @@ import {
 
 const GRAMMAR_PAGE_SIZE = 12;
 const CARD_GRID_MAX_WIDTH = "max-w-[1360px]";
-const jlptLevels: JlptLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 const allLevelLabel = "All";
 
 function GrammarCardSkeletonGrid() {
@@ -89,6 +89,8 @@ function getActionErrorMessage(error: unknown, fallbackMessage: string) {
 
 export function GrammarPage() {
   const [items, setItems] = useState<GrammarPoint[]>([]);
+  const [availableLevels, setAvailableLevels] = useState<JlptLevel[]>([]);
+  const [isLoadingFilterLevels, setIsLoadingFilterLevels] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedLevel, setSelectedLevel] = useState(allLevelLabel);
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
@@ -107,12 +109,12 @@ export function GrammarPage() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const selectedLevelFilter = useMemo(() => {
-    if (jlptLevels.includes(selectedLevel as JlptLevel)) {
+    if (availableLevels.includes(selectedLevel as JlptLevel)) {
       return selectedLevel as JlptLevel;
     }
 
     return undefined;
-  }, [selectedLevel]);
+  }, [availableLevels, selectedLevel]);
 
   const totalPages = Math.max(1, Math.ceil(items.length / GRAMMAR_PAGE_SIZE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -143,6 +145,27 @@ export function GrammarPage() {
     }
   }, [bookmarkedOnly, search, selectedLevelFilter]);
 
+  const loadFilterLevels = useCallback(async () => {
+    setIsLoadingFilterLevels(true);
+
+    try {
+      const nextLevels = await getGrammarFilterLevels();
+      setAvailableLevels(nextLevels);
+      setSelectedLevel((currentLevel) =>
+        currentLevel === allLevelLabel ||
+        nextLevels.includes(currentLevel as JlptLevel)
+          ? currentLevel
+          : allLevelLabel,
+      );
+    } catch (error) {
+      console.error("Failed to load grammar filter levels:", error);
+      setAvailableLevels([]);
+      setSelectedLevel(allLevelLabel);
+    } finally {
+      setIsLoadingFilterLevels(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadGrammarItems();
@@ -150,6 +173,11 @@ export function GrammarPage() {
 
     return () => window.clearTimeout(timeoutId);
   }, [loadGrammarItems]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadFilterLevels();
+  }, [loadFilterLevels]);
 
   function handleAdd() {
     setEditingGrammar(null);
@@ -199,6 +227,7 @@ export function GrammarPage() {
 
       setIsFormOpen(false);
       setEditingGrammar(null);
+      await loadFilterLevels();
       await loadGrammarItems();
     } catch (error) {
       console.error("Failed to save grammar:", error);
@@ -256,6 +285,7 @@ export function GrammarPage() {
       await deleteGrammarPoint(deletingGrammar.id);
       setActionMessage("Đã xóa mẫu ngữ pháp.");
       setDeletingGrammar(null);
+      await loadFilterLevels();
       await loadGrammarItems();
     } catch (error) {
       console.error("Failed to delete grammar:", error);
@@ -304,9 +334,10 @@ export function GrammarPage() {
         <div className="grid min-w-0 gap-4 xl:grid-cols-[190px_220px_minmax(280px,1fr)] xl:items-end">
           <AppSelect
             label="JLPT LEVEL"
-            items={[allLevelLabel, ...jlptLevels]}
+            items={[allLevelLabel, ...availableLevels]}
             value={selectedLevel}
             onChange={handleLevelChange}
+            isLoading={isLoadingFilterLevels}
           />
 
           <label className="grid min-w-0 gap-2">
