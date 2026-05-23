@@ -526,6 +526,24 @@ body {
   color: currentColor;
 }
 
+:is(html.dark, body.dark) .akari-profile-save-button {
+  background-image: linear-gradient(135deg, rgb(16 185 129 / 0.94), rgb(20 184 166 / 0.9));
+  border: 1px solid rgb(167 243 208 / 0.22);
+  color: rgb(240 253 250);
+  box-shadow:
+    0 14px 30px rgb(5 150 105 / 0.18),
+    inset 0 1px 0 rgb(255 255 255 / 0.16);
+}
+
+:is(html.dark, body.dark) .akari-profile-save-button:hover {
+  background-image: linear-gradient(135deg, rgb(52 211 153), rgb(45 212 191 / 0.96));
+  color: rgb(255 255 255);
+}
+
+:is(html.dark, body.dark) .akari-profile-save-button:focus-visible {
+  --tw-ring-color: rgb(45 212 191 / 0.28);
+}
+
 .akari-mobile-scroll {
   box-sizing: border-box;
   min-height: 100vh;
@@ -539,9 +557,10 @@ body {
 
 @media (min-width: 1024px) {
   .akari-mobile-scroll {
-    height: 100vh;
-    overflow-y: hidden;
-    overscroll-behavior-y: contain;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-y: visible;
+    scrollbar-gutter: stable;
   }
 }
 

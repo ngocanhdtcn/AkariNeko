@@ -36,7 +36,7 @@ export function DashboardTopBar({
   const { unreadMessageCount } = useMessageNotification();
 
   return (
-    <header className="hidden min-h-[88px] grid-cols-[minmax(220px,auto)_minmax(280px,620px)_minmax(300px,auto)] items-center gap-4 rounded-[30px] border border-pink-100/80 bg-white/85 px-5 py-4 shadow-[0_18px_50px_rgba(236,72,153,0.09)] backdrop-blur-xl lg:grid">
+    <header className="hidden min-h-[88px] grid-cols-[minmax(220px,auto)_minmax(280px,620px)_minmax(300px,auto)] items-center gap-4 rounded-[30px] border border-pink-100/80 bg-white/95 px-5 py-4 shadow-[0_18px_50px_rgba(236,72,153,0.09)] lg:sticky lg:top-4 lg:z-40 lg:grid">
       <div className="flex min-w-0 items-center gap-4">
         <button
           type="button"

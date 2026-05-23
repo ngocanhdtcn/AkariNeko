@@ -10,7 +10,6 @@ import {
   Search,
   Upload,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SoftPanel } from "../ui/SoftPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -751,18 +750,9 @@ export function VocabularyPage() {
   return (
     <>
       <div className="grid gap-4">
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.24,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          className="akari-vocabulary-hero relative z-40 overflow-visible rounded-[30px] border border-pink-100/80 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_45%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]"
+        <section
+          className="akari-vocabulary-hero relative z-40 overflow-hidden rounded-[30px] border border-pink-100/80 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_45%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]"
         >
-          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-200/35 blur-3xl" />
-          <div className="pointer-events-none absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-pink-200/35 blur-3xl" />
-
           <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-pink-500 shadow-sm">
@@ -802,7 +792,7 @@ export function VocabularyPage() {
               </AppButton>
             </div>
           </div>
-        </motion.section>
+        </section>
 
         <SoftPanel className="relative z-30 p-4 sm:p-5">
           <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto] xl:items-end">
@@ -1041,7 +1031,7 @@ export function VocabularyPage() {
             )}
 
             {shouldShowVocabularyLoadingOverlay ? (
-              <div className="absolute inset-0 z-20 grid place-items-center rounded-2xl bg-white/70 backdrop-blur-[2px]">
+              <div className="absolute inset-0 z-20 grid place-items-center rounded-2xl bg-white/80">
                 <div className="flex items-center gap-3 rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold text-pink-500 shadow-sm">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-pink-200 border-t-pink-500" />
                   Đang tải dữ liệu...
@@ -1050,7 +1040,7 @@ export function VocabularyPage() {
             ) : null}
           </div>
 
-          <div className="relative hidden min-h-[680px] overflow-x-auto rounded-[22px] border border-pink-50 md:block">
+          <div className="relative hidden min-h-[680px] overflow-x-auto rounded-[22px] border border-pink-50 md:block md:contain-paint">
             <div className="min-w-[940px]">
             <div className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-sm font-bold text-slate-500">
               <div>Kanji</div>
@@ -1070,7 +1060,7 @@ export function VocabularyPage() {
               displayVocabularies.map((vocabulary) => (
                 <div
                   key={`${vocabulary.id}-vocab`}
-                  className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] items-center border-t border-pink-50 px-4 py-3 text-sm text-slate-600 transition hover:bg-pink-50/45"
+                  className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] items-center border-t border-pink-50 px-4 py-3 text-sm text-slate-600 hover:bg-pink-50/45"
                 >
                   <div className="flex items-center gap-2 text-base font-black text-slate-800">
                     <span>{vocabulary.kanji}</span>
@@ -1181,7 +1171,7 @@ export function VocabularyPage() {
             </div>
 
             {shouldShowVocabularyLoadingOverlay ? (
-              <div className="absolute inset-0 z-20 grid place-items-center bg-white/70 backdrop-blur-[2px]">
+              <div className="absolute inset-0 z-20 grid place-items-center bg-white/80">
                 <div className="flex items-center gap-3 rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold text-pink-500 shadow-sm">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-pink-200 border-t-pink-500" />
                   Đang tải dữ liệu...

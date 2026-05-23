@@ -19,7 +19,7 @@ import type { AuthChangeEvent } from "@supabase/supabase-js";
 type AuthContextValue = {
     profile: AuthProfile | null;
     isLoadingProfile: boolean;
-    refreshProfile: () => Promise<void>;
+    refreshProfile: (options?: { showLoading?: boolean }) => Promise<void>;
     logout: () => Promise<void>;
 };
 

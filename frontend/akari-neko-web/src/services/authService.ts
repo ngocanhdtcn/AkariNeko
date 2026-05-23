@@ -216,6 +216,105 @@ export type UpdateProfileInput = {
     currentJlptLevel: string;
 };
 
+const avatarFileExtensionsByType: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+};
+
+export const allowedAvatarTypes = Object.keys(avatarFileExtensionsByType);
+export const maxAvatarFileSize = 2 * 1024 * 1024;
+
+export function validateAvatarFile(file: File): void {
+    if (!allowedAvatarTypes.includes(file.type)) {
+        throw new Error("Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP.");
+    }
+
+    if (file.size > maxAvatarFileSize) {
+        throw new Error("Ảnh không được vượt quá 2MB.");
+    }
+}
+
+function getAvatarStoragePathFromUrl(avatarUrl: string, userId: string): string | null {
+    try {
+        const url = new URL(avatarUrl);
+        const publicPathPrefix = "/storage/v1/object/public/avatars/";
+        const publicPathStart = url.pathname.indexOf(publicPathPrefix);
+
+        if (publicPathStart === -1) {
+            return null;
+        }
+
+        const storagePath = decodeURIComponent(
+            url.pathname.slice(publicPathStart + publicPathPrefix.length),
+        );
+
+        return storagePath.startsWith(`${userId}/`) ? storagePath : null;
+    } catch {
+        return null;
+    }
+}
+
+export async function uploadCurrentUserAvatar(file: File): Promise<string> {
+    validateAvatarFile(file);
+
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+        throw userError;
+    }
+
+    if (!user) {
+        throw new Error("Bạn cần đăng nhập để upload ảnh.");
+    }
+
+    const fileExtension = avatarFileExtensionsByType[file.type];
+    const filePath = `${user.id}/avatar-${Date.now()}.${fileExtension}`;
+
+    const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, {
+            contentType: file.type,
+        });
+
+    if (uploadError) {
+        throw uploadError;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+    return data.publicUrl;
+}
+
+export async function deleteCurrentUserAvatarByUrl(
+    avatarUrl: string | null | undefined,
+): Promise<void> {
+    if (!avatarUrl) {
+        return;
+    }
+
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
+    const storagePath = getAvatarStoragePathFromUrl(avatarUrl, userId);
+
+    if (!storagePath) {
+        return;
+    }
+
+    const { error } = await supabase.storage.from("avatars").remove([storagePath]);
+
+    if (error) {
+        throw error;
+    }
+}
+
 export async function updateCurrentProfile(
     input: UpdateProfileInput,
 ): Promise<void> {

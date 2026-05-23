@@ -8,7 +8,7 @@ type SoftPanelProps = {
 export function SoftPanel({ children, className = "" }: SoftPanelProps) {
   return (
     <section
-      className={`rounded-3xl border border-pink-100 bg-white/85 shadow-sm backdrop-blur-xl ${className}`}
+      className={`rounded-3xl border border-pink-100 bg-white/95 shadow-sm ${className}`}
     >
       {children}
     </section>

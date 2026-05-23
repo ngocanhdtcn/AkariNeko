@@ -10,7 +10,9 @@ type UserAvatarProps = {
 };
 
 function getInitial(name?: string | null) {
-  return name?.trim().charAt(0).toUpperCase() || "A";
+  const [firstCharacter] = Array.from(name?.trim() ?? "");
+
+  return firstCharacter?.toUpperCase() || "A";
 }
 
 function getSafeAvatarUrl(avatarUrl?: string | null) {
@@ -20,7 +22,7 @@ function getSafeAvatarUrl(avatarUrl?: string | null) {
 
   try {
     const { protocol } = new URL(avatarUrl);
-    return protocol === "http:" || protocol === "https:" ? avatarUrl : null;
+    return ["blob:", "http:", "https:"].includes(protocol) ? avatarUrl : null;
   } catch {
     return null;
   }
@@ -33,8 +35,8 @@ export function UserAvatar({
   imageClassName = "h-full w-full object-cover",
 }: UserAvatarProps) {
   const safeAvatarUrl = getSafeAvatarUrl(avatarUrl);
-  const [hasImageError, setHasImageError] = useState(false);
-  const shouldShowImage = safeAvatarUrl && !hasImageError;
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+  const shouldShowImage = safeAvatarUrl && failedAvatarUrl !== safeAvatarUrl;
 
   return (
     <div
@@ -47,7 +49,7 @@ export function UserAvatar({
           alt={name || "Akari user"}
           className={imageClassName}
           referrerPolicy="no-referrer"
-          onError={() => setHasImageError(true)}
+          onError={() => setFailedAvatarUrl(safeAvatarUrl)}
         />
       ) : (
         getInitial(name)
