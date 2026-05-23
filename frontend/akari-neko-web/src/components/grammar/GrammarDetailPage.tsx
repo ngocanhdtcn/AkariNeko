@@ -44,15 +44,15 @@ function SakuraBranchScene() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-y-0 right-0 hidden w-[52%] overflow-hidden lg:block"
+      className="pointer-events-none absolute inset-y-0 right-0 hidden w-[72%] overflow-hidden lg:block"
     >
       <Image
         src="/images/grammar/grammar-cat-banner.avif"
         alt="AkariNeko grammar cat banner"
         fill
         priority
-        sizes="52vw"
-        className="object-cover object-right-bottom opacity-95 drop-shadow-[0_18px_28px_rgba(244,114,182,0.12)] [mask-image:linear-gradient(90deg,transparent_0%,black_22%,black_100%)]"
+        sizes="72vw"
+        className="object-cover object-right-bottom opacity-95 drop-shadow-[0_18px_28px_rgba(244,114,182,0.12)] [mask-image:linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.32)_16%,black_38%,black_100%)]"
       />
     </div>
   );

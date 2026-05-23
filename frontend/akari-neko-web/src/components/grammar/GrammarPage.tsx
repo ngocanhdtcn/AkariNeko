@@ -297,7 +297,10 @@ export function GrammarPage() {
 
   return (
     <div className="grid w-full min-w-0 gap-4 pb-24 lg:pb-0">
-      <section className="relative z-40 overflow-hidden rounded-3xl border border-pink-100 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_48%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]">
+      <section className="akari-grammar-hero relative z-40 overflow-hidden rounded-3xl border border-pink-100 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_48%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-200/35 blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-pink-200/35 blur-3xl" />
+
         <div className="relative z-10 flex min-w-0 flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="min-w-0">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-pink-500 shadow-sm">
