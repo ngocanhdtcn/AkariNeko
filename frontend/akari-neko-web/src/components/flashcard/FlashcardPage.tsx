@@ -30,6 +30,9 @@ import {
     type VocabularyListItem,
 } from "@/services/vocabularyService";
 
+const FLASHCARD_LIMIT_OPTIONS = ["100 từ", "Tất cả theo filter"] as const;
+type FlashcardLimitOption = (typeof FLASHCARD_LIMIT_OPTIONS)[number];
+
 export function FlashcardPage() {
     const { profile, isLoadingProfile } = useAuth();
     const [studyMode, setStudyMode] = useState<"vocabulary" | "grammar">("vocabulary");
@@ -79,6 +82,12 @@ export function FlashcardPage() {
     const [onlyDifficult, setOnlyDifficult] = useState(
         hasPersistedFilters && Boolean(persistedFilters?.onlyDifficult),
     );
+    const [flashcardLimitOption, setFlashcardLimitOption] =
+        useState<FlashcardLimitOption>(
+            persistedFilters?.flashcardLimitMode === "all"
+                ? "Tất cả theo filter"
+                : "100 từ",
+        );
     const [showHiragana, setShowHiragana] = useState(true);
 
     const [availableLevels, setAvailableLevels] = useState<string[]>([]);
@@ -120,7 +129,8 @@ export function FlashcardPage() {
                 book: selectedBook,
                 chapters: selectedChapters,
                 onlyDifficult,
-                limitCount: 100,
+                limitCount:
+                    flashcardLimitOption === "Tất cả theo filter" ? null : 100,
             });
 
             if (flashcardsRequestIdRef.current !== requestId) {
@@ -155,6 +165,7 @@ export function FlashcardPage() {
         selectedBook,
         selectedChapters,
         onlyDifficult,
+        flashcardLimitOption,
     ]);
 
     const loadGrammarFlashcards = useCallback(async () => {
@@ -319,9 +330,12 @@ export function FlashcardPage() {
             book: selectedBook,
             chapters: selectedChapters,
             onlyDifficult,
+            flashcardLimitMode:
+                flashcardLimitOption === "Tất cả theo filter" ? "all" : "limited",
         });
     }, [
         areStudyFiltersReady,
+        flashcardLimitOption,
         onlyDifficult,
         selectedBook,
         selectedChapters,
@@ -683,7 +697,7 @@ export function FlashcardPage() {
             <section className="rounded-[32px] border border-pink-100 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
                 <div className={`grid gap-4 xl:items-end ${
                     studyMode === "vocabulary"
-                        ? "xl:grid-cols-[auto_auto_auto_1fr_auto_auto]"
+                        ? "xl:grid-cols-[auto_auto_auto_auto_1fr_auto]"
                         : "xl:grid-cols-[auto_1fr_auto]"
                 }`}>
                     <AppSelect
@@ -710,6 +724,15 @@ export function FlashcardPage() {
                                 disabled={isLoadingFilterOptions}
                                 isLoading={isLoadingFilterOptions}
                             />
+
+                            <AppSelect
+                                label="Số lượng"
+                                items={[...FLASHCARD_LIMIT_OPTIONS]}
+                                value={flashcardLimitOption}
+                                onChange={(value) =>
+                                    setFlashcardLimitOption(value as FlashcardLimitOption)
+                                }
+                            />
                         </>
                     ) : null}
 
@@ -730,17 +753,6 @@ export function FlashcardPage() {
                         </button>
                     ) : null}
 
-                    <button
-                        type="button"
-                        className={`hidden h-12 items-center gap-2 rounded-2xl border px-4 text-sm font-bold shadow-sm transition sm:flex ${showHiragana
-                            ? "border-pink-200 bg-pink-50 text-pink-500"
-                            : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
-                            }`}
-                        onClick={() => setShowHiragana((current) => !current)}
-                    >
-                        {showHiragana ? <Eye size={17} /> : <EyeOff size={17} />}
-                        Hiragana
-                    </button>
                 </div>
 
                 {hasActiveFilter ? (
@@ -791,18 +803,6 @@ export function FlashcardPage() {
                                     Wrong {currentVocabulary.wrongCount}
                                 </span>
 
-                                <button
-                                    type="button"
-                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold shadow-sm transition sm:hidden ${showHiragana
-                                        ? "border-pink-200 bg-pink-50 text-pink-500"
-                                        : "border-pink-100 bg-white text-slate-600"
-                                        }`}
-                                    onClick={() => setShowHiragana((current) => !current)}
-                                >
-                                    {showHiragana ? <Eye size={15} /> : <EyeOff size={15} />}
-                                    Hiragana
-                                </button>
-
                                 {currentVocabulary.isDifficult ? (
                                     <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-500">
                                         Hard
@@ -811,43 +811,57 @@ export function FlashcardPage() {
                             </div>
                         </div>
 
-                        <button
-                            type="button"
-                            className="min-h-[360px] rounded-[30px] border border-pink-100 bg-gradient-to-br from-white via-pink-50/60 to-violet-50 p-8 text-center shadow-inner transition lg:hover:scale-[1.005]"
-                            onClick={() => setIsFlipped((current) => !current)}
-                        >
-                            {!isFlipped ? (
-                                <div className="grid h-full place-items-center gap-4">
-                                    <div>
-                                        <p className="text-6xl font-black text-slate-800">
-                                            {currentVocabulary.kanji}
-                                        </p>
-                                        {showHiragana ? (
-                                            <p className="mt-4 text-2xl font-bold text-pink-500">
-                                                {currentVocabulary.hiragana}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                className={`absolute right-4 top-4 z-10 inline-flex h-10 items-center gap-1.5 rounded-full border px-3 text-xs font-bold shadow-sm transition sm:right-6 sm:top-6 sm:h-11 sm:gap-2 sm:px-4 sm:text-sm ${showHiragana
+                                    ? "border-pink-200 bg-pink-50 text-pink-500"
+                                    : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                                    }`}
+                                onClick={() => setShowHiragana((current) => !current)}
+                            >
+                                {showHiragana ? <Eye size={15} /> : <EyeOff size={15} />}
+                                Hiragana
+                            </button>
+
+                            <button
+                                type="button"
+                                className="min-h-[360px] w-full rounded-[30px] border border-pink-100 bg-gradient-to-br from-white via-pink-50/60 to-violet-50 p-8 text-center shadow-inner transition lg:hover:scale-[1.005]"
+                                onClick={() => setIsFlipped((current) => !current)}
+                            >
+                                {!isFlipped ? (
+                                    <div className="grid h-full place-items-center gap-4">
+                                        <div>
+                                            <p className="text-6xl font-black text-slate-800">
+                                                {currentVocabulary.kanji}
                                             </p>
-                                        ) : null}
-                                        <p className="mt-6 text-sm font-bold text-slate-400">
-                                            Bấm vào thẻ để xem nghĩa
-                                        </p>
+                                            {showHiragana ? (
+                                                <p className="mt-4 text-2xl font-bold text-pink-500">
+                                                    {currentVocabulary.hiragana}
+                                                </p>
+                                            ) : null}
+                                            <p className="mt-6 text-sm font-bold text-slate-400">
+                                                Bấm vào thẻ để xem nghĩa
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="grid h-full place-items-center">
-                                    <div>
-                                        <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
-                                            Meaning
-                                        </p>
-                                        <p className="mt-4 whitespace-pre-wrap break-words font-sans text-2xl font-semibold leading-10 tracking-normal text-slate-800 sm:text-3xl sm:leading-relaxed">
-                                            {currentVocabulary.meaning}
-                                        </p>
-                                        <p className="mt-6 text-sm font-bold text-slate-400">
-                                            Bấm lại để xem mặt trước
-                                        </p>
+                                ) : (
+                                    <div className="grid h-full place-items-center">
+                                        <div>
+                                            <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
+                                                Meaning
+                                            </p>
+                                            <p className="mt-4 whitespace-pre-wrap break-words font-sans text-2xl font-semibold leading-10 tracking-normal text-slate-800 sm:text-3xl sm:leading-relaxed">
+                                                {currentVocabulary.meaning}
+                                            </p>
+                                            <p className="mt-6 text-sm font-bold text-slate-400">
+                                                Bấm lại để xem mặt trước
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </button>
+                                )}
+                            </button>
+                        </div>
 
                         <div className="grid grid-cols-4 gap-2 lg:grid-cols-[auto_1fr_1fr_auto] lg:items-center">
                             <button

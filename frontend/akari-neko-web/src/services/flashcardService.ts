@@ -40,7 +40,7 @@ export type GetFlashcardVocabulariesParams = {
     chapter?: string;
     chapters?: string[];
     onlyDifficult?: boolean;
-    limitCount?: number;
+    limitCount?: number | null;
 };
 
 export async function getFlashcardVocabularies({
@@ -73,8 +73,11 @@ export async function getFlashcardVocabularies({
                 "created_at",
             ].join(","),
         )
-        .order("created_at", { ascending: false })
-        .limit(limitCount);
+        .order("created_at", { ascending: false });
+
+    if (typeof limitCount === "number" && limitCount > 0) {
+        query = query.limit(limitCount);
+    }
 
     if (level !== "All") {
         query = query.eq("level", level);

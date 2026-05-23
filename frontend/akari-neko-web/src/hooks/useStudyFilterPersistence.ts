@@ -7,6 +7,7 @@ export type PersistedStudyFilters = {
   onlyDifficult: boolean;
   searchKeyword?: string;
   page?: number;
+  flashcardLimitMode?: "limited" | "all";
 };
 
 const FILTER_STORAGE_PREFIX = "akari-neko:study-filters:";
@@ -55,6 +56,8 @@ export function readPersistedStudyFilters(
         parsedValue.page > 0
           ? parsedValue.page
           : 1,
+      flashcardLimitMode:
+        parsedValue.flashcardLimitMode === "all" ? "all" : "limited",
     };
   } catch {
     return null;

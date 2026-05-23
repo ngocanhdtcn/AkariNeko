@@ -527,10 +527,10 @@ body {
 }
 
 .akari-mobile-scroll {
-  height: 100dvh;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: visible;
 }
 
 .akari-scroll-locked .akari-mobile-bottom-nav {
@@ -541,16 +541,27 @@ body {
   .akari-mobile-scroll {
     height: 100vh;
     overflow-y: hidden;
+    overscroll-behavior-y: contain;
   }
 }
 
 @media (max-width: 1023px) {
+  .akari-mobile-scroll {
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .akari-mobile-scroll :is(section, nav, button, div)[class*="shadow-"] {
     box-shadow: 0 8px 24px rgb(236 72 153 / 0.08);
   }
 
   .akari-mobile-scroll :is([class*="shadow-inner"]) {
     box-shadow: inset 0 1px 12px rgb(236 72 153 / 0.06);
+  }
+
+  .akari-mobile-scroll :is([class*="backdrop-blur"]) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .akari-mobile-bottom-nav {
@@ -568,6 +579,10 @@ body {
   .akari-study-shortcut-card {
     transform: none !important;
     will-change: auto;
+  }
+
+  .akari-sakura-petal {
+    animation: none;
   }
 }
 

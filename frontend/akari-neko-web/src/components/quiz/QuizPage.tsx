@@ -712,17 +712,6 @@ export function QuizPage() {
                         {onlyDifficult ? "Only difficult: ON" : "Only difficult"}
                     </button>
 
-                    <button
-                        type="button"
-                        className={`hidden h-12 items-center gap-2 rounded-2xl border px-4 text-sm font-bold shadow-sm transition sm:flex ${showHiragana
-                            ? "border-pink-200 bg-pink-50 text-pink-500"
-                            : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
-                            }`}
-                        onClick={() => setShowHiragana((current) => !current)}
-                    >
-                        {showHiragana ? <Eye size={17} /> : <EyeOff size={17} />}
-                        Hiragana
-                    </button>
                 </div>
 
                 {hasActiveFilter ? (
@@ -812,7 +801,19 @@ export function QuizPage() {
                             </div>
                         </div>
 
-                        <div className="rounded-[30px] border border-pink-100 bg-gradient-to-br from-white via-pink-50/60 to-violet-50 p-8 text-center shadow-inner">
+                        <div className="relative rounded-[30px] border border-pink-100 bg-gradient-to-br from-white via-pink-50/60 to-violet-50 p-8 text-center shadow-inner">
+                            <button
+                                type="button"
+                                className={`absolute right-4 top-4 inline-flex h-10 items-center gap-1.5 rounded-full border px-3 text-xs font-bold shadow-sm transition sm:right-6 sm:top-6 sm:h-11 sm:gap-2 sm:px-4 sm:text-sm ${showHiragana
+                                    ? "border-pink-200 bg-pink-50 text-pink-500"
+                                    : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                                    }`}
+                                onClick={() => setShowHiragana((current) => !current)}
+                            >
+                                {showHiragana ? <Eye size={15} /> : <EyeOff size={15} />}
+                                Hiragana
+                            </button>
+
                             <p className="text-sm font-bold uppercase tracking-[0.16em] text-pink-500">
                                 Chọn nghĩa đúng
                             </p>
@@ -875,17 +876,6 @@ export function QuizPage() {
                                     <span className="leading-tight">Wrong {wrongCount}</span>
                                 </span>
 
-                                <button
-                                    type="button"
-                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-bold shadow-sm transition sm:hidden ${showHiragana
-                                        ? "border-pink-200 bg-pink-50 text-pink-500"
-                                        : "border-pink-100 bg-white text-slate-600"
-                                        }`}
-                                    onClick={() => setShowHiragana((current) => !current)}
-                                >
-                                    {showHiragana ? <Eye size={15} /> : <EyeOff size={15} />}
-                                    Hiragana
-                                </button>
                             </div>
 
                             <button
