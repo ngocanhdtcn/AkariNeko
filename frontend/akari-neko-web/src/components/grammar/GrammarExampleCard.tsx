@@ -10,7 +10,7 @@ type GrammarExampleCardProps = {
 
 export function GrammarExampleCard({ example, index }: GrammarExampleCardProps) {
   return (
-    <article className="relative grid min-w-0 items-start gap-3 overflow-hidden rounded-2xl border border-pink-100/80 bg-white/95 p-4 shadow-[0_8px_24px_rgba(244,114,182,0.055)] sm:grid-cols-[minmax(0,1fr)_1px_minmax(180px,0.82fr)_auto] sm:items-center sm:gap-4">
+    <article className="akari-grammar-example-card relative grid min-w-0 items-start gap-3 overflow-hidden rounded-2xl border border-pink-100/80 bg-white/95 p-4 shadow-[0_8px_24px_rgba(244,114,182,0.055)] sm:grid-cols-[minmax(0,1fr)_1px_minmax(180px,0.82fr)_auto] sm:items-center sm:gap-4">
       <span
         aria-hidden="true"
         className="akari-sakura-petal absolute right-16 top-3 h-2 w-1.5 rounded-[70%_30%_70%_30%] bg-pink-300/25"
@@ -27,7 +27,7 @@ export function GrammarExampleCard({ example, index }: GrammarExampleCardProps) 
         {example.reading ? (
           <p
             lang="ja"
-            className="mt-1 whitespace-normal break-words text-sm font-bold leading-6 text-[#64708e]"
+            className="mt-1 whitespace-normal break-words text-sm font-bold leading-6 text-slate-500"
           >
             {example.reading}
           </p>
@@ -39,7 +39,7 @@ export function GrammarExampleCard({ example, index }: GrammarExampleCardProps) 
         className="hidden h-full min-h-10 border-l border-dashed border-pink-200 sm:block"
       />
 
-      <p className="min-w-0 whitespace-normal break-words text-sm font-semibold leading-7 text-[#4b5574]">
+      <p className="min-w-0 whitespace-normal break-words text-sm font-semibold leading-7 text-slate-600">
         {example.vi || "Chưa có nghĩa tiếng Việt."}
       </p>
 

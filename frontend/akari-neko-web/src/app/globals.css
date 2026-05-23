@@ -46,24 +46,24 @@ body {
 }
 
 :is(html.dark, body.dark) {
-  --akari-bg: #0f1024;
-  --akari-surface: rgb(15 23 42 / 0.82);
-  --akari-surface-strong: rgb(17 24 39 / 0.94);
-  --akari-surface-soft: rgb(49 46 129 / 0.16);
+  --akari-bg: #101226;
+  --akari-surface: rgb(30 41 59 / 0.84);
+  --akari-surface-strong: rgb(30 41 59 / 0.94);
+  --akari-surface-soft: rgb(51 65 85 / 0.5);
   --akari-border: rgb(255 255 255 / 0.1);
-  --akari-border-accent: rgb(196 181 253 / 0.2);
-  --akari-text: rgb(248 250 252);
-  --akari-text-soft: rgb(203 213 225);
+  --akari-border-accent: rgb(255 255 255 / 0.12);
+  --akari-text: #f8fafc;
+  --akari-text-soft: #cbd5e1;
   --akari-text-muted: rgb(148 163 184);
-  --akari-pink-soft: rgb(244 114 182 / 0.16);
-  --akari-violet-soft: rgb(139 92 246 / 0.16);
+  --akari-pink-soft: rgb(244 114 182 / 0.12);
+  --akari-violet-soft: rgb(99 102 241 / 0.11);
 }
 
 :is(html.dark body, body.dark) {
   background:
-    radial-gradient(circle at top left, rgb(236 72 153 / 0.11), transparent 34rem),
-    radial-gradient(circle at top right, rgb(139 92 246 / 0.14), transparent 32rem),
-    linear-gradient(135deg, #0f172a 0%, #24134d 48%, #111827 100%);
+    radial-gradient(circle at top left, rgb(236 72 153 / 0.07), transparent 34rem),
+    radial-gradient(circle at top right, rgb(99 102 241 / 0.09), transparent 32rem),
+    linear-gradient(135deg, #101827 0%, #211846 48%, #111827 100%);
   color: var(--akari-text-soft);
 }
 
@@ -72,9 +72,9 @@ body {
 :is(html.dark, body.dark) main[class*="bg-gradient"],
 :is(html.dark, body.dark) .bg-\[linear-gradient\(135deg\,\#fff8fb\,\#fffdf8_48\%\,\#f7f2ff\)\] {
   background:
-    radial-gradient(circle at top left, rgb(236 72 153 / 0.1), transparent 30rem),
-    radial-gradient(circle at top right, rgb(139 92 246 / 0.14), transparent 34rem),
-    linear-gradient(135deg, #0f172a 0%, #271650 48%, #111827 100%);
+    radial-gradient(circle at top left, rgb(236 72 153 / 0.07), transparent 30rem),
+    radial-gradient(circle at top right, rgb(99 102 241 / 0.09), transparent 34rem),
+    linear-gradient(135deg, #101827 0%, #211846 48%, #111827 100%);
 }
 
 :is(html.dark, body.dark) :is(.bg-white, [class~="bg-white\/95"], [class~="bg-white\/90"], [class~="bg-white\/85"], [class~="bg-white\/80"], [class~="bg-white\/75"], [class~="bg-white\/70"]) {
@@ -111,7 +111,7 @@ body {
   border-color: var(--akari-border);
 }
 
-:is(html.dark, body.dark) :is(.text-slate-900, .text-slate-800, .text-slate-700) {
+:is(html.dark, body.dark) :is(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
   color: var(--akari-text);
 }
 
@@ -156,13 +156,13 @@ body {
 }
 
 :is(html.dark, body.dark) :is(input, textarea, select) {
-  background-color: rgb(15 23 42 / 0.88);
+  background-color: rgb(30 41 59 / 0.72);
   border-color: var(--akari-border);
   color: var(--akari-text);
 }
 
 :is(html.dark, body.dark) :is(input, textarea, select)::placeholder {
-  color: rgb(100 116 139);
+  color: rgb(203 213 225 / 0.68);
 }
 
 :is(html.dark, body.dark) :is(input, textarea, select):focus {
@@ -395,6 +395,131 @@ body {
     rgb(15 23 42 / 0.92),
     rgb(30 41 59 / 0.88)
   );
+}
+
+:is(html.dark, body.dark) .akari-dashboard-search {
+  background-color: rgb(30 41 59 / 0.8);
+  border-color: rgb(255 255 255 / 0.12);
+  color: #cbd5e1;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+:is(html.dark, body.dark) .akari-dashboard-search .text-slate-500,
+:is(html.dark, body.dark) .akari-dashboard-search .text-slate-400 {
+  color: #cbd5e1;
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail {
+  color: #cbd5e1;
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-hero {
+  background:
+    linear-gradient(
+      100deg,
+      rgb(255 235 241 / 0.98) 0%,
+      rgb(255 240 231 / 0.94) 44%,
+      rgb(255 224 235 / 0.82) 100%
+    );
+  border-color: rgb(255 255 255 / 0.12);
+  box-shadow: 0 18px 46px rgb(0 0 0 / 0.18);
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(255 238 244 / 0.72) 0%,
+      rgb(255 244 238 / 0.48) 43%,
+      transparent 72%
+    );
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-hero :is(.text-slate-950, .text-slate-900, .text-slate-800) {
+  color: rgb(15 23 42);
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-hero :is(.text-slate-600, .text-slate-500) {
+  color: rgb(51 65 85);
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-hero .akari-grammar-structure {
+  background-color: rgb(255 255 255 / 0.86);
+  border-color: rgb(244 114 182 / 0.28);
+  color: rgb(157 23 77);
+  box-shadow: 0 14px 28px rgb(136 19 55 / 0.1);
+}
+
+:is(html.dark, body.dark) .akari-grammar-date-chip {
+  background-color: rgb(255 255 255 / 0.82);
+  border: 1px solid rgb(244 114 182 / 0.16);
+  color: rgb(51 65 85);
+}
+
+:is(html.dark, body.dark) .akari-grammar-date-chip svg {
+  color: rgb(100 116 139);
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-section {
+  background-color: rgb(30 41 59 / 0.72);
+  border-color: rgb(255 255 255 / 0.1);
+  box-shadow: 0 18px 44px rgb(0 0 0 / 0.2);
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-section h2 {
+  color: #f8fafc;
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-section :is(.text-slate-600, .text-slate-500) {
+  color: #cbd5e1;
+}
+
+:is(html.dark, body.dark) .akari-grammar-detail-section .akari-grammar-structure {
+  background-color: rgb(20 83 45 / 0.34);
+  border-color: rgb(110 231 183 / 0.2);
+  color: rgb(167 243 208);
+}
+
+:is(html.dark, body.dark) .akari-grammar-example-card {
+  background-color: rgb(15 23 42 / 0.48);
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+:is(html.dark, body.dark) .akari-grammar-example-card [lang="ja"] {
+  color: #f8fafc;
+  font-weight: 900;
+}
+
+:is(html.dark, body.dark) .akari-grammar-example-card .text-slate-600,
+:is(html.dark, body.dark) .akari-grammar-example-card .text-slate-500 {
+  color: #cbd5e1;
+}
+
+:is(html.dark, body.dark) .akari-grammar-action-save {
+  background-color: rgb(6 78 59 / 0.34);
+  border-color: rgb(110 231 183 / 0.22);
+  color: rgb(167 243 208);
+}
+
+:is(html.dark, body.dark) .akari-grammar-action-edit {
+  background-color: rgb(76 29 149 / 0.3);
+  border-color: rgb(196 181 253 / 0.22);
+  color: rgb(221 214 254);
+}
+
+:is(html.dark, body.dark) .akari-grammar-action-delete {
+  background-color: rgb(136 19 55 / 0.3);
+  border-color: rgb(251 113 133 / 0.24);
+  color: rgb(253 164 175);
+}
+
+:is(html.dark, body.dark) :is(.akari-grammar-action-save, .akari-grammar-action-edit, .akari-grammar-action-delete) svg {
+  color: currentColor;
 }
 
 .akari-mobile-scroll {

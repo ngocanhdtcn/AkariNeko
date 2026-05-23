@@ -16,7 +16,7 @@ export function GrammarDetailSection({
 }: GrammarDetailSectionProps) {
   return (
     <section
-      className={`relative overflow-hidden rounded-3xl border border-pink-100 bg-white/85 p-4 shadow-sm sm:p-5 ${className}`}
+      className={`akari-grammar-detail-section relative overflow-hidden rounded-3xl border border-pink-100 bg-white/85 p-4 shadow-sm sm:p-5 ${className}`}
     >
       <span
         aria-hidden="true"

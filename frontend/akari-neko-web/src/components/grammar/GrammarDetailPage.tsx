@@ -98,7 +98,7 @@ function BackToGrammarLink() {
 
 function GrammarDetailSkeleton() {
   return (
-    <div className="grid min-w-0 gap-4 pb-24 lg:pb-0">
+    <div className="akari-grammar-detail grid min-w-0 gap-4 pb-24 lg:pb-0">
       <div className="h-10 w-28 animate-pulse rounded-2xl bg-pink-100/70" />
 
       <section className="min-h-[280px] animate-pulse overflow-hidden rounded-3xl border border-pink-100 bg-gradient-to-br from-[#fff8fb] via-[#fff5f9] to-[#ffeef6] p-5 shadow-sm">
@@ -149,12 +149,12 @@ function GrammarActionButtons({
       <AppButton
         variant="secondary"
         disabled={isBookmarking}
-        className="w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none border-pink-100 bg-white/90 text-pink-500 shadow-[0_10px_26px_rgba(236,72,153,0.12)] sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm"
+        className="akari-grammar-action-save w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none !border-emerald-100 !bg-emerald-50/90 !text-emerald-700 shadow-[0_10px_24px_rgba(16,185,129,0.08)] hover:!bg-emerald-100/80 sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm"
         icon={
           grammarPoint.isBookmarked ? (
-            <BookmarkCheck size={15} className="shrink-0 text-pink-500 sm:size-[17px]" />
+            <BookmarkCheck size={15} className="shrink-0 text-current sm:size-[17px]" />
           ) : (
-            <Bookmark size={15} className="shrink-0 text-pink-500 sm:size-[17px]" />
+            <Bookmark size={15} className="shrink-0 text-current sm:size-[17px]" />
           )
         }
         onClick={onBookmark}
@@ -168,8 +168,8 @@ function GrammarActionButtons({
 
       <AppButton
         variant="secondary"
-        className="w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none border-pink-100 bg-white/90 text-violet-500 shadow-[0_10px_26px_rgba(139,92,246,0.10)] sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm"
-        icon={<Pencil size={15} className="shrink-0 text-violet-500 sm:size-[17px]" />}
+        className="akari-grammar-action-edit w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none !border-violet-100 !bg-violet-50/90 !text-violet-600 shadow-[0_10px_24px_rgba(139,92,246,0.08)] hover:!bg-violet-100/75 sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm"
+        icon={<Pencil size={15} className="shrink-0 text-current sm:size-[17px]" />}
         onClick={onEdit}
       >
         Sửa
@@ -177,8 +177,8 @@ function GrammarActionButtons({
 
       <AppButton
         variant="secondary"
-        className="w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none border-rose-100 bg-white/90 text-rose-500 shadow-[0_10px_26px_rgba(244,63,94,0.10)] hover:bg-rose-50 sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm"
-        icon={<Trash2 size={15} className="shrink-0 text-rose-500 sm:size-[17px]" />}
+        className="akari-grammar-action-delete w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none !border-rose-100 !bg-rose-50/90 !text-rose-600 shadow-[0_10px_24px_rgba(244,63,94,0.08)] hover:!bg-rose-100/75 sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm"
+        icon={<Trash2 size={15} className="shrink-0 text-current sm:size-[17px]" />}
         onClick={onDelete}
       >
         Xóa
@@ -367,7 +367,7 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
   }
 
   return (
-    <div className="grid min-w-0 gap-4 pb-24 lg:pb-0">
+    <div className="akari-grammar-detail grid min-w-0 gap-4 pb-24 lg:pb-0">
       <div className="flex min-w-0">
         <BackToGrammarLink />
       </div>
@@ -384,7 +384,7 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
         </div>
       ) : null}
 
-      <section className="relative isolate overflow-hidden rounded-3xl border border-pink-100 bg-gradient-to-br from-[#fff8fb] via-[#fff5f9] to-[#ffeef6] p-5 shadow-sm sm:p-6 lg:min-h-[300px] lg:p-8">
+      <section className="akari-grammar-detail-hero relative isolate overflow-hidden rounded-3xl border border-pink-100 bg-gradient-to-br from-[#fff2f5] via-[#fff7f2] to-[#ffe7ef] p-5 shadow-sm sm:p-6 lg:min-h-[300px] lg:p-8">
         <SakuraBranchScene />
 
         <div className="relative z-20 grid min-w-0 gap-5 lg:max-w-[52%]">
@@ -410,21 +410,21 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
               {grammarPoint.title}
             </h1>
 
-            <p className="mt-4 whitespace-normal break-words rounded-2xl border border-pink-100 bg-white/75 px-4 py-3 text-base font-black leading-7 text-pink-500 shadow-sm sm:text-lg">
+            <p className="akari-grammar-structure mt-4 whitespace-normal break-words rounded-2xl border border-pink-100 bg-white/75 px-4 py-3 text-base font-black leading-7 text-pink-600 shadow-sm sm:text-lg">
               {grammarPoint.structure || "Chưa có cấu trúc"}
             </p>
 
-            <p className="mt-4 whitespace-normal break-words text-base font-semibold leading-7 text-[#4b5574]">
+            <p className="mt-4 whitespace-normal break-words text-base font-semibold leading-7 text-slate-600">
               {grammarPoint.meaning || "Chưa có ý nghĩa."}
             </p>
           </div>
 
-          <div className="flex min-w-0 flex-wrap gap-3 text-xs font-bold text-[#64708e]">
-            <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5">
+          <div className="flex min-w-0 flex-wrap gap-3 text-xs font-bold text-slate-500">
+            <span className="akari-grammar-date-chip inline-flex min-w-0 items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5">
               <CalendarDays size={14} className="shrink-0" />
               <span className="truncate">Tạo: {formatDate(grammarPoint.createdAt)}</span>
             </span>
-            <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5">
+            <span className="akari-grammar-date-chip inline-flex min-w-0 items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5">
               <CalendarDays size={14} className="shrink-0" />
               <span className="truncate">
                 Cập nhật: {formatDate(grammarPoint.updatedAt)}
@@ -444,19 +444,19 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-3">
         <GrammarDetailSection title="1. Cấu trúc">
-          <p className="whitespace-normal break-words rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-lg font-black leading-8 text-emerald-700">
+          <p className="akari-grammar-structure whitespace-normal break-words rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-lg font-black leading-8 text-emerald-700">
             {grammarPoint.structure || "Chưa có cấu trúc."}
           </p>
         </GrammarDetailSection>
 
         <GrammarDetailSection title="2. Ý nghĩa">
-          <p className="whitespace-normal break-words text-sm font-semibold leading-7 text-[#4b5574]">
+          <p className="whitespace-normal break-words text-sm font-semibold leading-7 text-slate-600">
             {grammarPoint.meaning || "Chưa có ý nghĩa."}
           </p>
         </GrammarDetailSection>
 
         <GrammarDetailSection title="3. Cách dùng">
-          <p className="whitespace-pre-wrap break-words text-sm font-semibold leading-7 text-[#4b5574]">
+          <p className="whitespace-pre-wrap break-words text-sm font-semibold leading-7 text-slate-600">
             {grammarPoint.explanation || "Chưa có phần giải thích cách dùng."}
           </p>
         </GrammarDetailSection>
@@ -475,14 +475,14 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
               ))}
             </div>
           ) : (
-            <p className="text-sm font-semibold leading-7 text-[#64708e]">
+            <p className="text-sm font-semibold leading-7 text-slate-500">
               Chưa có ví dụ cho mẫu ngữ pháp này.
             </p>
           )}
         </GrammarDetailSection>
 
         <GrammarDetailSection title="5. Ghi chú">
-          <p className="whitespace-pre-wrap break-words text-sm font-semibold leading-7 text-[#4b5574]">
+          <p className="whitespace-pre-wrap break-words text-sm font-semibold leading-7 text-slate-600">
             {grammarPoint.notes || "Chưa có ghi chú."}
           </p>
         </GrammarDetailSection>

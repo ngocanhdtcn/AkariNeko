@@ -60,7 +60,7 @@ export function DashboardTopBar({
         </div>
       </div>
 
-      <div className="mx-auto flex h-14 w-full items-center rounded-full border border-pink-100 bg-white px-5 text-sm text-slate-400 shadow-inner">
+      <div className="akari-dashboard-search mx-auto flex h-14 w-full items-center rounded-full border border-pink-100 bg-white px-5 text-sm text-slate-400 shadow-inner">
         <Search size={19} className="mr-3 shrink-0 text-slate-500" />
         <span className="min-w-0 flex-1 truncate">{searchPlaceholder}</span>
 
