@@ -16,6 +16,7 @@
   WalletCards,
   MessageCircle,
   Activity,
+  Clapperboard,
 } from "lucide-react";
 
 import type {
@@ -56,6 +57,15 @@ export const dashboardMenuItems: DashboardMenuItem[] = [
     iconClassName: "bg-purple-50 text-purple-500",
     activeIconClassName: "bg-purple-500 text-white",
     activeItemClassName: "bg-purple-50 text-purple-600",
+  },
+  {
+    icon: Clapperboard,
+    label: "Kaiwa Room",
+    href: "/kaiwa",
+    active: false,
+    iconClassName: "bg-pink-50 text-pink-500",
+    activeIconClassName: "bg-pink-500 text-white",
+    activeItemClassName: "bg-pink-50 text-pink-600",
   },
   {
     icon: Flashlight,
@@ -148,8 +158,8 @@ export const mobileNavItems: MobileNavItem[] = [
   { icon: Home, label: "Home", href: "/", active: true },
   { icon: BookOpen, label: "Vocab", href: "/vocabulary", active: false },
   { icon: GraduationCap, label: "Grammar", href: "/grammar", active: false },
-  { icon: WalletCards, label: "Flashcard", href: "/flashcard", active: false },
-  { icon: Trophy, label: "Quiz", href: "/quiz", active: false },
+  { icon: Clapperboard, label: "Kaiwa", href: "/kaiwa", active: false },
+  { icon: WalletCards, label: "Cards", href: "/flashcard", active: false },
 ];
 
 export const studyShortcutCards: StudyShortcutCard[] = [
@@ -166,6 +176,13 @@ export const studyShortcutCards: StudyShortcutCard[] = [
     description: "Nắm vững ngữ pháp cơ bản và nâng cao",
     iconClassName: "from-violet-300 to-purple-400 text-white",
     cardClassName: "from-violet-50 to-white",
+  },
+  {
+    icon: Clapperboard,
+    title: "Kaiwa Room",
+    description: "Luyện hội thoại với video và PDF shadowing",
+    iconClassName: "from-pink-300 to-fuchsia-400 text-white",
+    cardClassName: "from-pink-50 to-white",
   },
   {
     icon: Star,

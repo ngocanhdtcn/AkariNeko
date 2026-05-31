@@ -14,9 +14,16 @@ import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 type AppShellProps = {
   children: ReactNode;
   rightPanel?: ReactNode;
+  topBarLeftContent?: ReactNode;
+  topBarSearchPlaceholder?: string;
 };
 
-export function AppShell({ children, rightPanel }: AppShellProps) {
+export function AppShell({
+  children,
+  rightPanel,
+  topBarLeftContent,
+  topBarSearchPlaceholder,
+}: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { profile, isLoadingProfile } = useAuth();
@@ -60,6 +67,8 @@ export function AppShell({ children, rightPanel }: AppShellProps) {
           <DashboardTopBar
             isSidebarCollapsed={isSidebarCollapsed}
             onToggleSidebar={toggleSidebar}
+            leftContent={topBarLeftContent}
+            searchPlaceholder={topBarSearchPlaceholder}
           />
 
           <div className="min-w-0 overflow-x-hidden pb-44 lg:pb-0">

@@ -18,20 +18,26 @@ import {
   getCurrentPageTitle,
   getCurrentSearchPlaceholder,
 } from "@/lib/navigation";
+import type { ReactNode } from "react";
 
 type DashboardTopBarProps = {
   isSidebarCollapsed: boolean;
   onToggleSidebar: () => void;
+  leftContent?: ReactNode;
+  searchPlaceholder?: string;
 };
 
 export function DashboardTopBar({
   isSidebarCollapsed,
   onToggleSidebar,
+  leftContent,
+  searchPlaceholder: searchPlaceholderOverride,
 }: DashboardTopBarProps) {
   const { profile, logout } = useAuth();
   const pathname = usePathname();
   const currentPageTitle = getCurrentPageTitle(pathname);
-  const searchPlaceholder = getCurrentSearchPlaceholder(pathname);
+  const searchPlaceholder =
+    searchPlaceholderOverride ?? getCurrentSearchPlaceholder(pathname);
   const { onlineUserCount } = useOnlineUsers();
   const { unreadMessageCount } = useMessageNotification();
 
@@ -54,10 +60,12 @@ export function DashboardTopBar({
           />
         </button>
 
-        <div className="flex min-w-0 items-center gap-2 font-bold text-pink-500">
-          <Home size={18} strokeWidth={2.4} className="shrink-0" />
-          <span className="truncate">{currentPageTitle}</span>
-        </div>
+        {leftContent ?? (
+          <div className="flex min-w-0 items-center gap-2 font-bold text-pink-500">
+            <Home size={18} strokeWidth={2.4} className="shrink-0" />
+            <span className="truncate">{currentPageTitle}</span>
+          </div>
+        )}
       </div>
 
       <div className="akari-dashboard-search mx-auto flex h-14 w-full items-center rounded-full border border-pink-100 bg-white px-5 text-sm text-slate-400 shadow-inner">

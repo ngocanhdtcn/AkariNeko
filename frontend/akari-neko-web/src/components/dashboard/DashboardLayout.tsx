@@ -7,6 +7,7 @@ import {
 } from "@/services/dashboardStatsService";
 import { AppShell } from "../layout/AppShell";
 import { DashboardHero } from "./DashboardHero";
+import { KaiwaHomeSection } from "@/components/kaiwa/KaiwaHomeSection";
 import { MobileStatsSection } from "./MobileStatsSection";
 import { RecentGrammarTable } from "./RecentGrammarTable";
 import { RecentVocabularyTable } from "./RecentVocabularyTable";
@@ -66,6 +67,7 @@ export function DashboardLayout() {
     >
       <DashboardHero />
       <MobileStatsSection />
+      <KaiwaHomeSection />
       <StudyShortcutCards />
       <RecentVocabularyTable refreshKey={dashboardRefreshKey} />
       <RecentGrammarTable refreshKey={dashboardRefreshKey} />

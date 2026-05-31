@@ -366,7 +366,9 @@ body {
 }
 
 :is(html.dark, body.dark) .akari-vocabulary-hero,
-:is(html.dark, body.dark) .akari-grammar-hero {
+:is(html.dark, body.dark) .akari-grammar-hero,
+:is(html.dark, body.dark) .akari-kaiwa-hero,
+:is(html.dark, body.dark) .akari-kaiwa-detail-hero {
   background-image: linear-gradient(
     105deg,
     rgb(30 41 59) 0%,
@@ -377,13 +379,61 @@ body {
 }
 
 :is(html.dark, body.dark) .akari-vocabulary-hero :is(.text-slate-800, .text-slate-700),
-:is(html.dark, body.dark) .akari-grammar-hero :is(.text-slate-800, .text-slate-700) {
+:is(html.dark, body.dark) .akari-grammar-hero :is(.text-slate-800, .text-slate-700),
+:is(html.dark, body.dark) .akari-kaiwa-hero :is(.text-slate-900, .text-slate-800, .text-slate-700),
+:is(html.dark, body.dark) .akari-kaiwa-detail-hero :is(.text-slate-900, .text-slate-800, .text-slate-700) {
   color: rgb(248 250 252);
 }
 
 :is(html.dark, body.dark) .akari-vocabulary-hero :is(.text-slate-600, .text-slate-500),
-:is(html.dark, body.dark) .akari-grammar-hero :is(.text-slate-600, .text-slate-500) {
+:is(html.dark, body.dark) .akari-grammar-hero :is(.text-slate-600, .text-slate-500),
+:is(html.dark, body.dark) .akari-kaiwa-hero :is(.text-slate-600, .text-slate-500),
+:is(html.dark, body.dark) .akari-kaiwa-detail-hero :is(.text-slate-600, .text-slate-500) {
   color: rgb(203 213 225);
+}
+
+:is(html.dark, body.dark) .akari-kaiwa-panel {
+  background-color: rgb(15 23 42 / 0.78);
+  border-color: rgb(99 102 241 / 0.28);
+}
+
+:is(html.dark, body.dark) .akari-kaiwa-detail-hero-overlay {
+  background-image: linear-gradient(
+    90deg,
+    rgb(15 23 42 / 0.88) 0%,
+    rgb(15 23 42 / 0.58) 52%,
+    rgb(15 23 42 / 0.16) 100%
+  );
+}
+
+:is(html.dark, body.dark) .akari-kaiwa-manager {
+  background:
+    linear-gradient(180deg, rgb(17 24 39 / 0.94), rgb(15 23 42 / 0.9));
+  border-color: rgb(129 140 248 / 0.28);
+}
+
+:is(html.dark, body.dark) .akari-kaiwa-manager-stat {
+  background: rgb(30 41 59 / 0.72);
+  border-color: rgb(148 163 184 / 0.18);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+:is(html.dark, body.dark) .akari-kaiwa-manager-head {
+  background: rgb(30 41 59 / 0.86);
+  border-color: rgb(148 163 184 / 0.16);
+  color: rgb(203 213 225);
+}
+
+:is(html.dark, body.dark) .akari-kaiwa-manager-table tbody {
+  background: rgb(15 23 42 / 0.42);
+}
+
+:is(html.dark, body.dark) .akari-kaiwa-manager-row {
+  border-color: rgb(148 163 184 / 0.14);
+}
+
+:is(html.dark, body.dark) .akari-kaiwa-manager-row:hover {
+  background-color: rgb(255 255 255 / 0.055);
 }
 
 :is(html.dark, body.dark) .akari-study-history-hero,

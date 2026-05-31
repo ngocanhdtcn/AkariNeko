@@ -21,6 +21,10 @@ export function getCurrentSearchPlaceholder(pathname: string) {
     return "Tìm kiếm mẫu ngữ pháp, cách dùng hoặc ví dụ...";
   }
 
+  if (pathname.startsWith("/kaiwa")) {
+    return "Tìm kiếm bài hội thoại, video hoặc PDF Kaiwa...";
+  }
+
   if (pathname.startsWith("/flashcard")) {
     return "Tìm kiếm flashcard hoặc bộ ôn tập...";
   }
