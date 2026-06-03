@@ -70,7 +70,7 @@ export function AppShell({
             searchPlaceholder={topBarSearchPlaceholder}
           />
 
-          <div className="min-w-0 overflow-x-hidden pb-44 lg:pb-0">
+          <div className="min-w-0 overflow-x-hidden pb-44 lg:pb-0 lg:pt-4">
             {rightPanel ? (
               <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <section className="grid min-w-0 content-start gap-4">
