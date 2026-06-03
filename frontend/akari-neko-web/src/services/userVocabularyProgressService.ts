@@ -20,6 +20,7 @@ const DEFAULT_PROGRESS: UserVocabularyProgress = {
     wrongCount: 0,
     isDifficult: false,
 };
+const PROGRESS_QUERY_BATCH_SIZE = 200;
 
 function normalizeProgressRow(
     row: UserVocabularyProgressRow | null | undefined,
@@ -49,22 +50,30 @@ export async function getUserVocabularyProgressMap(
         return new Map();
     }
 
-    const { data, error } = await supabase
-        .from("user_vocabulary_progress")
-        .select("vocabulary_id,correct_count,wrong_count,is_difficult")
-        .eq("user_id", userId)
-        .in("vocabulary_id", uniqueVocabularyIds);
+    const progressMap = new Map<string, UserVocabularyProgress>();
 
-    if (error) {
-        throw error;
+    for (let index = 0; index < uniqueVocabularyIds.length; index += PROGRESS_QUERY_BATCH_SIZE) {
+        const vocabularyIdBatch = uniqueVocabularyIds.slice(
+            index,
+            index + PROGRESS_QUERY_BATCH_SIZE,
+        );
+
+        const { data, error } = await supabase
+            .from("user_vocabulary_progress")
+            .select("vocabulary_id,correct_count,wrong_count,is_difficult")
+            .eq("user_id", userId)
+            .in("vocabulary_id", vocabularyIdBatch);
+
+        if (error) {
+            throw error;
+        }
+
+        for (const row of (data ?? []) as UserVocabularyProgressRow[]) {
+            progressMap.set(row.vocabulary_id, normalizeProgressRow(row));
+        }
     }
 
-    return new Map(
-        ((data ?? []) as UserVocabularyProgressRow[]).map((row) => [
-            row.vocabulary_id,
-            normalizeProgressRow(row),
-        ]),
-    );
+    return progressMap;
 }
 
 export function mergeVocabularyWithProgress(

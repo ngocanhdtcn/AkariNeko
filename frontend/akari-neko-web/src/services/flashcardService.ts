@@ -18,6 +18,8 @@ type VocabularyRow = {
     created_at: string;
 };
 
+const FLASHCARD_VOCABULARY_PAGE_SIZE = 500;
+
 function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
     return {
         id: row.id,
@@ -59,55 +61,74 @@ export async function getFlashcardVocabularies({
         return [];
     }
 
-    let query = supabase
-        .from("vocabularies")
-        .select(
-            [
-                "id",
-                "book",
-                "level",
-                "chapter",
-                "kanji",
-                "hiragana",
-                "meaning",
-                "created_at",
-            ].join(","),
-        )
-        .order("created_at", { ascending: false });
-
-    if (typeof limitCount === "number" && limitCount > 0) {
-        query = query.limit(limitCount);
-    }
-
-    if (level !== "All") {
-        query = query.eq("level", level);
-    }
-
-    if (book !== "All") {
-        query = query.eq("book", book);
-    }
-
     const selectedChapters =
         chapters?.filter((item) => item && item !== "All") ??
         (chapter !== "All" ? [chapter] : []);
+    const rows: VocabularyRow[] = [];
+    const targetCount =
+        typeof limitCount === "number" && limitCount > 0
+            ? limitCount
+            : Number.POSITIVE_INFINITY;
+    let from = 0;
 
-    if (selectedChapters.length > 0) {
-        query = query.in("chapter", selectedChapters);
-    } else if (chapter !== "All") {
-        query = query.eq("chapter", chapter);
+    while (rows.length < targetCount) {
+        const pageSize = Number.isFinite(targetCount)
+            ? Math.min(FLASHCARD_VOCABULARY_PAGE_SIZE, targetCount - rows.length)
+            : FLASHCARD_VOCABULARY_PAGE_SIZE;
+        const to = from + pageSize - 1;
+
+        let query = supabase
+            .from("vocabularies")
+            .select(
+                [
+                    "id",
+                    "book",
+                    "level",
+                    "chapter",
+                    "kanji",
+                    "hiragana",
+                    "meaning",
+                    "created_at",
+                ].join(","),
+            )
+            .order("created_at", { ascending: false })
+            .range(from, to);
+
+        if (level !== "All") {
+            query = query.eq("level", level);
+        }
+
+        if (book !== "All") {
+            query = query.eq("book", book);
+        }
+
+        if (selectedChapters.length > 0) {
+            query = query.in("chapter", selectedChapters);
+        } else if (chapter !== "All") {
+            query = query.eq("chapter", chapter);
+        }
+
+        if (onlyDifficult) {
+            query = query.in("id", difficultVocabularyIds);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            throw error;
+        }
+
+        const pageRows = (data ?? []) as unknown as VocabularyRow[];
+        rows.push(...pageRows);
+
+        if (pageRows.length < pageSize) {
+            break;
+        }
+
+        from += pageSize;
     }
 
-    if (onlyDifficult) {
-        query = query.in("id", difficultVocabularyIds);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-        throw error;
-    }
-
-    const items = ((data ?? []) as unknown as VocabularyRow[]).map(mapVocabularyRow);
+    const items = rows.map(mapVocabularyRow);
 
     return mergeVocabulariesWithCurrentUserProgress(items);
 }

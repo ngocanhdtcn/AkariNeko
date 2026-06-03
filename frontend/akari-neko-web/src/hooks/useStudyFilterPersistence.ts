@@ -17,7 +17,17 @@ function getStorageKey(scope: string) {
 }
 
 function normalizeFilterValue(value: unknown, fallback: string) {
-  return typeof value === "string" && value.trim() ? value : fallback;
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue || normalizedValue === "Tất cả") {
+    return fallback;
+  }
+
+  return normalizedValue;
 }
 
 export function readPersistedStudyFilters(
@@ -42,7 +52,10 @@ export function readPersistedStudyFilters(
       chapters: Array.isArray(parsedValue.chapters)
         ? parsedValue.chapters.filter(
             (chapter): chapter is string =>
-              typeof chapter === "string" && chapter.trim().length > 0,
+              typeof chapter === "string" &&
+              chapter.trim().length > 0 &&
+              chapter.trim() !== "Tất cả" &&
+              chapter.trim() !== "All",
           )
         : [],
       onlyDifficult: Boolean(parsedValue.onlyDifficult),

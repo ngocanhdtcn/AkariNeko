@@ -158,8 +158,8 @@ export const mobileNavItems: MobileNavItem[] = [
   { icon: Home, label: "Home", href: "/", active: true },
   { icon: BookOpen, label: "Vocab", href: "/vocabulary", active: false },
   { icon: GraduationCap, label: "Grammar", href: "/grammar", active: false },
-  { icon: Clapperboard, label: "Kaiwa", href: "/kaiwa", active: false },
-  { icon: WalletCards, label: "Cards", href: "/flashcard", active: false },
+  { icon: WalletCards, label: "Flashcard", href: "/flashcard", active: false },
+  { icon: Trophy, label: "Quiz", href: "/quiz", active: false },
 ];
 
 export const studyShortcutCards: StudyShortcutCard[] = [
