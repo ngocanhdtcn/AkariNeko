@@ -20,7 +20,7 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
 
   return (
     <aside
-      className={`hidden min-h-0 rounded-[30px] border border-pink-100/80 bg-white/95 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.10)] transition-all duration-300 ease-out lg:sticky lg:top-4 lg:grid lg:h-[calc(100dvh-2rem)] lg:grid-rows-[auto_minmax(0,1fr)_auto] ${isCollapsed ? "px-4" : "px-5"
+      className={`akari-desktop-sidebar hidden min-h-0 rounded-[30px] border border-pink-100/80 bg-white/95 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.10)] transition-all duration-300 ease-out lg:fixed lg:top-4 lg:z-30 lg:grid lg:h-[calc(100dvh-2rem)] lg:grid-rows-[auto_minmax(0,1fr)_auto] ${isCollapsed ? "akari-desktop-sidebar-collapsed px-4" : "px-5"
         }`}
     >
       <div

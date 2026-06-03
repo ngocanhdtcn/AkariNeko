@@ -1,13 +1,12 @@
 ﻿"use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardSidebar } from "../dashboard/DashboardSidebar";
 import { DashboardTopBar } from "../dashboard/DashboardTopBar";
 import { MobileBottomNav } from "../dashboard/MobileBottomNav";
 import { MobileHeader } from "../dashboard/MobileHeader";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 
@@ -61,7 +60,7 @@ export function AppShell({
       >
         <DashboardSidebar isCollapsed={isSidebarCollapsed} />
 
-        <section className="grid min-w-0 gap-3 sm:gap-4">
+        <section className="grid min-w-0 gap-3 sm:gap-4 lg:col-start-2">
           <MobileHeader />
 
           <DashboardTopBar

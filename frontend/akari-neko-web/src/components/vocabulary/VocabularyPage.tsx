@@ -1040,9 +1040,9 @@ export function VocabularyPage() {
             ) : null}
           </div>
 
-          <div className="relative hidden min-h-[680px] overflow-x-auto rounded-[22px] border border-pink-50 md:block md:contain-paint">
+          <div className="akari-vocabulary-table relative hidden overflow-x-auto rounded-[22px] border border-pink-50 bg-white/70 md:block md:contain-paint">
             <div className="min-w-[940px]">
-            <div className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-sm font-bold text-slate-500">
+            <div className="akari-vocabulary-table-head sticky top-0 z-10 grid grid-cols-[1fr_1fr_1.45fr_0.55fr_0.55fr_0.55fr_1.55fr] bg-gradient-to-r from-pink-50/80 to-white px-5 py-3 text-xs font-black uppercase text-slate-500">
               <div>Kanji</div>
               <div>Hiragana</div>
               <div>Meaning</div>
@@ -1060,23 +1060,23 @@ export function VocabularyPage() {
               displayVocabularies.map((vocabulary) => (
                 <div
                   key={`${vocabulary.id}-vocab`}
-                  className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_0.65fr_0.65fr_1.8fr] items-center border-t border-pink-50 px-4 py-3 text-sm text-slate-600 hover:bg-pink-50/45"
+                  className="akari-vocabulary-table-row grid grid-cols-[1fr_1fr_1.45fr_0.55fr_0.55fr_0.55fr_1.55fr] items-center border-t border-pink-50 px-5 py-3 text-sm text-slate-600 transition-colors hover:bg-pink-50/45"
                 >
                   <div className="flex items-center gap-2 text-base font-black text-slate-800">
-                    <span>{vocabulary.kanji}</span>
+                    <span className="min-w-0 truncate">{vocabulary.kanji}</span>
 
                     {vocabulary.isDifficult ? (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-500">
+                      <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-500">
                         Hard
                       </span>
                     ) : null}
                   </div>
 
-                  <div className="font-semibold text-slate-700">
+                  <div className="min-w-0 truncate font-semibold text-slate-700">
                     {vocabulary.hiragana}
                   </div>
 
-                  <div>{vocabulary.meaning}</div>
+                  <div className="min-w-0 truncate pr-4">{vocabulary.meaning}</div>
 
                   <div>
                     <AppBadge className="rounded-xl px-3 py-1">
@@ -1096,7 +1096,7 @@ export function VocabularyPage() {
                     <button
                       type="button"
                       disabled={updatingDifficultyId === vocabulary.id}
-                      className={`flex h-8 min-w-20 items-center justify-center rounded-xl border px-3 text-xs font-bold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${vocabulary.isDifficult
+                      className={`akari-vocabulary-action flex h-8 min-w-20 items-center justify-center rounded-xl border px-3 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${vocabulary.isDifficult
                         ? "border-amber-100 bg-amber-50 text-amber-500 hover:bg-amber-100/70"
                         : "border-pink-100 bg-white text-slate-500 hover:bg-pink-50"
                         }`}
@@ -1111,7 +1111,7 @@ export function VocabularyPage() {
 
                     <button
                       type="button"
-                      className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"
+                      className="akari-vocabulary-action flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 transition hover:bg-pink-50"
                       onClick={() => {
                         setEditVocabularyError(null);
                         setEditingVocabulary(vocabulary);
@@ -1123,7 +1123,7 @@ export function VocabularyPage() {
                     <button
                       type="button"
                       disabled={deletingVocabularyId === vocabulary.id}
-                      className="flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="akari-vocabulary-action flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={() => setVocabularyPendingDelete(vocabulary)}
                     >
                       {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
