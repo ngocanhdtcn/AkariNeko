@@ -34,7 +34,7 @@ export function AppShell({
     }
   }, [isLoadingProfile, pathname, profile, router]);
 
-  if (isLoadingProfile) {
+  if (isLoadingProfile && !profile) {
     return (
       <div className="grid min-h-screen place-items-center bg-gradient-to-br from-pink-50 via-white to-violet-50">
         <LoadingSkeleton variant="card" className="w-[min(92vw,420px)]" />

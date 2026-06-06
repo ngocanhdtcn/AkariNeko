@@ -2,7 +2,6 @@
 
 import {
   Bookmark,
-  CheckCircle2,
   ChevronRight,
   Clock3,
   FileText,
@@ -22,8 +21,6 @@ function getLessonImage(lesson: KaiwaLesson) {
 }
 
 export function KaiwaCard({ lesson }: KaiwaCardProps) {
-  const actionLabel = lesson.progress > 0 ? "Tiếp tục học" : "Học ngay";
-
   return (
     <article className="group overflow-hidden rounded-[26px] border border-pink-100/80 bg-white/90 p-4 shadow-[0_14px_34px_rgba(236,72,153,0.08)] transition hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-[0_18px_42px_rgba(236,72,153,0.14)]">
       <div className="grid gap-4 sm:grid-cols-[116px_minmax(0,1fr)]">
@@ -86,27 +83,11 @@ export function KaiwaCard({ lesson }: KaiwaCardProps) {
         </span>
       </div>
 
-      <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between text-sm font-bold text-slate-500">
-          <span>Đã học {lesson.progress}%</span>
-          <span className="inline-flex items-center gap-1 text-pink-500">
-            <CheckCircle2 size={15} />
-            {lesson.completed ? "Hoàn thành" : "Đang học"}
-          </span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-          <div
-            className="h-full rounded-full bg-pink-500"
-            style={{ width: `${lesson.progress}%` }}
-          />
-        </div>
-      </div>
-
       <Link
         href={`/kaiwa/${lesson.id}`}
         className="mt-4 flex h-11 items-center justify-center gap-2 rounded-2xl border border-pink-200 bg-pink-500/10 px-4 text-sm font-black text-pink-600 transition hover:bg-pink-500 hover:text-white"
       >
-        {actionLabel}
+        Học ngay
         <ChevronRight size={17} />
       </Link>
     </article>

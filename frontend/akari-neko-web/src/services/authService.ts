@@ -37,6 +37,33 @@ function mapProfileRow(row: ProfileRow, email: string): AuthProfile {
     };
 }
 
+function isInvalidRefreshTokenError(error: unknown) {
+    return (
+        error instanceof Error &&
+        /invalid refresh token|refresh token not found/i.test(error.message)
+    );
+}
+
+async function clearStoredAuthSession() {
+    try {
+        await supabase.auth.signOut({ scope: "local" });
+    } catch {
+        // Local storage cleanup below is the important part for stale refresh tokens.
+    }
+
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+        const key = localStorage.key(index);
+
+        if (key && /^sb-.+-auth-token$/.test(key)) {
+            localStorage.removeItem(key);
+        }
+    }
+}
+
 export async function signUpWithEmail({
     email,
     password,
@@ -108,6 +135,11 @@ export async function getCurrentProfile(): Promise<AuthProfile | null> {
     } = await supabase.auth.getSession();
 
     if (sessionError) {
+        if (isInvalidRefreshTokenError(sessionError)) {
+            await clearStoredAuthSession();
+            return null;
+        }
+
         throw sessionError;
     }
 
@@ -175,6 +207,11 @@ export async function getCurrentUserId(): Promise<string | null> {
     } = await supabase.auth.getSession();
 
     if (error) {
+        if (isInvalidRefreshTokenError(error)) {
+            await clearStoredAuthSession();
+            return null;
+        }
+
         throw error;
     }
 

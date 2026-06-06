@@ -15,6 +15,10 @@ type KaiwaLessonRow = {
   category: string | null;
   video_url: string | null;
   pdf_url: string | null;
+  audio_url: string | null;
+  video_urls: unknown;
+  pdf_urls: unknown;
+  audio_urls: unknown;
   notes: unknown;
   is_locked: boolean | null;
   is_published: boolean | null;
@@ -30,8 +34,18 @@ export type CreateKaiwaLessonPayload = {
   source: string;
   description: string;
   category: string;
-  videoFile?: File | null;
-  pdfFile?: File | null;
+  videoUrls?: string[];
+  videoFiles?: File[];
+  pdfFiles?: File[];
+  audioFiles?: File[];
+};
+
+export type UpdateKaiwaLessonMediaPayload = {
+  lesson: KaiwaLesson;
+  videoUrls?: string[];
+  pdfUrls?: string[];
+  audioUrls?: string[];
+  audioFiles?: File[];
 };
 
 const kaiwaColumns = [
@@ -46,6 +60,10 @@ const kaiwaColumns = [
   "duration_seconds",
   "video_url",
   "pdf_url",
+  "audio_url",
+  "video_urls",
+  "pdf_urls",
+  "audio_urls",
   "notes",
   "is_locked",
   "is_published",
@@ -55,14 +73,26 @@ const kaiwaColumns = [
 ].join(",");
 
 function toFriendlyError(error: unknown, fallbackMessage: string) {
-  if (
+  const rawMessage =
     typeof error === "object" &&
     error !== null &&
     "message" in error &&
-    typeof error.message === "string" &&
-    error.message.trim()
+    typeof error.message === "string"
+      ? error.message.trim()
+      : error instanceof Error
+        ? error.message.trim()
+        : "";
+
+  if (/maximum|too large|entity too large|file size|exceeded/i.test(rawMessage)) {
+    return new Error(
+      "File vượt giới hạn dung lượng của Supabase Storage. Hãy tăng Global file size limit/bucket limit trong Supabase hoặc nén file trước khi upload.",
+    );
+  }
+
+  if (
+    rawMessage
   ) {
-    return new Error(error.message);
+    return new Error(rawMessage);
   }
 
   if (error instanceof Error && error.message.trim()) {
@@ -86,7 +116,23 @@ function normalizeNotes(value: unknown): KaiwaLesson["notes"] {
   };
 }
 
+function normalizeUrlList(value: unknown, fallbackUrl: string | null) {
+  const urls = Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+
+  if (urls.length > 0) {
+    return urls;
+  }
+
+  return fallbackUrl ? [fallbackUrl] : [];
+}
+
 function mapKaiwaLessonRow(row: KaiwaLessonRow): KaiwaLesson {
+  const videoUrls = normalizeUrlList(row.video_urls, row.video_url);
+  const pdfUrls = normalizeUrlList(row.pdf_urls, row.pdf_url);
+  const audioUrls = normalizeUrlList(row.audio_urls, row.audio_url);
+
   return {
     id: row.slug,
     level: row.jlpt_level,
@@ -96,11 +142,13 @@ function mapKaiwaLessonRow(row: KaiwaLessonRow): KaiwaLesson {
     description: row.description ?? "",
     duration: formatDuration(row.duration_seconds),
     category: row.category ?? "Hội thoại",
-    progress: 0,
-    completed: false,
     locked: row.is_locked ?? false,
-    videoUrl: row.video_url ?? "",
-    pdfUrl: row.pdf_url ?? "",
+    videoUrl: videoUrls[0] ?? "",
+    pdfUrl: pdfUrls[0] ?? "",
+    audioUrl: audioUrls[0] ?? "",
+    videoUrls,
+    pdfUrls,
+    audioUrls,
     notes: normalizeNotes(row.notes),
   };
 }
@@ -131,6 +179,14 @@ function getFileExtension(file: File, fallback: string) {
   return extension ? `.${extension}` : fallback;
 }
 
+function getSafeFileName(file: File, fallbackExtension: string) {
+  const extension = getFileExtension(file, fallbackExtension);
+  const baseName = file.name.replace(/\.[^.]+$/, "");
+  const safeBaseName = slugify(baseName) || "tep-kaiwa";
+
+  return `${safeBaseName}-${crypto.randomUUID()}${extension}`;
+}
+
 async function uploadKaiwaFile(
   file: File | null | undefined,
   folder: string,
@@ -140,10 +196,7 @@ async function uploadKaiwaFile(
     return "";
   }
 
-  const filePath = `${folder}/${crypto.randomUUID()}${getFileExtension(
-    file,
-    fallbackExtension,
-  )}`;
+  const filePath = `${folder}/${getSafeFileName(file, fallbackExtension)}`;
   const { error } = await supabase.storage
     .from(KAIWA_BUCKET)
     .upload(filePath, file, {
@@ -153,11 +206,25 @@ async function uploadKaiwaFile(
     });
 
   if (error) {
-    throw toFriendlyError(error, "Khong the tai tep Kaiwa len Supabase Storage.");
+    throw toFriendlyError(error, "Không thể tải tệp Kaiwa lên Supabase Storage.");
   }
 
   const { data } = supabase.storage.from(KAIWA_BUCKET).getPublicUrl(filePath);
   return data.publicUrl;
+}
+
+async function uploadKaiwaFiles(
+  files: File[] | null | undefined,
+  folder: string,
+  fallbackExtension: string,
+) {
+  if (!files?.length) {
+    return [];
+  }
+
+  return Promise.all(
+    files.map((file) => uploadKaiwaFile(file, folder, fallbackExtension)),
+  );
 }
 
 export async function getKaiwaLessons(): Promise<KaiwaLesson[]> {
@@ -168,7 +235,7 @@ export async function getKaiwaLessons(): Promise<KaiwaLesson[]> {
     .order("lesson_number", { ascending: true });
 
   if (error) {
-    throw toFriendlyError(error, "Khong the tai danh sach Kaiwa tu Supabase.");
+    throw toFriendlyError(error, "Không thể tải danh sách Kaiwa từ Supabase.");
   }
 
   return ((data ?? []) as unknown as KaiwaLessonRow[]).map(mapKaiwaLessonRow);
@@ -182,7 +249,7 @@ export async function getKaiwaLessonById(id: string): Promise<KaiwaLesson | null
     .maybeSingle();
 
   if (error) {
-    throw toFriendlyError(error, "Khong the tai chi tiet Kaiwa tu Supabase.");
+    throw toFriendlyError(error, "Không thể tải chi tiết Kaiwa từ Supabase.");
   }
 
   return data ? mapKaiwaLessonRow(data as unknown as KaiwaLessonRow) : null;
@@ -200,10 +267,15 @@ export async function createKaiwaLesson(
     .filter(Boolean)
     .join("/");
 
-  const [videoUrl, pdfUrl] = await Promise.all([
-    uploadKaiwaFile(payload.videoFile, `${baseFolder}/video`, ".mp4"),
-    uploadKaiwaFile(payload.pdfFile, `${baseFolder}/pdf`, ".pdf"),
+  const [uploadedVideoUrls, pdfUrls, audioUrls] = await Promise.all([
+    uploadKaiwaFiles(payload.videoFiles, `${baseFolder}/video`, ".mp4"),
+    uploadKaiwaFiles(payload.pdfFiles, `${baseFolder}/pdf`, ".pdf"),
+    uploadKaiwaFiles(payload.audioFiles, `${baseFolder}/audio`, ".mp3"),
   ]);
+  const videoUrls = [
+    ...(payload.videoUrls ?? []).filter((url) => url.trim().length > 0),
+    ...uploadedVideoUrls,
+  ];
 
   const slug = `${payload.level.toLowerCase()}-bai-${payload.lessonNumber}-${slugify(
     payload.title,
@@ -223,15 +295,64 @@ export async function createKaiwaLesson(
       is_locked: false,
       is_published: true,
       sort_order: payload.lessonNumber,
-      video_url: videoUrl,
-      pdf_url: pdfUrl,
+      video_url: videoUrls[0] ?? "",
+      pdf_url: pdfUrls[0] ?? "",
+      audio_url: audioUrls[0] ?? "",
+      video_urls: videoUrls,
+      pdf_urls: pdfUrls,
+      audio_urls: audioUrls,
       notes: { vocabulary: [], patterns: [], reminders: [] },
     })
     .select(kaiwaColumns)
     .single();
 
   if (error) {
-    throw toFriendlyError(error, "Khong the them bai Kaiwa vao Supabase.");
+    throw toFriendlyError(error, "Không thể thêm bài Kaiwa vào Supabase.");
+  }
+
+  return mapKaiwaLessonRow(data as unknown as KaiwaLessonRow);
+}
+
+export async function updateKaiwaLessonMedia(
+  payload: UpdateKaiwaLessonMediaPayload,
+): Promise<KaiwaLesson> {
+  const baseFolder = [
+    slugify(payload.lesson.source),
+    payload.lesson.level.toLowerCase(),
+    `bai-${payload.lesson.lessonNumber}`,
+    slugify(payload.lesson.title),
+  ]
+    .filter(Boolean)
+    .join("/");
+
+  const uploadedAudioUrls = await uploadKaiwaFiles(
+    payload.audioFiles,
+    `${baseFolder}/audio`,
+    ".mp3",
+  );
+  const audioUrls = [
+    ...(payload.audioUrls ?? []).filter((url) => url.trim().length > 0),
+    ...uploadedAudioUrls,
+  ];
+  const videoUrls = (payload.videoUrls ?? []).filter((url) => url.trim().length > 0);
+  const pdfUrls = (payload.pdfUrls ?? []).filter((url) => url.trim().length > 0);
+
+  const { data, error } = await supabase
+    .from("kaiwa_lessons")
+    .update({
+      video_url: videoUrls[0] ?? "",
+      pdf_url: pdfUrls[0] ?? "",
+      audio_url: audioUrls[0] ?? "",
+      video_urls: videoUrls,
+      pdf_urls: pdfUrls,
+      audio_urls: audioUrls,
+    })
+    .eq("slug", payload.lesson.id)
+    .select(kaiwaColumns)
+    .single();
+
+  if (error) {
+    throw toFriendlyError(error, "Không thể cập nhật media Kaiwa trong Supabase.");
   }
 
   return mapKaiwaLessonRow(data as unknown as KaiwaLessonRow);

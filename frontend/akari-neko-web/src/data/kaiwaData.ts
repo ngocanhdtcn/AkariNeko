@@ -10,11 +10,13 @@ export type KaiwaLesson = {
   duration: string;
   category: string;
   thumbnailUrl?: string;
-  progress: number;
-  completed: boolean;
   locked?: boolean;
   videoUrl: string;
   pdfUrl: string;
+  audioUrl: string;
+  videoUrls: string[];
+  pdfUrls: string[];
+  audioUrls: string[];
   notes: {
     vocabulary: string[];
     patterns: string[];

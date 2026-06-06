@@ -107,13 +107,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            void refreshProfile({ showLoading: event === "INITIAL_SESSION" });
+            void refreshProfile({
+                showLoading: event !== "USER_UPDATED" && !profile,
+            });
         });
 
         return () => {
             subscription.unsubscribe();
         };
-    }, [refreshProfile]);
+    }, [profile, refreshProfile]);
 
     const value = useMemo(
         () => ({

@@ -13,8 +13,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AkariNekoWordmark } from "@/components/branding/AkariNekoWordmark";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
     signInWithEmail,
@@ -53,18 +54,70 @@ export function AuthPage() {
     const [authError, setAuthError] = useState<string | null>(null);
     const [authMessage, setAuthMessage] = useState<string | null>(null);
     const [hasMounted, setHasMounted] = useState(false);
+    const emailInputRef = useRef<HTMLInputElement>(null);
+    const passwordInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
+    const { isLoadingProfile, profile, refreshProfile } = useAuth();
     const { isDarkMode } = useTheme();
 
     const isSignup = mode === "signup";
     const isDarkAuth = hasMounted && isDarkMode;
+
+    const syncAutofilledFields = useCallback(() => {
+        const autofilledEmail = emailInputRef.current?.value;
+        const autofilledPassword = passwordInputRef.current?.value;
+
+        if (autofilledEmail) {
+            setEmail((currentEmail) =>
+                currentEmail === autofilledEmail ? currentEmail : autofilledEmail,
+            );
+        }
+
+        if (autofilledPassword) {
+            setPassword((currentPassword) =>
+                currentPassword === autofilledPassword
+                    ? currentPassword
+                    : autofilledPassword,
+            );
+        }
+    }, []);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setHasMounted(true);
     }, []);
 
+    useEffect(() => {
+        syncAutofilledFields();
+
+        const animationFrame = window.requestAnimationFrame(syncAutofilledFields);
+        const timeoutIds = [100, 500, 1000].map((delay) =>
+            window.setTimeout(syncAutofilledFields, delay),
+        );
+
+        return () => {
+            window.cancelAnimationFrame(animationFrame);
+            timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+        };
+    }, [syncAutofilledFields]);
+
+    useEffect(() => {
+        if (!isLoadingProfile && profile) {
+            router.replace("/");
+        }
+    }, [isLoadingProfile, profile, router]);
+
     async function handleSubmit() {
+        syncAutofilledFields();
+        const submitEmail = (emailInputRef.current?.value || email).trim();
+        const submitPassword = passwordInputRef.current?.value || password;
+
+        if (!submitEmail || !submitPassword) {
+            setAuthError("Vui lòng nhập email và mật khẩu.");
+            setAuthMessage(null);
+            return;
+        }
+
         setIsSubmitting(true);
         setAuthError(null);
         setAuthMessage(null);
@@ -72,23 +125,25 @@ export function AuthPage() {
         try {
             if (isSignup) {
                 await signUpWithEmail({
-                    email,
-                    password,
-                    displayName: displayName.trim() || email,
+                    email: submitEmail,
+                    password: submitPassword,
+                    displayName: displayName.trim() || submitEmail,
                 });
 
                 setAuthMessage("Đăng ký thành công. Bạn có thể vào app ngay.");
-                router.push("/");
+                await refreshProfile({ showLoading: true });
+                router.replace("/");
                 return;
             }
 
             await signInWithEmail({
-                email,
-                password,
+                email: submitEmail,
+                password: submitPassword,
             });
 
             setAuthMessage("Đăng nhập thành công.");
-            router.push("/");
+            await refreshProfile({ showLoading: true });
+            router.replace("/");
         } catch (error) {
             console.error("Auth failed:", error);
             const fallbackMessage = isSignup
@@ -286,7 +341,11 @@ export function AuthPage() {
                                 </p>
                             </div>
 
-                            <div className="grid w-full gap-5">
+                            <div
+                                className="grid w-full gap-5"
+                                onFocusCapture={syncAutofilledFields}
+                                onMouseEnter={syncAutofilledFields}
+                            >
                                 {isSignup ? (
                                     <label className="grid gap-2.5">
                                         <span className={`text-sm font-bold uppercase tracking-[0.13em] ${labelClass}`}>
@@ -314,6 +373,7 @@ export function AuthPage() {
                                             className={isDarkAuth ? "shrink-0 text-pink-100/80" : "shrink-0 text-pink-400"}
                                         />
                                         <input
+                                            ref={emailInputRef}
                                             value={email}
                                             type="email"
                                             className={`h-full min-w-0 flex-1 bg-transparent text-base font-semibold outline-none ${inputClass}`}
@@ -333,6 +393,7 @@ export function AuthPage() {
                                             className={isDarkAuth ? "shrink-0 text-pink-100/80" : "shrink-0 text-pink-400"}
                                         />
                                         <input
+                                            ref={passwordInputRef}
                                             value={password}
                                             type="password"
                                             className={`h-full min-w-0 flex-1 bg-transparent text-base font-semibold outline-none ${inputClass}`}
@@ -366,7 +427,7 @@ export function AuthPage() {
 
                                 <button
                                     type="button"
-                                    disabled={isSubmitting || !email || !password}
+                                    disabled={isSubmitting}
                                     className="mt-1 flex h-15 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-pink-400 via-fuchsia-400 to-violet-500 px-6 text-base font-black text-white shadow-lg shadow-fuchsia-500/20 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                                     onClick={() => void handleSubmit()}
                                 >
