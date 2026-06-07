@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AkariNekoWordmark } from "@/components/branding/AkariNekoWordmark";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { supabase } from "@/lib/supabaseClient";
 import {
     signInWithEmail,
     signUpWithEmail,
@@ -57,7 +58,7 @@ export function AuthPage() {
     const emailInputRef = useRef<HTMLInputElement>(null);
     const passwordInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
-    const { isLoadingProfile, profile, refreshProfile } = useAuth();
+    const { isAuthenticated, isLoadingProfile, markAuthenticated, profile, refreshProfile } = useAuth();
     const { isDarkMode } = useTheme();
 
     const isSignup = mode === "signup";
@@ -102,10 +103,31 @@ export function AuthPage() {
     }, [syncAutofilledFields]);
 
     useEffect(() => {
-        if (!isLoadingProfile && profile) {
-            router.replace("/");
+        if (!isLoadingProfile && (isAuthenticated || profile)) {
+            router.replace("/home");
         }
-    }, [isLoadingProfile, profile, router]);
+    }, [isAuthenticated, isLoadingProfile, profile, router]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function redirectExistingSession() {
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
+
+            if (isMounted && session?.user) {
+                markAuthenticated();
+                router.replace("/home");
+            }
+        }
+
+        void redirectExistingSession();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [markAuthenticated, router]);
 
     async function handleSubmit() {
         syncAutofilledFields();
@@ -124,32 +146,42 @@ export function AuthPage() {
 
         try {
             if (isSignup) {
-                await signUpWithEmail({
+                const signedUpUser = await signUpWithEmail({
                     email: submitEmail,
                     password: submitPassword,
                     displayName: displayName.trim() || submitEmail,
                 });
 
+                if (!signedUpUser) {
+                    throw new Error("Không thể tạo session đăng ký.");
+                }
+
                 setAuthMessage("Đăng ký thành công. Bạn có thể vào app ngay.");
-                await refreshProfile({ showLoading: true });
-                router.replace("/");
+                markAuthenticated();
+                void refreshProfile({ showLoading: false });
+                router.replace("/home");
                 return;
             }
 
-            await signInWithEmail({
+            const signedInUser = await signInWithEmail({
                 email: submitEmail,
                 password: submitPassword,
             });
 
+            if (!signedInUser) {
+                throw new Error("Không nhận được session đăng nhập.");
+            }
+
             setAuthMessage("Đăng nhập thành công.");
-            await refreshProfile({ showLoading: true });
-            router.replace("/");
+            markAuthenticated();
+            void refreshProfile({ showLoading: false });
+            router.replace("/home");
         } catch (error) {
             console.error("Auth failed:", error);
             const fallbackMessage = isSignup
                 ? "Không thể đăng ký. Kiểm tra email/password hoặc tài khoản đã tồn tại."
                 : "Không thể đăng nhập. Kiểm tra email/password.";
-            setAuthError(fallbackMessage);
+            setAuthError(error instanceof Error ? error.message : fallbackMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -341,10 +373,14 @@ export function AuthPage() {
                                 </p>
                             </div>
 
-                            <div
+                            <form
                                 className="grid w-full gap-5"
                                 onFocusCapture={syncAutofilledFields}
                                 onMouseEnter={syncAutofilledFields}
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    void handleSubmit();
+                                }}
                             >
                                 {isSignup ? (
                                     <label className="grid gap-2.5">
@@ -426,10 +462,9 @@ export function AuthPage() {
                                 ) : null}
 
                                 <button
-                                    type="button"
+                                    type="submit"
                                     disabled={isSubmitting}
                                     className="mt-1 flex h-15 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-pink-400 via-fuchsia-400 to-violet-500 px-6 text-base font-black text-white shadow-lg shadow-fuchsia-500/20 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-                                    onClick={() => void handleSubmit()}
                                 >
                                     {isSignup ? <UserPlus size={21} /> : <LogIn size={21} />}
                                     <span className="min-w-32 text-center">
@@ -456,7 +491,7 @@ export function AuthPage() {
                                         : "Chưa có tài khoản? Tạo tài khoản miễn phí"}
                                     <ChevronRight size={18} />
                                 </button>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </section>

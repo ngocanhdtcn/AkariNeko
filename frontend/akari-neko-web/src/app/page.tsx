@@ -1,5 +1,5 @@
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <DashboardLayout />;
+  redirect("/auth");
 }

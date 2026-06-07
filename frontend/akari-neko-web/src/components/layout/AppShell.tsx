@@ -1,13 +1,13 @@
 ﻿"use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { DashboardSidebar } from "../dashboard/DashboardSidebar";
 import { DashboardTopBar } from "../dashboard/DashboardTopBar";
 import { MobileBottomNav } from "../dashboard/MobileBottomNav";
 import { MobileHeader } from "../dashboard/MobileHeader";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { AUTH_LOGIN_HINT_KEY, useAuth } from "@/contexts/AuthContext";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 
 type AppShellProps = {
@@ -17,6 +17,22 @@ type AppShellProps = {
   topBarSearchPlaceholder?: string;
 };
 
+function subscribeToLoginHintChange(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function getLoginHintSnapshot() {
+  return window.sessionStorage.getItem(AUTH_LOGIN_HINT_KEY) === "1";
+}
+
+function getLoginHintServerSnapshot() {
+  return false;
+}
+
 export function AppShell({
   children,
   rightPanel,
@@ -25,16 +41,22 @@ export function AppShell({
 }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { profile, isLoadingProfile } = useAuth();
+  const { isAuthenticated, isLoadingProfile } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const hasLoginHint = useSyncExternalStore(
+    subscribeToLoginHintChange,
+    getLoginHintSnapshot,
+    getLoginHintServerSnapshot,
+  );
+  const canShowApp = isAuthenticated || hasLoginHint;
 
   useEffect(() => {
-    if (!isLoadingProfile && !profile && pathname !== "/auth") {
+    if (!isLoadingProfile && !canShowApp && pathname !== "/auth") {
       router.replace("/auth");
     }
-  }, [isLoadingProfile, pathname, profile, router]);
+  }, [canShowApp, isLoadingProfile, pathname, router]);
 
-  if (isLoadingProfile && !profile) {
+  if (isLoadingProfile && !canShowApp) {
     return (
       <div className="grid min-h-screen place-items-center bg-gradient-to-br from-pink-50 via-white to-violet-50">
         <LoadingSkeleton variant="card" className="w-[min(92vw,420px)]" />
@@ -42,8 +64,17 @@ export function AppShell({
     );
   }
 
-  if (!profile && pathname !== "/auth") {
-    return null;
+  if (!canShowApp && pathname !== "/auth") {
+    return (
+      <div className="grid min-h-screen place-items-center bg-gradient-to-br from-pink-50 via-white to-violet-50 px-4 text-center">
+        <div className="grid gap-3">
+          <LoadingSkeleton variant="card" className="w-[min(92vw,420px)]" />
+          <p className="text-sm font-bold text-slate-500">
+            Dang chuyen toi trang dang nhap...
+          </p>
+        </div>
+      </div>
+    );
   }
 
   function toggleSidebar() {

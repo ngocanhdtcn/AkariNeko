@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "Cute Japanese learning app",
 };
 
+const shouldEnableVercelInsights = process.env.NODE_ENV === "production";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,8 +29,12 @@ export default function RootLayout({
             </OnlineUsersProvider>
           </AuthProvider>
         </ThemeProvider>
-        <Analytics />
-        <SpeedInsights />
+        {shouldEnableVercelInsights ? (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        ) : null}
       </body>
     </html>
   );

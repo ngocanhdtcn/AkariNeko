@@ -21,6 +21,7 @@ import type { KaiwaLesson } from "@/data/kaiwaData";
 import { getYouTubeEmbedUrl, getYouTubeVideoId } from "@/lib/youtube";
 import { useYouTubeVideoTitles } from "@/hooks/useYouTubeVideoTitles";
 import { getDisplayFileNameFromUrl } from "@/lib/fileLabels";
+import { PdfViewer } from "@/components/kaiwa/PdfViewer";
 
 type KaiwaDetailPageProps = {
   lesson: KaiwaLesson;
@@ -271,10 +272,10 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
 
           {selectedPdfUrl ? (
             <>
-              <iframe
+              <PdfViewer
                 title={`PDF ${lesson.title}`}
-                src={selectedPdfViewerUrl}
-                className="min-h-[520px] w-full rounded-[18px] border border-pink-100 bg-white md:min-h-[620px]"
+                url={selectedPdfUrl}
+                openUrl={selectedPdfViewerUrl}
               />
               {pdfUrls.length > 1 ? (
                 <div className="mt-4 grid gap-2">

@@ -448,8 +448,8 @@ export function KaiwaPage() {
 
       {viewMode === "study" ? (
         <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          {filteredLessons.map((lesson) => (
-            <KaiwaCard key={lesson.id} lesson={lesson} />
+          {filteredLessons.map((lesson, index) => (
+            <KaiwaCard key={lesson.id} lesson={lesson} eager={index === 0} />
           ))}
           {!isLoading && filteredLessons.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-pink-100 bg-white/90 p-8 text-center md:col-span-2 2xl:col-span-3">
@@ -566,7 +566,7 @@ function KaiwaManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-pink-100">
-            {lessons.map((lesson) => {
+            {lessons.map((lesson, index) => {
               const status = getLessonStatus(lesson);
 
               return (
@@ -578,6 +578,7 @@ function KaiwaManager({
                         alt=""
                         width={72}
                         height={72}
+                        loading={index === 0 ? "eager" : undefined}
                         className="h-[72px] w-[72px] rounded-2xl object-cover"
                       />
                       <div className="min-w-0">

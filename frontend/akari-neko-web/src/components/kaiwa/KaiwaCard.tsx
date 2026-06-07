@@ -14,13 +14,14 @@ import type { KaiwaLesson } from "@/data/kaiwaData";
 
 type KaiwaCardProps = {
   lesson: KaiwaLesson;
+  eager?: boolean;
 };
 
 function getLessonImage(lesson: KaiwaLesson) {
   return lesson.thumbnailUrl ?? "/akari-assets/hero-bg.png";
 }
 
-export function KaiwaCard({ lesson }: KaiwaCardProps) {
+export function KaiwaCard({ lesson, eager = false }: KaiwaCardProps) {
   return (
     <article className="group overflow-hidden rounded-[26px] border border-pink-100/80 bg-white/90 p-4 shadow-[0_14px_34px_rgba(236,72,153,0.08)] transition hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-[0_18px_42px_rgba(236,72,153,0.14)]">
       <div className="grid gap-4 sm:grid-cols-[116px_minmax(0,1fr)]">
@@ -32,6 +33,7 @@ export function KaiwaCard({ lesson }: KaiwaCardProps) {
             src={getLessonImage(lesson)}
             alt=""
             fill
+            loading={eager ? "eager" : undefined}
             sizes="(max-width: 640px) 100vw, 116px"
             className="object-cover transition duration-300 group-hover:scale-105"
           />
