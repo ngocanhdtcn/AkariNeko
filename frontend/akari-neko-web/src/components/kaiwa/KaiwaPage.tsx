@@ -32,7 +32,16 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
+} from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useYouTubeVideoTitles } from "@/hooks/useYouTubeVideoTitles";
@@ -48,7 +57,9 @@ import {
 } from "@/services/kaiwaService";
 import { KaiwaCard } from "./KaiwaCard";
 
-const levelOptions: Array<KaiwaLevel | "Tất cả"> = [
+type KaiwaSelectedLevel = KaiwaLevel | "Tất cả";
+
+const levelOptions: KaiwaSelectedLevel[] = [
   "Tất cả",
   "N5",
   "N4",
@@ -61,6 +72,7 @@ type ViewMode = "study" | "manage";
 type DeleteMode = "archive" | "delete";
 const kaiwaLevelValues: KaiwaLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 const KAIWA_CREATE_DRAFT_KEY = "akari:kaiwa:create-draft";
+const KAIWA_SELECTED_LEVEL_KEY = "akari:kaiwa:selected-level";
 const KAIWA_MAX_UPLOAD_FILE_MB = Number(
   process.env.NEXT_PUBLIC_KAIWA_MAX_UPLOAD_FILE_MB ?? 50,
 );
@@ -117,6 +129,54 @@ function getKaiwaLevelOrDefault(level: string | null | undefined): KaiwaLevel {
   return kaiwaLevelValues.includes(normalizedLevel as KaiwaLevel)
     ? (normalizedLevel as KaiwaLevel)
     : "N5";
+}
+
+function getKaiwaSelectedLevelOrNull(
+  level: string | null | undefined,
+): KaiwaSelectedLevel | null {
+  if (level === "Tất cả") {
+    return level;
+  }
+
+  const normalizedLevel = level?.trim().toUpperCase();
+
+  return kaiwaLevelValues.includes(normalizedLevel as KaiwaLevel)
+    ? (normalizedLevel as KaiwaLevel)
+    : null;
+}
+
+function readStoredKaiwaSelectedLevel(): KaiwaSelectedLevel | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return getKaiwaSelectedLevelOrNull(
+      window.localStorage.getItem(KAIWA_SELECTED_LEVEL_KEY),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function subscribeToStoredKaiwaSelectedLevel(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  window.addEventListener("storage", onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function writeStoredKaiwaSelectedLevel(level: KaiwaSelectedLevel) {
+  try {
+    window.localStorage.setItem(KAIWA_SELECTED_LEVEL_KEY, level);
+  } catch {
+    // Remembering the filter is best-effort only.
+  }
 }
 
 function getEmptyCreateKaiwaForm(
@@ -224,18 +284,35 @@ function getLessonImage(lesson: KaiwaLesson) {
 }
 
 export function KaiwaPage() {
-  const { profile } = useAuth();
+  const { profile, isLoadingProfile } = useAuth();
+  const storedSelectedLevel = useSyncExternalStore(
+    subscribeToStoredKaiwaSelectedLevel,
+    readStoredKaiwaSelectedLevel,
+    () => null,
+  );
   const [lessons, setLessons] = useState<KaiwaLesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("study");
-  const [selectedLevel, setSelectedLevel] =
-    useState<KaiwaLevel | "Tất cả">("Tất cả");
+  const [manualSelectedLevel, setManualSelectedLevel] =
+    useState<KaiwaSelectedLevel | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(createKaiwaModalSession.isOpen);
   const [createModalKey, setCreateModalKey] = useState(0);
   const [editingLesson, setEditingLesson] = useState<KaiwaLesson | null>(null);
   const [deletingLesson, setDeletingLesson] = useState<KaiwaLesson | null>(null);
+  const profileLevelFilter = useMemo(() => {
+    const normalizedLevel = profile?.currentJlptLevel?.trim().toUpperCase();
+
+    return kaiwaLevelValues.includes(normalizedLevel as KaiwaLevel)
+      ? (normalizedLevel as KaiwaLevel)
+      : null;
+  }, [profile?.currentJlptLevel]);
+  const selectedLevel =
+    manualSelectedLevel ??
+    storedSelectedLevel ??
+    (!isLoadingProfile ? profileLevelFilter : null) ??
+    "Tất cả";
 
   useEffect(() => {
     let isMounted = true;
@@ -329,6 +406,11 @@ export function KaiwaPage() {
     );
     setEditingLesson(null);
     setViewMode("manage");
+  }
+
+  function handleSelectedLevelChange(level: KaiwaSelectedLevel) {
+    setManualSelectedLevel(level);
+    writeStoredKaiwaSelectedLevel(level);
   }
 
   function openCreateModal() {
@@ -432,7 +514,7 @@ export function KaiwaPage() {
               <button
                 key={level}
                 type="button"
-                onClick={() => setSelectedLevel(level)}
+                onClick={() => handleSelectedLevelChange(level)}
                 className={`h-10 rounded-2xl px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-pink-100 ${
                   selectedLevel === level
                     ? "bg-pink-500 text-white shadow-[0_12px_24px_rgba(236,72,153,0.22)]"
