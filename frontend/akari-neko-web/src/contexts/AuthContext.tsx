@@ -71,7 +71,9 @@ function areProfilesEqual(
         firstProfile.avatarUrl === secondProfile.avatarUrl &&
         firstProfile.appLevel === secondProfile.appLevel &&
         firstProfile.experiencePoint === secondProfile.experiencePoint &&
-        firstProfile.currentJlptLevel === secondProfile.currentJlptLevel
+        firstProfile.currentJlptLevel === secondProfile.currentJlptLevel &&
+        firstProfile.role === secondProfile.role &&
+        firstProfile.approvalStatus === secondProfile.approvalStatus
     );
 }
 
@@ -145,13 +147,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 const hasSession = Boolean(session?.user);
-                setIsAuthenticated(hasSession);
-                setIsLoadingProfile(false);
                 setHasInitializedSession(true);
 
                 if (hasSession) {
-                    void refreshProfile({ showLoading: false });
+                    setIsAuthenticated(true);
+                    await refreshProfile();
+                    return;
                 }
+
+                setIsAuthenticated(false);
+                setIsLoadingProfile(false);
             } catch (error) {
                 console.error("Failed to initialize auth session:", error);
 

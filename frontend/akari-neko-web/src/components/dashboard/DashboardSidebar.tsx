@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Moon, ShieldCheck, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,6 +8,7 @@ import { dashboardMenuItems } from "@/data/dashboardData";
 import { AkariNekoWordmark } from "../branding/AkariNekoWordmark";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 type DashboardSidebarProps = {
   isCollapsed: boolean;
@@ -17,6 +18,22 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
   const pathname = usePathname();
   const { unreadMessageCount } = useMessageNotification();
   const { isDarkMode, toggleDarkMode } = useTheme();
+  const { profile } = useAuth();
+  const menuItems =
+    profile?.role === "admin"
+      ? [
+        ...dashboardMenuItems,
+        {
+          icon: ShieldCheck,
+          label: "Duyệt học viên",
+          href: "/admin/users",
+          active: false,
+          iconClassName: "bg-emerald-50 text-emerald-500",
+          activeIconClassName: "bg-emerald-500 text-white",
+          activeItemClassName: "bg-emerald-50 text-emerald-600",
+        },
+      ]
+      : dashboardMenuItems;
 
   return (
     <aside
@@ -42,7 +59,7 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
 
       <nav className="min-h-0 overflow-y-auto pr-1">
         <div className="grid gap-2 rounded-[26px] bg-white/70 p-3 shadow-sm">
-          {dashboardMenuItems.map((item) => {
+          {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive =
               item.href === "/"

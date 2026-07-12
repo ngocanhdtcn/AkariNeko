@@ -17,8 +17,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AkariNekoWordmark } from "@/components/branding/AkariNekoWordmark";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { supabase } from "@/lib/supabaseClient";
 import {
+    getCurrentProfile,
     signInWithEmail,
     signUpWithEmail,
 } from "@/services/authService";
@@ -58,7 +58,7 @@ export function AuthPage() {
     const emailInputRef = useRef<HTMLInputElement>(null);
     const passwordInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
-    const { isAuthenticated, isLoadingProfile, markAuthenticated, profile, refreshProfile } = useAuth();
+    const { isLoadingProfile, markAuthenticated, profile, refreshProfile } = useAuth();
     const { isDarkMode } = useTheme();
 
     const isSignup = mode === "signup";
@@ -103,31 +103,10 @@ export function AuthPage() {
     }, [syncAutofilledFields]);
 
     useEffect(() => {
-        if (!isLoadingProfile && (isAuthenticated || profile)) {
-            router.replace("/home");
+        if (!isLoadingProfile && profile) {
+            router.replace(profile?.approvalStatus === "approved" ? "/home" : "/account-pending");
         }
-    }, [isAuthenticated, isLoadingProfile, profile, router]);
-
-    useEffect(() => {
-        let isMounted = true;
-
-        async function redirectExistingSession() {
-            const {
-                data: { session },
-            } = await supabase.auth.getSession();
-
-            if (isMounted && session?.user) {
-                markAuthenticated();
-                router.replace("/home");
-            }
-        }
-
-        void redirectExistingSession();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [markAuthenticated, router]);
+    }, [isLoadingProfile, profile, router]);
 
     async function handleSubmit() {
         syncAutofilledFields();
@@ -156,10 +135,23 @@ export function AuthPage() {
                     throw new Error("Không thể tạo session đăng ký.");
                 }
 
-                setAuthMessage("Đăng ký thành công. Bạn có thể vào app ngay.");
+                const currentProfile = await getCurrentProfile();
+
+                if (!currentProfile) {
+                    setAuthMessage(
+                        "Dang ky thanh cong. Vui long kiem tra email de xac nhan tai khoan.",
+                    );
+                    return;
+                }
+
+                setAuthMessage("Dang ky thanh cong. Tai khoan dang cho duyet.");
                 markAuthenticated();
-                void refreshProfile({ showLoading: false });
-                router.replace("/home");
+                await refreshProfile({ showLoading: false });
+                router.replace(
+                    currentProfile.approvalStatus === "approved"
+                        ? "/home"
+                        : "/account-pending",
+                );
                 return;
             }
 
@@ -172,10 +164,16 @@ export function AuthPage() {
                 throw new Error("Không nhận được session đăng nhập.");
             }
 
+            const currentProfile = await getCurrentProfile();
+
             setAuthMessage("Đăng nhập thành công.");
             markAuthenticated();
-            void refreshProfile({ showLoading: false });
-            router.replace("/home");
+            await refreshProfile({ showLoading: false });
+            router.replace(
+                currentProfile?.approvalStatus === "approved"
+                    ? "/home"
+                    : "/account-pending",
+            );
         } catch (error) {
             console.error("Auth failed:", error);
             const fallbackMessage = isSignup

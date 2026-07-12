@@ -24,6 +24,11 @@ export function RootGate() {
   const { profile, isLoadingProfile } = useAuth();
 
   useEffect(() => {
+    if (profile && profile.approvalStatus !== "approved") {
+      window.location.replace("/account-pending");
+      return;
+    }
+
     if (profile) {
       return;
     }
@@ -45,6 +50,10 @@ export function RootGate() {
   }
 
   if (!profile) {
+    return <FullPageLoading />;
+  }
+
+  if (profile.approvalStatus !== "approved") {
     return <FullPageLoading />;
   }
 

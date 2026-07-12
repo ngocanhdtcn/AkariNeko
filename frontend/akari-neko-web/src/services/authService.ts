@@ -8,6 +8,8 @@ export type AuthProfile = {
     appLevel: number;
     experiencePoint: number;
     currentJlptLevel: string;
+    role: "student" | "admin";
+    approvalStatus: "pending" | "approved" | "rejected";
 };
 
 export type PublicProfile = {
@@ -18,22 +20,27 @@ export type PublicProfile = {
 
 type ProfileRow = {
     id: string;
+    email: string | null;
     display_name: string | null;
     avatar_url: string | null;
     app_level: number;
     experience_point: number;
     current_jlpt_level: string | null;
+    role: "student" | "admin" | null;
+    approval_status: "pending" | "approved" | "rejected" | null;
 };
 
 function mapProfileRow(row: ProfileRow, email: string): AuthProfile {
     return {
         id: row.id,
-        email,
+        email: row.email ?? email,
         displayName: row.display_name ?? email,
         avatarUrl: row.avatar_url,
         appLevel: row.app_level,
         experiencePoint: row.experience_point,
         currentJlptLevel: row.current_jlpt_level ?? "N5",
+        role: row.role ?? "student",
+        approvalStatus: row.approval_status ?? "pending",
     };
 }
 
@@ -88,10 +95,31 @@ export async function signUpWithEmail({
         return null;
     }
 
+    if (!data.session) {
+        return user;
+    }
+
+    const { data: existingProfile, error: existingProfileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (existingProfileError) {
+        throw existingProfileError;
+    }
+
+    if (existingProfile) {
+        return user;
+    }
+
     const { error: profileError } = await supabase.from("profiles").insert({
         id: user.id,
+        email,
         display_name: displayName,
         current_jlpt_level: "N5",
+        role: "student",
+        approval_status: "pending",
     });
 
     if (profileError) {
@@ -156,11 +184,14 @@ export async function getCurrentProfile(): Promise<AuthProfile | null> {
         .select(
             [
                 "id",
+                "email",
                 "display_name",
                 "avatar_url",
                 "app_level",
                 "experience_point",
                 "current_jlpt_level",
+                "role",
+                "approval_status",
             ].join(","),
         )
         .eq("id", user.id)
@@ -175,17 +206,23 @@ export async function getCurrentProfile(): Promise<AuthProfile | null> {
             .from("profiles")
             .insert({
                 id: user.id,
+                email: userEmail,
                 display_name: userEmail,
                 current_jlpt_level: "N5",
+                role: "student",
+                approval_status: "pending",
             })
             .select(
                 [
                     "id",
+                    "email",
                     "display_name",
                     "avatar_url",
                     "app_level",
                     "experience_point",
                     "current_jlpt_level",
+                    "role",
+                    "approval_status",
                 ].join(","),
             )
             .single();

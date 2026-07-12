@@ -41,20 +41,24 @@ export function AppShell({
 }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isLoadingProfile } = useAuth();
+  const { isAuthenticated, isLoadingProfile, profile } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const hasLoginHint = useSyncExternalStore(
     subscribeToLoginHintChange,
     getLoginHintSnapshot,
     getLoginHintServerSnapshot,
   );
-  const canShowApp = isAuthenticated || hasLoginHint;
+  const isApprovalPage = pathname === "/account-pending";
+  const hasAuthSignal = isAuthenticated || hasLoginHint;
+  const hasApprovedProfile = profile?.approvalStatus === "approved";
+  const canShowApp =
+    hasAuthSignal && (isApprovalPage || hasApprovedProfile || isLoadingProfile);
 
   useEffect(() => {
     if (!isLoadingProfile && !canShowApp && pathname !== "/auth") {
-      router.replace("/auth");
+      router.replace(hasAuthSignal ? "/account-pending" : "/auth");
     }
-  }, [canShowApp, isLoadingProfile, pathname, router]);
+  }, [canShowApp, hasAuthSignal, isLoadingProfile, pathname, router]);
 
   if (isLoadingProfile && !canShowApp) {
     return (

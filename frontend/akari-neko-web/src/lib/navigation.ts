@@ -1,6 +1,10 @@
 import { dashboardMenuItems } from "@/data/dashboardData";
 
 export function getCurrentPageTitle(pathname: string) {
+  if (pathname.startsWith("/admin/users")) {
+    return "Duyệt học viên";
+  }
+
   const matchedItem = dashboardMenuItems.find((item) => {
     if (item.href === "/") {
       return pathname === "/";
@@ -13,6 +17,10 @@ export function getCurrentPageTitle(pathname: string) {
 }
 
 export function getCurrentSearchPlaceholder(pathname: string) {
+  if (pathname.startsWith("/admin/users")) {
+    return "Tìm học viên theo email hoặc tên...";
+  }
+
   if (pathname.startsWith("/vocabulary")) {
     return "Tìm kiếm Kanji, Hiragana hoặc nghĩa tiếng Việt...";
   }
