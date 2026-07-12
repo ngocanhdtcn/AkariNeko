@@ -25,7 +25,9 @@ export type GrammarPoint = {
 export type GrammarFilters = {
   search?: string;
   jlptLevel?: JlptLevel;
+  notes?: string;
   bookmarkedOnly?: boolean;
+  sortMode?: "recent" | "notes";
 };
 
 export type GrammarMutation = {
@@ -92,6 +94,25 @@ const grammarPointColumns = [
 ].join(",");
 
 const JLPT_LEVEL_ORDER: JlptLevel[] = ["N5", "N4", "N3", "N2", "N1"];
+
+function compareNaturalText(left: string, right: string) {
+  return left.localeCompare(right, "vi", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function compareGrammarByNotes(left: GrammarPoint, right: GrammarPoint) {
+  const leftNotes = left.notes?.trim() || "ZZZ";
+  const rightNotes = right.notes?.trim() || "ZZZ";
+  const noteCompare = compareNaturalText(leftNotes, rightNotes);
+
+  if (noteCompare !== 0) {
+    return noteCompare;
+  }
+
+  return compareNaturalText(left.title, right.title);
+}
 
 async function getSessionUserId() {
   const {
@@ -217,6 +238,10 @@ export async function getGrammarPoints(
     query = query.eq("jlpt_level", filters.jlptLevel);
   }
 
+  if (filters.notes) {
+    query = query.eq("notes", filters.notes);
+  }
+
   const searchTerm = sanitizeSearchTerm(filters.search ?? "");
 
   if (searchTerm) {
@@ -241,9 +266,15 @@ export async function getGrammarPoints(
     throw toFriendlyError(error, "Không thể tải danh sách ngữ pháp.");
   }
 
-  return ((data ?? []) as unknown as GrammarPointRow[]).map((row) =>
+  const grammarPoints = ((data ?? []) as unknown as GrammarPointRow[]).map((row) =>
     mapGrammarPointRow(row, bookmarkedGrammarIds),
   );
+
+  if (filters.sortMode === "notes") {
+    return [...grammarPoints].sort(compareGrammarByNotes);
+  }
+
+  return grammarPoints;
 }
 
 export async function getRecentGrammarPoints(
@@ -285,6 +316,22 @@ export async function getGrammarFilterLevels(): Promise<JlptLevel[]> {
   );
 
   return JLPT_LEVEL_ORDER.filter((level) => levelSet.has(level));
+}
+
+export async function getGrammarFilterNotes(): Promise<string[]> {
+  const { data, error } = await supabase.from("grammar_points").select("notes");
+
+  if (error) {
+    throw toFriendlyError(error, "Không thể tải bộ lọc ghi chú.");
+  }
+
+  const notesSet = new Set(
+    ((data ?? []) as Array<{ notes: string | null }>)
+      .map((row) => row.notes?.trim() ?? "")
+      .filter(Boolean),
+  );
+
+  return Array.from(notesSet).sort(compareNaturalText);
 }
 
 export async function getGrammarPointById(

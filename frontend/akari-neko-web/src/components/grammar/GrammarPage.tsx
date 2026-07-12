@@ -3,6 +3,7 @@
 import {
   BookOpenText,
   Bookmark,
+  FileUp,
   Plus,
   RotateCcw,
   ScrollText,
@@ -11,6 +12,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GrammarCard } from "@/components/grammar/GrammarCard";
 import { GrammarForm } from "@/components/grammar/GrammarForm";
+import { GrammarImportModal } from "@/components/grammar/GrammarImportModal";
 import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
 import { AppSelect } from "@/components/ui/AppSelect";
@@ -22,6 +24,7 @@ import {
   createGrammarPoint,
   deleteGrammarPoint,
   getGrammarFilterLevels,
+  getGrammarFilterNotes,
   getGrammarPoints,
   removeGrammarBookmark,
   updateGrammarPoint,
@@ -33,6 +36,9 @@ import {
 const GRAMMAR_PAGE_SIZE = 12;
 const CARD_GRID_MAX_WIDTH = "max-w-[1360px]";
 const allLevelLabel = "All";
+const allNotesLabel = "All";
+const recentSortLabel = "Mới nhất";
+const notesSortLabel = "Theo bài";
 
 function GrammarCardSkeletonGrid() {
   return (
@@ -90,15 +96,20 @@ function getActionErrorMessage(error: unknown, fallbackMessage: string) {
 export function GrammarPage() {
   const [items, setItems] = useState<GrammarPoint[]>([]);
   const [availableLevels, setAvailableLevels] = useState<JlptLevel[]>([]);
+  const [availableNotes, setAvailableNotes] = useState<string[]>([]);
   const [isLoadingFilterLevels, setIsLoadingFilterLevels] = useState(false);
+  const [isLoadingFilterNotes, setIsLoadingFilterNotes] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedLevel, setSelectedLevel] = useState(allLevelLabel);
+  const [selectedNotes, setSelectedNotes] = useState(allNotesLabel);
+  const [selectedSort, setSelectedSort] = useState(recentSortLabel);
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editingGrammar, setEditingGrammar] = useState<GrammarPoint | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [deletingGrammar, setDeletingGrammar] = useState<GrammarPoint | null>(null);
   const [savingGrammarId, setSavingGrammarId] = useState<string | "new" | null>(
     null,
@@ -116,6 +127,16 @@ export function GrammarPage() {
     return undefined;
   }, [availableLevels, selectedLevel]);
 
+  const selectedNotesFilter = useMemo(() => {
+    if (availableNotes.includes(selectedNotes)) {
+      return selectedNotes;
+    }
+
+    return undefined;
+  }, [availableNotes, selectedNotes]);
+
+  const selectedSortMode = selectedSort === notesSortLabel ? "notes" : "recent";
+
   const totalPages = Math.max(1, Math.ceil(items.length / GRAMMAR_PAGE_SIZE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const visiblePageNumbers = getVisiblePageNumbers(safeCurrentPage, totalPages);
@@ -124,7 +145,13 @@ export function GrammarPage() {
     safeCurrentPage * GRAMMAR_PAGE_SIZE,
   );
   const shouldShowPagination = items.length > GRAMMAR_PAGE_SIZE;
-  const isFiltered = Boolean(search.trim() || selectedLevelFilter || bookmarkedOnly);
+  const isFiltered = Boolean(
+    search.trim() ||
+      selectedLevelFilter ||
+      selectedNotesFilter ||
+      selectedSortMode !== "recent" ||
+      bookmarkedOnly,
+  );
 
   const loadGrammarItems = useCallback(async () => {
     setIsLoading(true);
@@ -134,7 +161,9 @@ export function GrammarPage() {
       const nextItems = await getGrammarPoints({
         search,
         jlptLevel: selectedLevelFilter,
+        notes: selectedNotesFilter,
         bookmarkedOnly,
+        sortMode: selectedSortMode,
       });
       setItems(nextItems);
     } catch (error) {
@@ -143,7 +172,7 @@ export function GrammarPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [bookmarkedOnly, search, selectedLevelFilter]);
+  }, [bookmarkedOnly, search, selectedLevelFilter, selectedNotesFilter, selectedSortMode]);
 
   const loadFilterLevels = useCallback(async () => {
     setIsLoadingFilterLevels(true);
@@ -166,6 +195,26 @@ export function GrammarPage() {
     }
   }, []);
 
+  const loadFilterNotes = useCallback(async () => {
+    setIsLoadingFilterNotes(true);
+
+    try {
+      const nextNotes = await getGrammarFilterNotes();
+      setAvailableNotes(nextNotes);
+      setSelectedNotes((currentNotes) =>
+        currentNotes === allNotesLabel || nextNotes.includes(currentNotes)
+          ? currentNotes
+          : allNotesLabel,
+      );
+    } catch (error) {
+      console.error("Failed to load grammar filter notes:", error);
+      setAvailableNotes([]);
+      setSelectedNotes(allNotesLabel);
+    } finally {
+      setIsLoadingFilterNotes(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadGrammarItems();
@@ -177,7 +226,8 @@ export function GrammarPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadFilterLevels();
-  }, [loadFilterLevels]);
+    void loadFilterNotes();
+  }, [loadFilterLevels, loadFilterNotes]);
 
   function handleAdd() {
     setEditingGrammar(null);
@@ -194,6 +244,16 @@ export function GrammarPage() {
     setCurrentPage(1);
   }
 
+  function handleNotesChange(value: string) {
+    setSelectedNotes(value);
+    setCurrentPage(1);
+  }
+
+  function handleSortChange(value: string) {
+    setSelectedSort(value);
+    setCurrentPage(1);
+  }
+
   function handleBookmarkFilterChange(nextBookmarkedOnly: boolean) {
     setBookmarkedOnly(nextBookmarkedOnly);
     setCurrentPage(1);
@@ -202,6 +262,8 @@ export function GrammarPage() {
   function handleClearFilters() {
     setSearch("");
     setSelectedLevel(allLevelLabel);
+    setSelectedNotes(allNotesLabel);
+    setSelectedSort(recentSortLabel);
     setBookmarkedOnly(false);
     setCurrentPage(1);
   }
@@ -228,6 +290,7 @@ export function GrammarPage() {
       setIsFormOpen(false);
       setEditingGrammar(null);
       await loadFilterLevels();
+      await loadFilterNotes();
       await loadGrammarItems();
     } catch (error) {
       console.error("Failed to save grammar:", error);
@@ -286,6 +349,7 @@ export function GrammarPage() {
       setActionMessage("Đã xóa mẫu ngữ pháp.");
       setDeletingGrammar(null);
       await loadFilterLevels();
+      await loadFilterNotes();
       await loadGrammarItems();
     } catch (error) {
       console.error("Failed to delete grammar:", error);
@@ -323,6 +387,14 @@ export function GrammarPage() {
 
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <AppButton
+              variant="secondary"
+              icon={<FileUp size={18} />}
+              className="min-h-11 w-full min-[420px]:w-auto"
+              onClick={() => setIsImportOpen(true)}
+            >
+              Import CSV
+            </AppButton>
+            <AppButton
               icon={<Plus size={18} />}
               className="min-h-11 w-full min-[420px]:w-auto"
               onClick={handleAdd}
@@ -334,13 +406,28 @@ export function GrammarPage() {
       </section>
 
       <SoftPanel className="relative z-30 p-4 sm:p-5">
-        <div className="grid min-w-0 gap-4 xl:grid-cols-[190px_220px_minmax(280px,1fr)] xl:items-end">
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[160px_180px_170px_220px_minmax(260px,1fr)] xl:items-end">
           <AppSelect
             label="JLPT LEVEL"
             items={[allLevelLabel, ...availableLevels]}
             value={selectedLevel}
             onChange={handleLevelChange}
             isLoading={isLoadingFilterLevels}
+          />
+
+          <AppSelect
+            label="BÀI"
+            items={[allNotesLabel, ...availableNotes]}
+            value={selectedNotes}
+            onChange={handleNotesChange}
+            isLoading={isLoadingFilterNotes}
+          />
+
+          <AppSelect
+            label="SORT"
+            items={[recentSortLabel, notesSortLabel]}
+            value={selectedSort}
+            onChange={handleSortChange}
           />
 
           <label className="grid min-w-0 gap-2">
@@ -589,6 +676,17 @@ export function GrammarPage() {
           }
         }}
         onSubmit={(payload) => void handleSave(payload)}
+      />
+
+      <GrammarImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImportCompleted={() => {
+          setActionMessage("Đã import ngữ pháp thành công.");
+          void loadFilterLevels();
+          void loadFilterNotes();
+          void loadGrammarItems();
+        }}
       />
 
       <ConfirmDialog

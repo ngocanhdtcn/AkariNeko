@@ -751,7 +751,7 @@ export function VocabularyPage() {
     <>
       <div className="grid gap-4">
         <section
-          className="akari-vocabulary-hero relative z-40 overflow-hidden rounded-[30px] border border-pink-100/80 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_45%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]"
+          className="akari-vocabulary-hero relative z-40 overflow-visible rounded-[30px] border border-pink-100/80 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_45%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]"
         >
           <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>

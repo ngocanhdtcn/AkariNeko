@@ -6,9 +6,12 @@ export type GrammarImportRow = {
   pattern: string;
   meaning: string;
   level: string;
+  structure: string;
+  explanation: string;
   usage: string;
   exampleJapanese: string;
   exampleVietnamese: string;
+  notes: string;
 };
 
 export type ImportError = {
@@ -19,6 +22,7 @@ export type ImportError = {
 export type ImportResult = {
   totalRows: number;
   successCount: number;
+  updatedCount: number;
   failedCount: number;
   duplicateCount: number;
   errors: ImportError[];
@@ -26,14 +30,20 @@ export type ImportResult = {
 
 type CsvRecord = Record<string, string>;
 
-type GrammarInsertRow = {
+type ExistingGrammarRow = {
+  id: number | string;
+  title: string;
+  jlpt_level: JlptLevel;
+};
+
+type GrammarWriteRow = {
   jlpt_level: JlptLevel;
   title: string;
   structure: string;
   meaning: string;
   explanation: string;
   examples_json: GrammarExample[];
-  notes: null;
+  notes: string | null;
 };
 
 const jlptLevels = new Set(["N5", "N4", "N3", "N2", "N1"]);
@@ -42,13 +52,19 @@ const usedColumns = [
   "Pattern",
   "Meaning",
   "Level",
-  "Usage",
+  "Structure",
+  "Explanation",
   "ExampleJapanese",
   "ExampleVietnamese",
+  "Notes",
 ] as const;
 
 function normalizeHeader(value: string) {
-  return value.trim().replace(/^\uFEFF/, "");
+  return value.trim().replace(/^\uFEFF/, "").toLowerCase();
+}
+
+function getCell(row: CsvRecord, header: string) {
+  return row[header.toLowerCase()]?.trim() ?? "";
 }
 
 function parseCsvText(csvText: string): string[][] {
@@ -131,7 +147,7 @@ function parseUsage(usage: string) {
   }
 
   const usageMatch = normalizedUsage.match(
-    /Cấu\s*trúc:\s*([\s\S]*?)\s*Cách\s*dùng:\s*([\s\S]*)/i,
+    /(?:Cấu\s*trúc|Cau\s*truc|Structure):\s*([\s\S]*?)\s*(?:Cách\s*dùng|Cach\s*dung|Explanation|Usage):\s*([\s\S]*)/i,
   );
 
   if (!usageMatch) {
@@ -167,35 +183,35 @@ function normalizeDuplicateKey(title: string, jlptLevel: string) {
 
 function validateRow(row: GrammarImportRow): string | null {
   if (!row.pattern) {
-    return "Pattern là bắt buộc.";
+    return "Pattern is required.";
   }
 
   if (!row.meaning) {
-    return "Meaning là bắt buộc.";
+    return "Meaning is required.";
   }
 
   if (!row.level) {
-    return "Level là bắt buộc.";
+    return "Level is required.";
   }
 
   if (!jlptLevels.has(row.level.toUpperCase())) {
-    return "Level phải là N5, N4, N3, N2 hoặc N1.";
+    return "Level must be N5, N4, N3, N2, or N1.";
   }
 
   return null;
 }
 
-function toInsertRow(row: GrammarImportRow): GrammarInsertRow {
+function toWriteRow(row: GrammarImportRow): GrammarWriteRow {
   const parsedUsage = parseUsage(row.usage);
 
   return {
     jlpt_level: row.level.toUpperCase() as JlptLevel,
     title: row.pattern,
-    structure: parsedUsage.structure || row.pattern,
+    structure: row.structure || parsedUsage.structure || row.pattern,
     meaning: row.meaning,
-    explanation: parsedUsage.explanation,
+    explanation: row.explanation || parsedUsage.explanation,
     examples_json: buildExamples(row),
-    notes: null,
+    notes: row.notes || null,
   };
 }
 
@@ -225,12 +241,15 @@ export async function parseGrammarCsv(file: File): Promise<GrammarImportRow[]> {
 
   return csvRows.map((row, index) => ({
     rowNumber: index + 2,
-    pattern: row.Pattern?.trim() ?? "",
-    meaning: row.Meaning?.trim() ?? "",
-    level: row.Level?.trim().toUpperCase() ?? "",
-    usage: row.Usage?.trim() ?? "",
-    exampleJapanese: row.ExampleJapanese?.trim() ?? "",
-    exampleVietnamese: row.ExampleVietnamese?.trim() ?? "",
+    pattern: getCell(row, "Pattern"),
+    meaning: getCell(row, "Meaning"),
+    level: getCell(row, "Level").toUpperCase(),
+    structure: getCell(row, "Structure"),
+    explanation: getCell(row, "Explanation"),
+    usage: getCell(row, "Usage"),
+    exampleJapanese: getCell(row, "ExampleJapanese"),
+    exampleVietnamese: getCell(row, "ExampleVietnamese"),
+    notes: getCell(row, "Notes") || getCell(row, "Note"),
   }));
 }
 
@@ -257,6 +276,7 @@ export async function importGrammarRows(
   const result: ImportResult = {
     totalRows: rows.length,
     successCount: 0,
+    updatedCount: 0,
     failedCount: errors.length,
     duplicateCount: 0,
     errors,
@@ -272,54 +292,86 @@ export async function importGrammarRows(
 
   const { data: existingRows, error: existingRowsError } = await supabase
     .from("grammar_points")
-    .select("title,jlpt_level")
+    .select("id,title,jlpt_level")
     .in("jlpt_level", levels);
 
   if (existingRowsError) {
     throw new Error(
       getSupabaseErrorMessage(
-        "Không thể kiểm tra ngữ pháp trùng.",
+        "Cannot check existing grammar points.",
         existingRowsError,
       ),
     );
   }
 
-  const existingKeys = new Set(
-    (existingRows ?? []).map((row) =>
+  const existingByKey = new Map(
+    ((existingRows ?? []) as ExistingGrammarRow[]).map((row) => [
       normalizeDuplicateKey(row.title, row.jlpt_level),
-    ),
+      row.id,
+    ]),
   );
   const pendingKeys = new Set<string>();
-  const insertRows: GrammarInsertRow[] = [];
+  const insertRows: GrammarWriteRow[] = [];
+  const updateRows: Array<{ id: number | string; payload: GrammarWriteRow }> = [];
 
   validRows.forEach((row) => {
     const key = normalizeDuplicateKey(row.pattern, row.level);
 
-    if (existingKeys.has(key) || pendingKeys.has(key)) {
+    if (pendingKeys.has(key)) {
       result.duplicateCount += 1;
       return;
     }
 
     pendingKeys.add(key);
-    insertRows.push(toInsertRow(row));
+
+    const existingId = existingByKey.get(key);
+    const payload = toWriteRow(row);
+
+    if (existingId !== undefined) {
+      updateRows.push({ id: existingId, payload });
+      return;
+    }
+
+    insertRows.push(payload);
   });
 
-  if (insertRows.length === 0) {
-    return result;
+  if (insertRows.length > 0) {
+    const { data: insertedRows, error: insertError } = await supabase
+      .from("grammar_points")
+      .insert(insertRows)
+      .select("id");
+
+    if (insertError) {
+      throw new Error(
+        getSupabaseErrorMessage("Cannot import grammar points.", insertError),
+      );
+    }
+
+    result.successCount = insertedRows?.length ?? 0;
   }
 
-  const { data: insertedRows, error: insertError } = await supabase
-    .from("grammar_points")
-    .insert(insertRows)
-    .select("id");
-
-  if (insertError) {
-    throw new Error(
-      getSupabaseErrorMessage("Không thể import ngữ pháp.", insertError),
+  if (updateRows.length > 0) {
+    const updateResults = await Promise.all(
+      updateRows.map(({ id, payload }) =>
+        supabase
+          .from("grammar_points")
+          .update(payload)
+          .eq("id", id)
+          .select("id")
+          .single(),
+      ),
     );
-  }
 
-  result.successCount = insertedRows?.length ?? 0;
+    const updateError = updateResults.find((item) => item.error)?.error;
+
+    if (updateError) {
+      throw new Error(
+        getSupabaseErrorMessage("Cannot update existing grammar points.", updateError),
+      );
+    }
+
+    result.updatedCount = updateResults.filter((item) => item.data).length;
+  }
 
   return result;
 }
