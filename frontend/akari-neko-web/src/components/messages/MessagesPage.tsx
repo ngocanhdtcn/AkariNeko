@@ -119,9 +119,10 @@ export function MessagesPage() {
     }, [loadMissingSenderProfiles]);
 
     async function handleSendMessage() {
-        const content = messageText.trim();
+        // 日本語: 改行を保持したまま送信するため、trim せずにそのまま送る
+        const content = messageText;
 
-        if (!content || isSendingMessage) {
+        if (!content.trim() || isSendingMessage) {
             return;
         }
 
@@ -184,7 +185,7 @@ export function MessagesPage() {
     }, []);
 
     return (
-        <div className="grid gap-5">
+        <div className="messages-page gap-5">
             <PageHeader
                 eyebrow="Messages"
                 title="Akari Chat"
@@ -198,9 +199,10 @@ export function MessagesPage() {
                 }
             />
 
-            <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="overflow-hidden rounded-[32px] border border-pink-100 bg-white/85 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                    <div className="border-b border-pink-50 px-5 py-4">
+            <section className="chat-layout">
+                {/* 日本語: このチャットレイアウトは下まで伸ばす */}
+                <div className="chat-panel flex-1 min-h-0 rounded-[32px] border border-pink-100 bg-white/85 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
+                    <div className="chat-header border-b border-pink-50 px-5 py-4">
                         <h2 className="text-xl font-black text-slate-800">Chat chung</h2>
                         <p className="mt-1 text-sm text-slate-500">
                             Phòng chat chung để test realtime giữa các user.
@@ -213,122 +215,126 @@ export function MessagesPage() {
                         </div>
                     ) : null}
 
-                    <div
-                        ref={chatScrollRef}
-                        className="grid h-[540px] content-start gap-3 overflow-y-auto bg-gradient-to-b from-white via-white to-pink-50/20 px-5 py-5"
-                    >
-                        {isLoadingMessages ? (
-                            <LoadingSkeleton variant="list" rows={6} />
-                        ) : messages.length > 0 ? (
-                            messages.map((message) => {
-                                const isOwnMessage = message.senderId === profile?.id;
-                                const senderName = getSenderName(message.senderId);
-                                const senderAvatarUrl = getSenderAvatarUrl(message.senderId);
+                    <div className="flex min-h-0 flex-1 flex-col">
+                        <div
+                            ref={chatScrollRef}
+                            className="message-list flex-1 min-h-0 overflow-y-auto grid content-start gap-3 bg-gradient-to-b from-white via-white to-pink-50/20 px-5 py-5"
+                        >
+                            {/* 日本語: メッセージ一覧は残り高さでスクロールする */}
+                            {isLoadingMessages ? (
+                                <LoadingSkeleton variant="list" rows={6} />
+                            ) : messages.length > 0 ? (
+                                messages.map((message) => {
+                                    const isOwnMessage = message.senderId === profile?.id;
+                                    const senderName = getSenderName(message.senderId);
+                                    const senderAvatarUrl = getSenderAvatarUrl(message.senderId);
 
-                                return (
-                                    <div
-                                        key={message.id}
-                                        className={`flex items-end gap-2 ${isOwnMessage ? "justify-end" : "justify-start"
-                                            }`}
-                                    >
-                                        {!isOwnMessage ? (
-                                            <UserAvatar
-                                                name={senderName}
-                                                avatarUrl={senderAvatarUrl}
-                                                className="mb-1 h-8 w-8 rounded-2xl bg-white text-xs"
-                                            />
-                                        ) : null}
-
+                                    return (
                                         <div
-                                            className={`flex max-w-[min(72%,640px)] flex-col ${isOwnMessage ? "items-end" : "items-start"
-                                                }`}
+                                            key={message.id}
+                                            className={`flex items-end gap-2 ${isOwnMessage ? "justify-end" : "justify-start"}`}
                                         >
                                             {!isOwnMessage ? (
-                                                <span className="mb-1 px-1 text-[11px] font-bold text-slate-400">
-                                                    {senderName}
-                                                </span>
+                                                <UserAvatar
+                                                    name={senderName}
+                                                    avatarUrl={senderAvatarUrl}
+                                                    className="mb-1 h-8 w-8 rounded-2xl bg-white text-xs"
+                                                />
                                             ) : null}
 
                                             <div
-                                                className={`w-fit max-w-full rounded-[20px] px-3.5 py-2.5 text-sm font-semibold leading-5 shadow-sm ${isOwnMessage
+                                                className={`flex max-w-[min(72%,640px)] flex-col ${isOwnMessage ? "items-end" : "items-start"}`}
+                                            >
+                                                {!isOwnMessage ? (
+                                                    <span className="mb-1 px-1 text-[11px] font-bold text-slate-400">
+                                                        {senderName}
+                                                    </span>
+                                                ) : null}
+
+                                                <div
+                                                    className={`w-fit max-w-full rounded-[20px] px-3.5 py-2.5 text-sm font-semibold leading-5 shadow-sm ${isOwnMessage
                                                         ? "rounded-br-md border border-pink-200 bg-gradient-to-br from-pink-400 to-fuchsia-400 text-white shadow-[0_10px_24px_rgba(236,72,153,0.16)]"
                                                         : "rounded-bl-md border border-pink-100 bg-gradient-to-br from-white to-pink-50/80 text-slate-700 shadow-[0_10px_24px_rgba(236,72,153,0.08)]"
-                                                    }`}
-                                            >
-                                                <p className="whitespace-pre-wrap break-words">
-                                                    {message.content}
-                                                </p>
-
-                                                <p
-                                                    className={`mt-1 text-right text-[10px] font-bold ${isOwnMessage ? "text-white/75" : "text-slate-400"
                                                         }`}
                                                 >
-                                                    {formatMessageTime(message.createdAt)}
-                                                </p>
+                                                    <p className="whitespace-pre-wrap break-words">
+                                                        {message.content}
+                                                    </p>
+
+                                                    <p
+                                                        className={`mt-1 text-right text-[10px] font-bold ${isOwnMessage ? "text-white/75" : "text-slate-400"}`}
+                                                    >
+                                                        {formatMessageTime(message.createdAt)}
+                                                    </p>
+                                                </div>
                                             </div>
+
+                                            {isOwnMessage ? (
+                                                <UserAvatar
+                                                    name={senderName}
+                                                    avatarUrl={senderAvatarUrl}
+                                                    className="mb-1 h-8 w-8 rounded-2xl bg-white text-xs"
+                                                />
+                                            ) : null}
                                         </div>
+                                    );
+                                })
+                            ) : (
+                                <EmptyState
+                                    icon={<MessageCircle size={24} />}
+                                    title="Chưa có tin nhắn"
+                                    description="Gửi lời chào đầu tiên để phòng chat AkariNeko bắt đầu nhộn nhịp."
+                                    className="min-h-[220px]"
+                                />
+                            )}
+                        </div>
 
-                                        {isOwnMessage ? (
-                                            <UserAvatar
-                                                name={senderName}
-                                                avatarUrl={senderAvatarUrl}
-                                                className="mb-1 h-8 w-8 rounded-2xl bg-white text-xs"
-                                            />
-                                        ) : null}
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <EmptyState
-                                icon={<MessageCircle size={24} />}
-                                title="Chưa có tin nhắn"
-                                description="Gửi lời chào đầu tiên để phòng chat AkariNeko bắt đầu nhộn nhịp."
-                                className="min-h-[220px]"
-                            />
-                        )}
-                    </div>
+                        <div className="message-input-area border-t border-pink-50 bg-white/95 p-4">
+                            <div className="flex gap-3">
+                                <AppInput
+                                    value={messageText}
+                                    className="min-w-0 flex-1"
+                                    placeholder="Nhập tin nhắn..."
+                                    multiline
+                                    rows={3}
+                                    onChange={(event) => setMessageText(event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter" && !event.shiftKey) {
+                                            event.preventDefault();
+                                            void handleSendMessage();
+                                        }
+                                    }}
+                                />
 
-                    <div className="border-t border-pink-50 bg-white/95 p-4">
-                        <div className="flex gap-3">
-                            <AppInput
-                                value={messageText}
-                                className="min-w-0 flex-1"
-                                placeholder="Nhập tin nhắn..."
-                                onChange={(event) => setMessageText(event.target.value)}
-                                onKeyDown={(event) => {
-                                    if (event.key === "Enter" && !event.shiftKey) {
-                                        event.preventDefault();
-                                        void handleSendMessage();
-                                    }
-                                }}
-                            />
-
-                            <AppButton
-                                variant="primary"
-                                icon={<Send size={17} />}
-                                disabled={!messageText.trim() || isSendingMessage}
-                                className="h-12 px-5"
-                                onClick={() => void handleSendMessage()}
-                            >
-                                {isSendingMessage ? "Đang gửi..." : "Gửi"}
-                            </AppButton>
+                                <AppButton
+                                    variant="primary"
+                                    icon={<Send size={17} />}
+                                    disabled={!messageText.trim() || isSendingMessage}
+                                    className="h-12 px-5"
+                                    onClick={() => void handleSendMessage()}
+                                >
+                                    {isSendingMessage ? "Đang gửi..." : "Gửi"}
+                                </AppButton>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <aside className="rounded-[32px] border border-pink-100 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
-                    <h2 className="text-xl font-black text-slate-800">
-                        Người đang online
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                        {onlineUserCount} user đang online.
-                    </p>
+                <aside className="online-panel flex min-h-0 w-full min-w-0 flex-col justify-start overflow-hidden rounded-[32px] border border-pink-100 bg-white/85 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.08)]">
+                    <div className="online-header">
+                        <h2 className="text-xl font-black text-slate-800">
+                            Người đang online
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-500">
+                            {onlineUserCount} user đang online.
+                        </p>
+                    </div>
 
-                    <div className="mt-4 grid gap-3">
+                    <div className="online-list mt-4 flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto overflow-x-hidden">
                         {onlineUsers.map((user) => (
                             <div
                                 key={user.userId}
-                                className="flex items-center gap-3 rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
+                                className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
                             >
                                 <UserAvatar
                                     name={user.displayName}
@@ -336,15 +342,15 @@ export function MessagesPage() {
                                 />
 
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-black text-slate-700">
+                                    <p className="truncate whitespace-nowrap text-sm font-black text-slate-700">
                                         {user.displayName}
                                     </p>
-                                    <p className="truncate text-xs font-medium text-slate-400">
+                                    <p className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-xs font-medium text-slate-400">
                                         {user.email || "Đang hoạt động"}
                                     </p>
                                 </div>
 
-                                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
+                                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
                             </div>
                         ))}
 

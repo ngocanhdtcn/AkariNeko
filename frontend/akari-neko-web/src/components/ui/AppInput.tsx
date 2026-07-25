@@ -1,17 +1,36 @@
 "use client";
 
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type {
+  InputHTMLAttributes,
+  ReactNode,
+  TextareaHTMLAttributes,
+} from "react";
 
-type AppInputProps = InputHTMLAttributes<HTMLInputElement> & {
-  icon?: ReactNode;
-};
+type AppInputProps = InputHTMLAttributes<HTMLInputElement> &
+  TextareaHTMLAttributes<HTMLTextAreaElement> & {
+    icon?: ReactNode;
+    multiline?: boolean;
+    rows?: number;
+  };
 
 export function AppInput({
   icon,
   className = "",
   type = "text",
+  multiline = false,
+  rows = 4,
   ...props
 }: AppInputProps) {
+  if (multiline) {
+    return (
+      <textarea
+        className={`min-h-[96px] w-full rounded-2xl border border-pink-100 bg-white/85 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-pink-300 focus:ring-4 focus:ring-pink-100/70 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${className}`}
+        rows={rows}
+        {...props}
+      />
+    );
+  }
+
   if (icon) {
     return (
       <div className="flex h-12 items-center gap-3 rounded-2xl border border-pink-100 bg-white/85 px-4 shadow-sm transition focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-100/70">

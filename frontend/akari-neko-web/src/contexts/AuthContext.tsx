@@ -9,7 +9,9 @@ import {
     useState,
 } from "react";
 import {
+    clearStoredAuthSession,
     getCurrentProfile,
+    isInvalidRefreshTokenError,
     signOut,
     type AuthProfile,
 } from "@/services/authService";
@@ -41,8 +43,19 @@ function getCurrentProfileWithTimeout() {
 }
 
 function getCurrentSessionWithTimeout() {
+    const sessionPromise = (async () => {
+        const result = await supabase.auth.getSession();
+
+        if (result.error && isInvalidRefreshTokenError(result.error)) {
+            await clearStoredAuthSession();
+            return { data: { session: null }, error: null } as const;
+        }
+
+        return result;
+    })();
+
     return Promise.race([
-        supabase.auth.getSession(),
+        sessionPromise,
         new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>>((resolve) => {
             window.setTimeout(
                 () => resolve({ data: { session: null }, error: null }),

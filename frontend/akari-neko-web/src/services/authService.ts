@@ -44,14 +44,14 @@ function mapProfileRow(row: ProfileRow, email: string): AuthProfile {
     };
 }
 
-function isInvalidRefreshTokenError(error: unknown) {
+export function isInvalidRefreshTokenError(error: unknown) {
     return (
         error instanceof Error &&
         /invalid refresh token|refresh token not found/i.test(error.message)
     );
 }
 
-async function clearStoredAuthSession() {
+export async function clearStoredAuthSession() {
     try {
         await supabase.auth.signOut({ scope: "local" });
     } catch {

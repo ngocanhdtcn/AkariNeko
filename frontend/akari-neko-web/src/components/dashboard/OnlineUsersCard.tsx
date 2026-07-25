@@ -24,31 +24,31 @@ export function OnlineUsersCard() {
       </div>
 
       {onlineUsers.length > 0 ? (
-        <div className="grid gap-3">
+        <div className="flex flex-col gap-3">
           {onlineUsers.map((user) => (
             <div
               key={user.userId}
-              className="flex items-center gap-3 rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
+              className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
             >
               <UserAvatar name={user.displayName} avatarUrl={user.avatarUrl} />
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-slate-700">
+                <p className="truncate whitespace-nowrap text-sm font-black text-slate-700">
                   {user.displayName || "Akari user"}
                 </p>
 
                 {user.email ? (
-                  <p className="truncate text-xs font-medium text-slate-400">
+                  <p className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-xs font-medium text-slate-400">
                     {user.email}
                   </p>
                 ) : (
-                  <p className="truncate text-xs font-medium text-slate-400">
+                  <p className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-xs font-medium text-slate-400">
                     Đang hoạt động
                   </p>
                 )}
               </div>
 
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
             </div>
           ))}
         </div>
