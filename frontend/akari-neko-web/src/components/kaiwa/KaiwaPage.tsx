@@ -285,6 +285,9 @@ function getLessonImage(lesson: KaiwaLesson) {
 
 export function KaiwaPage() {
   const { profile, isLoadingProfile } = useAuth();
+  const canManageKaiwa = profile?.role === "admin";
+  const canViewKaiwa =
+    profile?.role === "admin" || Boolean(profile?.canAccessKaiwa);
   const storedSelectedLevel = useSyncExternalStore(
     subscribeToStoredKaiwaSelectedLevel,
     readStoredKaiwaSelectedLevel,
@@ -308,7 +311,15 @@ export function KaiwaPage() {
       ? (normalizedLevel as KaiwaLevel)
       : null;
   }, [profile?.currentJlptLevel]);
+  const visibleLevelOptions = useMemo<KaiwaSelectedLevel[]>(() => {
+    if (canManageKaiwa) {
+      return levelOptions;
+    }
+
+    return profileLevelFilter ? [profileLevelFilter] : [];
+  }, [canManageKaiwa, profileLevelFilter]);
   const selectedLevel =
+    (!canManageKaiwa ? profileLevelFilter : null) ??
     manualSelectedLevel ??
     storedSelectedLevel ??
     (!isLoadingProfile ? profileLevelFilter : null) ??
@@ -409,6 +420,10 @@ export function KaiwaPage() {
   }
 
   function handleSelectedLevelChange(level: KaiwaSelectedLevel) {
+    if (!canManageKaiwa && level !== profileLevelFilter) {
+      return;
+    }
+
     setManualSelectedLevel(level);
     writeStoredKaiwaSelectedLevel(level);
   }
@@ -474,6 +489,7 @@ export function KaiwaPage() {
             </button>
             <button
               type="button"
+              hidden={!canManageKaiwa}
               onClick={() => setViewMode("manage")}
               className={`flex h-11 items-center justify-center gap-2 rounded-2xl px-4 transition ${
                 viewMode === "manage"
@@ -510,7 +526,7 @@ export function KaiwaPage() {
               <SlidersHorizontal size={16} />
               JLPT
             </span>
-            {levelOptions.map((level) => (
+            {visibleLevelOptions.map((level) => (
               <button
                 key={level}
                 type="button"
@@ -528,7 +544,18 @@ export function KaiwaPage() {
         </div>
       </section>
 
-      {viewMode === "study" ? (
+      {!isLoadingProfile && !canViewKaiwa ? (
+        <section className="rounded-[28px] border border-dashed border-pink-100 bg-white/90 p-8 text-center">
+          <p className="text-lg font-black text-slate-800">
+            Tài khoản chưa được mở Kaiwa
+          </p>
+          <p className="mt-2 text-sm font-semibold text-slate-500">
+            Quản trị viên cần bật quyền Kaiwa trong trang duyệt học viên.
+          </p>
+        </section>
+      ) : null}
+
+      {!canViewKaiwa && !isLoadingProfile ? null : viewMode === "study" || !canManageKaiwa ? (
         <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {filteredLessons.map((lesson, index) => (
             <KaiwaCard key={lesson.id} lesson={lesson} eager={index === 0} />

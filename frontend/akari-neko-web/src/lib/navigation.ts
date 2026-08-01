@@ -6,10 +6,6 @@ export function getCurrentPageTitle(pathname: string) {
   }
 
   const matchedItem = dashboardMenuItems.find((item) => {
-    if (item.href === "/") {
-      return pathname === "/";
-    }
-
     return pathname.startsWith(item.href);
   });
 

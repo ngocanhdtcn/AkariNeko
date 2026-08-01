@@ -79,7 +79,8 @@ function areProfilesEqual(
         firstProfile.experiencePoint === secondProfile.experiencePoint &&
         firstProfile.currentJlptLevel === secondProfile.currentJlptLevel &&
         firstProfile.role === secondProfile.role &&
-        firstProfile.approvalStatus === secondProfile.approvalStatus
+        firstProfile.approvalStatus === secondProfile.approvalStatus &&
+        firstProfile.canAccessKaiwa === secondProfile.canAccessKaiwa
     );
 }
 

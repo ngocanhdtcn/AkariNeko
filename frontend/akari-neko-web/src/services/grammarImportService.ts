@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { GrammarExample, JlptLevel } from "@/services/grammarService";
+import { requireAdminContentAccess } from "@/services/studentAccessService";
 
 export type GrammarImportRow = {
   rowNumber: number;
@@ -256,6 +257,8 @@ export async function parseGrammarCsv(file: File): Promise<GrammarImportRow[]> {
 export async function importGrammarRows(
   rows: GrammarImportRow[],
 ): Promise<ImportResult> {
+  await requireAdminContentAccess();
+
   const errors: ImportError[] = [];
   const validRows: GrammarImportRow[] = [];
 

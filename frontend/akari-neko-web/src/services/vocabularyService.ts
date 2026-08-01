@@ -5,6 +5,10 @@ import {
     mergeVocabulariesWithCurrentUserProgress,
     setVocabularyDifficult,
 } from "@/services/userVocabularyProgressService";
+import {
+    getStudentLockedJlptLevel,
+    requireAdminContentAccess,
+} from "@/services/studentAccessService";
 
 export type VocabularyListItem = {
     id: string;
@@ -178,6 +182,8 @@ export async function getVocabularies({
     chapters,
     onlyDifficult = false,
 }: GetVocabulariesParams): Promise<GetVocabulariesResult> {
+    const lockedLevel = await getStudentLockedJlptLevel();
+    const effectiveLevel = lockedLevel ?? level;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     const normalizedSearchKeyword = searchKeyword.trim();
@@ -210,8 +216,8 @@ export async function getVocabularies({
         .order("created_at", { ascending: false })
         .range(from, to);
 
-    if (level !== "All") {
-        query = query.eq("level", level);
+    if (effectiveLevel !== "All") {
+        query = query.eq("level", effectiveLevel);
     }
 
     if (book !== "All") {
@@ -269,18 +275,26 @@ export async function getVocabularyFilterOptions({
     level = "All",
     book = "All",
 }: GetVocabularyFilterOptionsParams = {}): Promise<VocabularyFilterOptions> {
+    const lockedLevel = await getStudentLockedJlptLevel();
+    const effectiveLevel = lockedLevel ?? level;
     const allRows = await getCachedVocabularyOptionRows();
     const bookRows =
-        level === "All"
+        effectiveLevel === "All"
             ? allRows
-            : allRows.filter((row) => row.level === level);
+            : allRows.filter((row) => row.level === effectiveLevel);
     const chapterRows = bookRows.filter(
         (row) => book === "All" || row.book === book,
     );
 
     return {
         levels: sortJlptLevels(
-            getUniqueStringOptions(allRows.map((row) => row.level)),
+            getUniqueStringOptions(
+                lockedLevel
+                    ? allRows
+                        .filter((row) => row.level === lockedLevel)
+                        .map((row) => row.level)
+                    : allRows.map((row) => row.level),
+            ),
         ),
         books: getUniqueStringOptions(bookRows.map((row) => row.book)),
         chapters: getUniqueStringOptions(chapterRows.map((row) => row.chapter)),
@@ -288,6 +302,8 @@ export async function getVocabularyFilterOptions({
 }
 
 export async function deleteVocabulary(vocabularyId: string): Promise<void> {
+    await requireAdminContentAccess();
+
     const { error } = await supabase
         .from("vocabularies")
         .delete()
@@ -311,6 +327,8 @@ export type UpdateVocabularyInput = {
 };
 
 export async function updateVocabulary(input: UpdateVocabularyInput): Promise<void> {
+    await requireAdminContentAccess();
+
     const normalizedInput = normalizeVocabularyTextFields(input);
 
     const { data: existingVocabulary, error: duplicateCheckError } = await supabase
@@ -364,6 +382,8 @@ export type CreateVocabularyInput = {
 export async function createVocabulary(
     input: CreateVocabularyInput,
 ): Promise<void> {
+    await requireAdminContentAccess();
+
     const normalizedInput = normalizeVocabularyTextFields(input);
 
     const { data: existingVocabulary, error: duplicateCheckError } = await supabase
@@ -403,7 +423,8 @@ export async function createVocabulary(
 export async function getRecentVocabularies(
     limitCount = 5,
 ): Promise<VocabularyListItem[]> {
-    const { data, error } = await supabase
+    const lockedLevel = await getStudentLockedJlptLevel();
+    let query = supabase
         .from("vocabularies")
         .select(
             [
@@ -419,6 +440,12 @@ export async function getRecentVocabularies(
         )
         .order("created_at", { ascending: false })
         .limit(limitCount);
+
+    if (lockedLevel) {
+        query = query.eq("level", lockedLevel);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         throw error;

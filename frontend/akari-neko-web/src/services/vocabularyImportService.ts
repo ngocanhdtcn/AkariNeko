@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeVocabularyTextFields } from "@/lib/vocabularyTextNormalizer";
 import { getCurrentUserId } from "@/services/authService";
+import { requireAdminContentAccess } from "@/services/studentAccessService";
 import { invalidateVocabularyFilterOptionsCache } from "@/services/vocabularyService";
 import type {
   ImportVocabularyPayload,
@@ -78,6 +79,8 @@ function throwSupabaseError(
 export async function importVocabularies(
   payload: ImportVocabularyPayload,
 ): Promise<ImportVocabularyResponse> {
+  await requireAdminContentAccess();
+
   const userId = await getCurrentUserId();
 
   if (!userId) {

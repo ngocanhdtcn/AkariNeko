@@ -13,6 +13,7 @@ import type { GrammarPoint, JlptLevel } from "@/services/grammarService";
 type GrammarCardProps = {
   grammar: GrammarPoint;
   isBusy?: boolean;
+  canManage?: boolean;
   onBookmark: (grammar: GrammarPoint) => void;
   onEdit: (grammar: GrammarPoint) => void;
   onDelete: (grammar: GrammarPoint) => void;
@@ -45,6 +46,7 @@ function formatDate(value: string | null) {
 export function GrammarCard({
   grammar,
   isBusy = false,
+  canManage = false,
   onBookmark,
   onEdit,
   onDelete,
@@ -65,7 +67,7 @@ export function GrammarCard({
             type="button"
             disabled={isBusy}
             aria-label="Sửa ngữ pháp"
-            className="hidden h-8 w-8 items-center justify-center rounded-xl text-slate-300 opacity-0 transition hover:bg-violet-50 hover:text-violet-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40 md:flex"
+            className={`${canManage ? "md:flex" : ""} hidden h-8 w-8 items-center justify-center rounded-xl text-slate-300 opacity-0 transition hover:bg-violet-50 hover:text-violet-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40`}
             onClick={() => onEdit(grammar)}
           >
             <Pencil size={15} />
@@ -74,7 +76,7 @@ export function GrammarCard({
             type="button"
             disabled={isBusy}
             aria-label="Xóa ngữ pháp"
-            className="hidden h-8 w-8 items-center justify-center rounded-xl text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40 md:flex"
+            className={`${canManage ? "md:flex" : ""} hidden h-8 w-8 items-center justify-center rounded-xl text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40`}
             onClick={() => onDelete(grammar)}
           >
             <Trash2 size={15} />

@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { VocabularyListItem } from "@/services/vocabularyService";
 import { getCurrentUserId } from "@/services/authService";
+import { getStudentLockedJlptLevel } from "@/services/studentAccessService";
 import {
     getDifficultVocabularyIds,
     mergeVocabulariesWithCurrentUserProgress,
@@ -55,6 +56,8 @@ export async function getQuizVocabularies({
     onlyDifficult = false,
     limitCount = QUIZ_VOCABULARY_PAGE_SIZE,
 }: GetQuizVocabulariesParams): Promise<VocabularyListItem[]> {
+    const lockedLevel = await getStudentLockedJlptLevel();
+    const effectiveLevel = lockedLevel ?? level;
     const rows: VocabularyRow[] = [];
     let from = 0;
     const difficultVocabularyIds = onlyDifficult
@@ -88,8 +91,8 @@ export async function getQuizVocabularies({
             .order("created_at", { ascending: false })
             .range(from, to);
 
-        if (level !== "All") {
-            query = query.eq("level", level);
+        if (effectiveLevel !== "All") {
+            query = query.eq("level", effectiveLevel);
         }
 
         if (book !== "All") {

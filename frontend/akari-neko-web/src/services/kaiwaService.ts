@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { KaiwaLesson, KaiwaLevel } from "@/data/kaiwaData";
+import { getCurrentProfile } from "@/services/authService";
+import { requireAdminContentAccess } from "@/services/studentAccessService";
 
 const KAIWA_BUCKET = "kaiwa";
 
@@ -71,6 +73,37 @@ const kaiwaColumns = [
   "created_at",
   "updated_at",
 ].join(",");
+
+function normalizeKaiwaLevel(level: string | null | undefined): KaiwaLevel | null {
+  const normalizedLevel = level?.trim().toUpperCase();
+
+  return ["N5", "N4", "N3", "N2", "N1"].includes(normalizedLevel ?? "")
+    ? (normalizedLevel as KaiwaLevel)
+    : null;
+}
+
+async function getKaiwaAccessScope() {
+  const profile = await getCurrentProfile();
+
+  if (!profile) {
+    return {
+      canAccess: false,
+      lockedLevel: null,
+    };
+  }
+
+  if (profile.role === "admin") {
+    return {
+      canAccess: true,
+      lockedLevel: null,
+    };
+  }
+
+  return {
+    canAccess: profile.canAccessKaiwa,
+    lockedLevel: normalizeKaiwaLevel(profile.currentJlptLevel) ?? "N5",
+  };
+}
 
 function toFriendlyError(error: unknown, fallbackMessage: string) {
   const rawMessage =
@@ -228,11 +261,23 @@ async function uploadKaiwaFiles(
 }
 
 export async function getKaiwaLessons(): Promise<KaiwaLesson[]> {
-  const { data, error } = await supabase
+  const accessScope = await getKaiwaAccessScope();
+
+  if (!accessScope.canAccess) {
+    return [];
+  }
+
+  let query = supabase
     .from("kaiwa_lessons")
     .select(kaiwaColumns)
     .order("sort_order", { ascending: true })
     .order("lesson_number", { ascending: true });
+
+  if (accessScope.lockedLevel) {
+    query = query.eq("jlpt_level", accessScope.lockedLevel);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw toFriendlyError(error, "Không thể tải danh sách Kaiwa từ Supabase.");
@@ -242,6 +287,12 @@ export async function getKaiwaLessons(): Promise<KaiwaLesson[]> {
 }
 
 export async function getKaiwaLessonById(id: string): Promise<KaiwaLesson | null> {
+  const accessScope = await getKaiwaAccessScope();
+
+  if (!accessScope.canAccess) {
+    return null;
+  }
+
   const { data, error } = await supabase
     .from("kaiwa_lessons")
     .select(kaiwaColumns)
@@ -252,12 +303,20 @@ export async function getKaiwaLessonById(id: string): Promise<KaiwaLesson | null
     throw toFriendlyError(error, "Không thể tải chi tiết Kaiwa từ Supabase.");
   }
 
-  return data ? mapKaiwaLessonRow(data as unknown as KaiwaLessonRow) : null;
+  const lesson = data ? mapKaiwaLessonRow(data as unknown as KaiwaLessonRow) : null;
+
+  if (lesson && accessScope.lockedLevel && lesson.level !== accessScope.lockedLevel) {
+    return null;
+  }
+
+  return lesson;
 }
 
 export async function createKaiwaLesson(
   payload: CreateKaiwaLessonPayload,
 ): Promise<KaiwaLesson> {
+  await requireAdminContentAccess();
+
   const baseFolder = [
     slugify(payload.source),
     payload.level.toLowerCase(),
@@ -316,6 +375,8 @@ export async function createKaiwaLesson(
 export async function updateKaiwaLessonMedia(
   payload: UpdateKaiwaLessonMediaPayload,
 ): Promise<KaiwaLesson> {
+  await requireAdminContentAccess();
+
   const baseFolder = [
     slugify(payload.lesson.source),
     payload.lesson.level.toLowerCase(),

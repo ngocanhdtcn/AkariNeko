@@ -1,6 +1,4 @@
-import { notFound } from "next/navigation";
-import { KaiwaDetailPage } from "@/components/kaiwa/KaiwaDetailPage";
-import { getKaiwaLessonById } from "@/services/kaiwaService";
+import { KaiwaDetailRoute } from "@/components/kaiwa/KaiwaDetailRoute";
 
 type PageProps = {
   params: Promise<{
@@ -10,11 +8,6 @@ type PageProps = {
 
 export default async function Page({ params }: PageProps) {
   const { lessonId } = await params;
-  const lesson = await getKaiwaLessonById(lessonId).catch(() => null);
 
-  if (!lesson) {
-    notFound();
-  }
-
-  return <KaiwaDetailPage lesson={lesson} />;
+  return <KaiwaDetailRoute lessonId={lessonId} />;
 }

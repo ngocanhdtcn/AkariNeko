@@ -1,5 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentSession } from "@/services/authService";
+import {
+  getStudentLockedContentLevel,
+  requireAdminContentAccess,
+} from "@/services/studentAccessService";
 
 export type JlptLevel = "N5" | "N4" | "N3" | "N2" | "N1";
 
@@ -95,6 +99,12 @@ const grammarPointColumns = [
 ].join(",");
 
 const JLPT_LEVEL_ORDER: JlptLevel[] = ["N5", "N4", "N3", "N2", "N1"];
+
+function normalizeJlptLevel(level: string): JlptLevel | null {
+  return JLPT_LEVEL_ORDER.includes(level as JlptLevel)
+    ? (level as JlptLevel)
+    : null;
+}
 
 function compareNaturalText(left: string, right: string) {
   return left.localeCompare(right, "vi", {
@@ -207,6 +217,7 @@ async function getBookmarkedGrammarIds(userId: string) {
 export async function getGrammarPoints(
   filters: GrammarFilters = {},
 ): Promise<GrammarPoint[]> {
+  const lockedLevel = await getStudentLockedContentLevel(normalizeJlptLevel);
   const sessionUserId = await getSessionUserId();
   let bookmarkedGrammarIds = new Set<string>();
 
@@ -228,8 +239,10 @@ export async function getGrammarPoints(
     .order("updated_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
-  if (filters.jlptLevel) {
-    query = query.eq("jlpt_level", filters.jlptLevel);
+  const effectiveJlptLevel = lockedLevel ?? filters.jlptLevel;
+
+  if (effectiveJlptLevel) {
+    query = query.eq("jlpt_level", effectiveJlptLevel);
   }
 
   if (filters.notes) {
@@ -274,16 +287,23 @@ export async function getGrammarPoints(
 export async function getRecentGrammarPoints(
   limitCount = 5,
 ): Promise<GrammarPoint[]> {
+  const lockedLevel = await getStudentLockedContentLevel(normalizeJlptLevel);
   const sessionUserId = await getSessionUserId();
   const bookmarkedGrammarIds = sessionUserId
     ? await getBookmarkedGrammarIds(sessionUserId)
     : new Set<string>();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("grammar_points")
     .select(grammarPointColumns)
     .order("created_at", { ascending: false })
     .limit(limitCount);
+
+  if (lockedLevel) {
+    query = query.eq("jlpt_level", lockedLevel);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw toFriendlyError(error, "KhÃ´ng thá»ƒ táº£i ngá»¯ phÃ¡p gáº§n Ä‘Ã¢y.");
@@ -295,6 +315,12 @@ export async function getRecentGrammarPoints(
 }
 
 export async function getGrammarFilterLevels(): Promise<JlptLevel[]> {
+  const lockedLevel = await getStudentLockedContentLevel(normalizeJlptLevel);
+
+  if (lockedLevel) {
+    return [lockedLevel];
+  }
+
   const { data, error } = await supabase
     .from("grammar_points")
     .select("jlpt_level");
@@ -313,7 +339,14 @@ export async function getGrammarFilterLevels(): Promise<JlptLevel[]> {
 }
 
 export async function getGrammarFilterNotes(): Promise<string[]> {
-  const { data, error } = await supabase.from("grammar_points").select("notes");
+  const lockedLevel = await getStudentLockedContentLevel(normalizeJlptLevel);
+  let query = supabase.from("grammar_points").select("notes");
+
+  if (lockedLevel) {
+    query = query.eq("jlpt_level", lockedLevel);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw toFriendlyError(error, "Không thể tải bộ lọc ghi chú.");
@@ -331,16 +364,22 @@ export async function getGrammarFilterNotes(): Promise<string[]> {
 export async function getGrammarPointById(
   id: string | number,
 ): Promise<GrammarPoint> {
+  const lockedLevel = await getStudentLockedContentLevel(normalizeJlptLevel);
   const sessionUserId = await getSessionUserId();
   const bookmarkedGrammarIds = sessionUserId
     ? await getBookmarkedGrammarIds(sessionUserId)
     : new Set<string>();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("grammar_points")
     .select(grammarPointColumns)
-    .eq("id", id)
-    .maybeSingle();
+    .eq("id", id);
+
+  if (lockedLevel) {
+    query = query.eq("jlpt_level", lockedLevel);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     throw toFriendlyError(error, "Không thể tải chi tiết ngữ pháp.");
@@ -356,6 +395,8 @@ export async function getGrammarPointById(
 export async function createGrammarPoint(
   payload: GrammarMutation,
 ): Promise<GrammarPoint> {
+  await requireAdminContentAccess();
+
   const { data, error } = await supabase
     .from("grammar_points")
     .insert(mapGrammarMutation(payload))
@@ -373,6 +414,8 @@ export async function updateGrammarPoint(
   id: number | string,
   payload: GrammarPatch,
 ): Promise<GrammarPoint> {
+  await requireAdminContentAccess();
+
   const { data, error } = await supabase
     .from("grammar_points")
     .update(mapGrammarMutation(payload))
@@ -393,6 +436,8 @@ export async function updateGrammarPoint(
 }
 
 export async function deleteGrammarPoint(id: number | string): Promise<void> {
+  await requireAdminContentAccess();
+
   const { error } = await supabase
     .from("grammar_points")
     .delete()

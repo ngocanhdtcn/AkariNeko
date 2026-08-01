@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { RootGate } from "@/components/auth/RootGate";
 
 export default function Home() {
-  redirect("/auth");
+  return <RootGate />;
 }

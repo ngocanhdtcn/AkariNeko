@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { VocabularyListItem } from "@/services/vocabularyService";
 import { getCurrentUserId } from "@/services/authService";
+import { getStudentLockedJlptLevel } from "@/services/studentAccessService";
 import {
     getDifficultVocabularyIds,
     mergeVocabulariesWithCurrentUserProgress,
@@ -53,6 +54,8 @@ export async function getFlashcardVocabularies({
     onlyDifficult = false,
     limitCount = 100,
 }: GetFlashcardVocabulariesParams): Promise<VocabularyListItem[]> {
+    const lockedLevel = await getStudentLockedJlptLevel();
+    const effectiveLevel = lockedLevel ?? level;
     const difficultVocabularyIds = onlyDifficult
         ? await getDifficultVocabularyIds()
         : [];
@@ -94,8 +97,8 @@ export async function getFlashcardVocabularies({
             .order("created_at", { ascending: false })
             .range(from, to);
 
-        if (level !== "All") {
-            query = query.eq("level", level);
+        if (effectiveLevel !== "All") {
+            query = query.eq("level", effectiveLevel);
         }
 
         if (book !== "All") {

@@ -19,6 +19,7 @@ import { AppSelect } from "@/components/ui/AppSelect";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SoftPanel } from "@/components/ui/SoftPanel";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   addGrammarBookmark,
   createGrammarPoint,
@@ -94,6 +95,12 @@ function getActionErrorMessage(error: unknown, fallbackMessage: string) {
 }
 
 export function GrammarPage() {
+  const { profile } = useAuth();
+  const canManageGrammar = profile?.role === "admin";
+  const lockedStudentLevel =
+    profile?.role === "student"
+      ? ((profile.currentJlptLevel?.toUpperCase() || "N5") as JlptLevel)
+      : null;
   const [items, setItems] = useState<GrammarPoint[]>([]);
   const [availableLevels, setAvailableLevels] = useState<JlptLevel[]>([]);
   const [availableNotes, setAvailableNotes] = useState<string[]>([]);
@@ -120,12 +127,16 @@ export function GrammarPage() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const selectedLevelFilter = useMemo(() => {
+    if (lockedStudentLevel) {
+      return lockedStudentLevel;
+    }
+
     if (availableLevels.includes(selectedLevel as JlptLevel)) {
       return selectedLevel as JlptLevel;
     }
 
     return undefined;
-  }, [availableLevels, selectedLevel]);
+  }, [availableLevels, lockedStudentLevel, selectedLevel]);
 
   const selectedNotesFilter = useMemo(() => {
     if (availableNotes.includes(selectedNotes)) {
@@ -230,6 +241,10 @@ export function GrammarPage() {
   }, [loadFilterLevels, loadFilterNotes]);
 
   function handleAdd() {
+    if (!canManageGrammar) {
+      return;
+    }
+
     setEditingGrammar(null);
     setIsFormOpen(true);
   }
@@ -240,7 +255,7 @@ export function GrammarPage() {
   }
 
   function handleLevelChange(value: string) {
-    setSelectedLevel(value);
+    setSelectedLevel(lockedStudentLevel ?? value);
     setCurrentPage(1);
   }
 
@@ -261,7 +276,7 @@ export function GrammarPage() {
 
   function handleClearFilters() {
     setSearch("");
-    setSelectedLevel(allLevelLabel);
+    setSelectedLevel(lockedStudentLevel ?? allLevelLabel);
     setSelectedNotes(allNotesLabel);
     setSelectedSort(recentSortLabel);
     setBookmarkedOnly(false);
@@ -273,6 +288,10 @@ export function GrammarPage() {
   }
 
   async function handleSave(payload: GrammarMutation) {
+    if (!canManageGrammar) {
+      return;
+    }
+
     setSavingGrammarId(editingGrammar?.id ?? "new");
     setActionError(null);
     setActionMessage(null);
@@ -336,7 +355,7 @@ export function GrammarPage() {
   }
 
   async function handleDelete() {
-    if (!deletingGrammar) {
+    if (!canManageGrammar || !deletingGrammar) {
       return;
     }
 
@@ -385,7 +404,7 @@ export function GrammarPage() {
             </p>
           </div>
 
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <div className={`flex min-w-0 flex-wrap items-center gap-3 ${canManageGrammar ? "" : "hidden"}`}>
             <AppButton
               variant="secondary"
               icon={<FileUp size={18} />}
@@ -409,10 +428,11 @@ export function GrammarPage() {
         <div className="grid min-w-0 gap-4 xl:grid-cols-[160px_180px_170px_220px_minmax(260px,1fr)] xl:items-end">
           <AppSelect
             label="JLPT LEVEL"
-            items={[allLevelLabel, ...availableLevels]}
-            value={selectedLevel}
+            items={lockedStudentLevel ? [lockedStudentLevel] : [allLevelLabel, ...availableLevels]}
+            value={lockedStudentLevel ?? selectedLevel}
             onChange={handleLevelChange}
             isLoading={isLoadingFilterLevels}
+            disabled={Boolean(lockedStudentLevel)}
           />
 
           <AppSelect
@@ -525,12 +545,19 @@ export function GrammarPage() {
                 key={item.id}
                 grammar={item}
                 isBusy={busyGrammarId === item.id}
+                canManage={canManageGrammar}
                 onBookmark={(grammar) => void handleToggleBookmark(grammar)}
                 onEdit={(grammar) => {
-                  setEditingGrammar(grammar);
-                  setIsFormOpen(true);
+                  if (canManageGrammar) {
+                    setEditingGrammar(grammar);
+                    setIsFormOpen(true);
+                  }
                 }}
-                onDelete={setDeletingGrammar}
+                onDelete={(grammar) => {
+                  if (canManageGrammar) {
+                    setDeletingGrammar(grammar);
+                  }
+                }}
               />
             ))}
           </div>
@@ -660,13 +687,13 @@ export function GrammarPage() {
               ? "Thử đổi từ khóa hoặc bộ lọc JLPT nhé."
               : "Hãy thêm mẫu đầu tiên để bắt đầu xây dựng kho ngữ pháp nhé."
           }
-          actionLabel={isFiltered ? undefined : "Thêm ngữ pháp"}
-          onAction={isFiltered ? undefined : handleAdd}
+          actionLabel={isFiltered || !canManageGrammar ? undefined : "Thêm ngữ pháp"}
+          onAction={isFiltered || !canManageGrammar ? undefined : handleAdd}
         />
       )}
 
       <GrammarForm
-        isOpen={isFormOpen}
+        isOpen={canManageGrammar && isFormOpen}
         grammar={editingGrammar}
         isSaving={savingGrammarId !== null}
         onClose={() => {
@@ -679,7 +706,7 @@ export function GrammarPage() {
       />
 
       <GrammarImportModal
-        isOpen={isImportOpen}
+        isOpen={canManageGrammar && isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onImportCompleted={() => {
           setActionMessage("Đã import ngữ pháp thành công.");
@@ -690,7 +717,7 @@ export function GrammarPage() {
       />
 
       <ConfirmDialog
-        isOpen={Boolean(deletingGrammar)}
+        isOpen={canManageGrammar && Boolean(deletingGrammar)}
         title="Xóa mẫu ngữ pháp?"
         description={
           deletingGrammar

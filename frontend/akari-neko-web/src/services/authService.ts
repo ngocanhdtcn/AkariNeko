@@ -10,6 +10,7 @@ export type AuthProfile = {
     currentJlptLevel: string;
     role: "student" | "admin";
     approvalStatus: "pending" | "approved" | "rejected";
+    canAccessKaiwa: boolean;
 };
 
 export type PublicProfile = {
@@ -28,6 +29,7 @@ type ProfileRow = {
     current_jlpt_level: string | null;
     role: "student" | "admin" | null;
     approval_status: "pending" | "approved" | "rejected" | null;
+    can_access_kaiwa: boolean | null;
 };
 
 function mapProfileRow(row: ProfileRow, email: string): AuthProfile {
@@ -41,6 +43,7 @@ function mapProfileRow(row: ProfileRow, email: string): AuthProfile {
         currentJlptLevel: row.current_jlpt_level ?? "N5",
         role: row.role ?? "student",
         approvalStatus: row.approval_status ?? "pending",
+        canAccessKaiwa: row.role === "admin" || (row.can_access_kaiwa ?? false),
     };
 }
 
@@ -142,6 +145,7 @@ export async function signUpWithEmail({
         current_jlpt_level: "N5",
         role: "student",
         approval_status: "pending",
+        can_access_kaiwa: false,
     });
 
     if (profileError) {
@@ -215,6 +219,7 @@ export async function getCurrentProfile(): Promise<AuthProfile | null> {
                 "current_jlpt_level",
                 "role",
                 "approval_status",
+                "can_access_kaiwa",
             ].join(","),
         )
         .eq("id", user.id)
@@ -234,6 +239,7 @@ export async function getCurrentProfile(): Promise<AuthProfile | null> {
                 current_jlpt_level: "N5",
                 role: "student",
                 approval_status: "pending",
+                can_access_kaiwa: false,
             })
             .select(
                 [
@@ -246,6 +252,7 @@ export async function getCurrentProfile(): Promise<AuthProfile | null> {
                     "current_jlpt_level",
                     "role",
                     "approval_status",
+                    "can_access_kaiwa",
                 ].join(","),
             )
             .single();
@@ -409,14 +416,20 @@ export async function updateCurrentProfile(
         throw new Error("User is not logged in.");
     }
 
+    const currentProfile = await getCurrentProfile();
+    const canUpdateJlptLevel = currentProfile?.role === "admin";
+    const payload = {
+        display_name: input.displayName,
+        avatar_url: input.avatarUrl,
+        ...(canUpdateJlptLevel
+            ? { current_jlpt_level: input.currentJlptLevel }
+            : {}),
+        updated_at: new Date().toISOString(),
+    };
+
     const { error } = await supabase
         .from("profiles")
-        .update({
-            display_name: input.displayName,
-            avatar_url: input.avatarUrl,
-            current_jlpt_level: input.currentJlptLevel,
-            updated_at: new Date().toISOString(),
-        })
+        .update(payload)
         .eq("id", userId);
 
     if (error) {

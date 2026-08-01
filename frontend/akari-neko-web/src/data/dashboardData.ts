@@ -33,7 +33,7 @@ export const dashboardMenuItems: DashboardMenuItem[] = [
   {
     icon: Home,
     label: "Home",
-    href: "/",
+    href: "/home",
     active: true,
     iconClassName: "bg-pink-50 text-pink-500",
     activeIconClassName: "bg-pink-500 text-white",
@@ -154,7 +154,7 @@ export const dashboardMenuItems: DashboardMenuItem[] = [
 ];
 
 export const mobileNavItems: MobileNavItem[] = [
-  { icon: Home, label: "Home", href: "/", active: true },
+  { icon: Home, label: "Home", href: "/home", active: true },
   { icon: BookOpen, label: "Vocab", href: "/vocabulary", active: false },
   { icon: GraduationCap, label: "Grammar", href: "/grammar", active: false },
   { icon: WalletCards, label: "Flashcard", href: "/flashcard", active: false },

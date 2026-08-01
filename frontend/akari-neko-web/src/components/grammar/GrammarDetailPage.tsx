@@ -22,6 +22,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   GrammarNotFoundError,
   addGrammarBookmark,
@@ -130,6 +131,7 @@ function GrammarDetailSkeleton() {
 type GrammarActionButtonsProps = {
   grammarPoint: GrammarPoint;
   isBookmarking: boolean;
+  canManage: boolean;
   className?: string;
   onBookmark: () => void;
   onEdit: () => void;
@@ -139,13 +141,14 @@ type GrammarActionButtonsProps = {
 function GrammarActionButtons({
   grammarPoint,
   isBookmarking,
+  canManage,
   className = "",
   onBookmark,
   onEdit,
   onDelete,
 }: GrammarActionButtonsProps) {
   return (
-    <div className={`grid grid-cols-3 gap-2 sm:gap-3 ${className}`}>
+    <div className={`grid ${canManage ? "grid-cols-3" : "grid-cols-1"} gap-2 sm:gap-3 ${className}`}>
       <AppButton
         variant="secondary"
         disabled={isBookmarking}
@@ -168,7 +171,7 @@ function GrammarActionButtons({
 
       <AppButton
         variant="secondary"
-        className="akari-grammar-action-edit w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none !border-violet-100 !bg-violet-50/90 !text-violet-600 shadow-[0_10px_24px_rgba(139,92,246,0.08)] hover:!bg-violet-100/75 sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm"
+        className={`akari-grammar-action-edit w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none !border-violet-100 !bg-violet-50/90 !text-violet-600 shadow-[0_10px_24px_rgba(139,92,246,0.08)] hover:!bg-violet-100/75 sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm ${canManage ? "" : "hidden"}`}
         icon={<Pencil size={15} className="shrink-0 text-current sm:size-[17px]" />}
         onClick={onEdit}
       >
@@ -177,7 +180,7 @@ function GrammarActionButtons({
 
       <AppButton
         variant="secondary"
-        className="akari-grammar-action-delete w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none !border-rose-100 !bg-rose-50/90 !text-rose-600 shadow-[0_10px_24px_rgba(244,63,94,0.08)] hover:!bg-rose-100/75 sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm"
+        className={`akari-grammar-action-delete w-full min-w-0 !gap-1 !rounded-xl !px-2 !py-1 text-[11px] leading-none !border-rose-100 !bg-rose-50/90 !text-rose-600 shadow-[0_10px_24px_rgba(244,63,94,0.08)] hover:!bg-rose-100/75 sm:!min-h-11 sm:!gap-2 sm:!rounded-2xl sm:!px-4 sm:!py-2 sm:text-sm ${canManage ? "" : "hidden"}`}
         icon={<Trash2 size={15} className="shrink-0 text-current sm:size-[17px]" />}
         onClick={onDelete}
       >
@@ -189,6 +192,8 @@ function GrammarActionButtons({
 
 export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
   const router = useRouter();
+  const { profile } = useAuth();
+  const canManageGrammar = profile?.role === "admin";
   const [grammarPoint, setGrammarPoint] = useState<GrammarPoint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -265,7 +270,7 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
   }
 
   async function handleSave(payload: GrammarMutation) {
-    if (!grammarPoint) {
+    if (!canManageGrammar || !grammarPoint) {
       return;
     }
 
@@ -295,7 +300,7 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
   }
 
   async function handleDelete() {
-    if (!grammarPoint) {
+    if (!canManageGrammar || !grammarPoint) {
       return;
     }
 
@@ -435,9 +440,18 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
           <GrammarActionButtons
             grammarPoint={grammarPoint}
             isBookmarking={isBookmarking}
+            canManage={canManageGrammar}
             onBookmark={() => void handleBookmark()}
-            onEdit={() => setIsFormOpen(true)}
-            onDelete={() => setIsDeleteOpen(true)}
+            onEdit={() => {
+              if (canManageGrammar) {
+                setIsFormOpen(true);
+              }
+            }}
+            onDelete={() => {
+              if (canManageGrammar) {
+                setIsDeleteOpen(true);
+              }
+            }}
           />
         </div>
       </section>
@@ -489,7 +503,7 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
       </div>
 
       <GrammarForm
-        isOpen={isFormOpen}
+        isOpen={canManageGrammar && isFormOpen}
         grammar={grammarPoint}
         isSaving={isSaving}
         onClose={() => {
@@ -501,7 +515,7 @@ export function GrammarDetailPage({ grammarId }: GrammarDetailPageProps) {
       />
 
       <ConfirmDialog
-        isOpen={isDeleteOpen}
+        isOpen={canManageGrammar && isDeleteOpen}
         title="Xóa ngữ pháp?"
         description="Bạn có chắc muốn xóa mẫu ngữ pháp này không?"
         confirmText={isDeleting ? "Đang xóa..." : "Xóa ngữ pháp"}

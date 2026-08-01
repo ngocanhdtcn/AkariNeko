@@ -66,10 +66,7 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
         <div className="grid gap-2 rounded-[26px] bg-white/70 p-3 shadow-sm">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
+            const isActive = pathname.startsWith(item.href);
 
             return (
               <motion.div

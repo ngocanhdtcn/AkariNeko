@@ -228,16 +228,23 @@ export function VocabularyPage() {
       Boolean(persistedFilters?.onlyDifficult)),
   );
   const filterOptionsRequestIdRef = useRef(0);
+  const canManageVocabulary = profile?.role === "admin";
   const profileLevelFilter = profile?.currentJlptLevel?.toUpperCase();
+  const lockedStudentLevel =
+    profile?.role === "student" ? profileLevelFilter || "N5" : null;
+  const effectiveSelectedLevel = lockedStudentLevel ?? selectedLevel;
   const shouldApplyProfileLevel =
-    !hasInitialUrlLevelFilter &&
-    !hasPersistedLevelFilter &&
-    selectedLevel === "All" &&
-    Boolean(profileLevelFilter);
+    Boolean(lockedStudentLevel) ||
+    (!hasInitialUrlLevelFilter &&
+      !hasPersistedLevelFilter &&
+      selectedLevel === "All" &&
+      Boolean(profileLevelFilter));
   const areStudyFiltersReady =
-    hasInitialUrlLevelFilter ||
-    hasPersistedLevelFilter ||
-    (!isLoadingProfile && !shouldApplyProfileLevel);
+    profile?.role === "student"
+      ? Boolean(lockedStudentLevel)
+      : hasInitialUrlLevelFilter ||
+        hasPersistedLevelFilter ||
+        (!isLoadingProfile && !shouldApplyProfileLevel);
 
   const updateVocabularyUrl = useCallback(
     ({
@@ -256,9 +263,10 @@ export function VocabularyPage() {
       page?: number;
     }) => {
       const nextParams = new URLSearchParams();
+      const normalizedLevel = lockedStudentLevel ?? level;
 
-      if (level !== "All") {
-        nextParams.set("level", level);
+      if (normalizedLevel !== "All") {
+        nextParams.set("level", normalizedLevel);
       }
 
       if (book !== "All") {
@@ -283,6 +291,14 @@ export function VocabularyPage() {
 
       const queryString = nextParams.toString();
       const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      const currentQueryString = searchParams.toString();
+      const currentUrl = currentQueryString
+        ? `${pathname}?${currentQueryString}`
+        : pathname;
+
+      if (nextUrl === currentUrl) {
+        return;
+      }
 
       isSyncingUrlRef.current = true;
       router.replace(nextUrl, { scroll: false });
@@ -293,9 +309,11 @@ export function VocabularyPage() {
       pathname,
       router,
       searchKeyword,
+      searchParams,
       selectedBook,
       selectedChapters,
       selectedLevel,
+      lockedStudentLevel,
     ],
   );
 
@@ -306,7 +324,7 @@ export function VocabularyPage() {
   const shouldShowVocabularyLoadingOverlay =
     isLoadingVocabularies && displayVocabularies.length > 0;
   const hasActiveVocabularyFilter =
-    selectedLevel !== "All" ||
+    effectiveSelectedLevel !== "All" ||
     selectedBook !== "All" ||
     selectedChapters.length > 0 ||
     onlyDifficult ||
@@ -356,7 +374,7 @@ export function VocabularyPage() {
     const pageParam = Number(searchParams.get("page") ?? "1");
     const nextPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
-    setSelectedLevel(searchParams.get("level") ?? "All");
+    setSelectedLevel(lockedStudentLevel ?? searchParams.get("level") ?? "All");
     setSelectedBook(searchParams.get("book") ?? "All");
     const chaptersParam = searchParams.get("chapters");
     const legacyChapterParam = searchParams.get("chapter");
@@ -371,7 +389,7 @@ export function VocabularyPage() {
     setSearchKeyword(searchParams.get("search") ?? "");
     setOnlyDifficult(searchParams.get("difficult") === "1");
     setCurrentPage(nextPage);
-  }, [hasInitialUrlFilters, hasPersistedFilters, searchParams]);
+  }, [hasInitialUrlFilters, hasPersistedFilters, lockedStudentLevel, searchParams]);
 
   useEffect(() => {
     if (!areStudyFiltersReady) {
@@ -379,7 +397,7 @@ export function VocabularyPage() {
     }
 
     writePersistedStudyFilters("vocabulary", {
-      level: selectedLevel,
+      level: effectiveSelectedLevel,
       book: selectedBook,
       chapters: selectedChapters,
       onlyDifficult,
@@ -393,27 +411,51 @@ export function VocabularyPage() {
     searchKeyword,
     selectedBook,
     selectedChapters,
-    selectedLevel,
+    effectiveSelectedLevel,
   ]);
 
   useEffect(() => {
+    const nextLevel = lockedStudentLevel ?? profileLevelFilter;
+
+    if (!nextLevel) {
+      return;
+    }
+
     if (
-      didApplyProfileLevelRef.current ||
-      hasInitialUrlLevelFilter ||
-      hasPersistedLevelFilter ||
-      selectedLevel !== "All" ||
-      !profileLevelFilter
+      didApplyProfileLevelRef.current &&
+      selectedLevel === nextLevel &&
+      selectedBook === "All" &&
+      selectedChapters.length === 0 &&
+      currentPage === 1
+    ) {
+      return;
+    }
+
+    if (
+      !lockedStudentLevel &&
+      (didApplyProfileLevelRef.current ||
+        hasInitialUrlLevelFilter ||
+        hasPersistedLevelFilter ||
+        selectedLevel !== "All")
     ) {
       return;
     }
 
     didApplyProfileLevelRef.current = true;
-    setSelectedLevel(profileLevelFilter);
-    setSelectedBook("All");
-    setSelectedChapters([]);
-    setCurrentPage(1);
+    setSelectedLevel((currentLevel) =>
+      currentLevel === nextLevel ? currentLevel : nextLevel,
+    );
+    setSelectedBook((currentBook) =>
+      currentBook === "All" ? currentBook : "All",
+    );
+    setSelectedChapters((currentChapters) =>
+      currentChapters.length === 0 ? currentChapters : [],
+    );
+    setCurrentPage((currentPageNumber) =>
+      currentPageNumber === 1 ? currentPageNumber : 1,
+    );
     updateVocabularyUrl({
-      level: profileLevelFilter,
+      level: nextLevel,
       book: "All",
       chapters: [],
       page: 1,
@@ -421,7 +463,11 @@ export function VocabularyPage() {
   }, [
     hasInitialUrlLevelFilter,
     hasPersistedLevelFilter,
+    lockedStudentLevel,
     profileLevelFilter,
+    currentPage,
+    selectedBook,
+    selectedChapters,
     selectedLevel,
     updateVocabularyUrl,
   ]);
@@ -439,7 +485,7 @@ export function VocabularyPage() {
         page,
         pageSize: VOCABULARY_PAGE_SIZE,
         searchKeyword,
-        level: selectedLevel,
+        level: effectiveSelectedLevel,
         book: selectedBook,
         chapters: selectedChapters,
         onlyDifficult,
@@ -457,7 +503,7 @@ export function VocabularyPage() {
   }, [
     areStudyFiltersReady,
     searchKeyword,
-    selectedLevel,
+    effectiveSelectedLevel,
     selectedBook,
     selectedChapters,
     onlyDifficult,
@@ -470,25 +516,26 @@ export function VocabularyPage() {
     loadVocabularies,
     currentPage,
     searchKeyword,
-    selectedLevel,
+    effectiveSelectedLevel,
     selectedBook,
     selectedChapters,
     onlyDifficult,
   ]);
 
-  const levelOptions = ["All", ...availableLevels];
+  const levelOptions = lockedStudentLevel ? [lockedStudentLevel] : ["All", ...availableLevels];
 
   const bookOptions = ["All", ...availableBooks];
 
   const chapterOptions = availableChapters;
 
   function handleLevelChange(level: string) {
-    setSelectedLevel(level);
+    const nextLevel = lockedStudentLevel ?? level;
+    setSelectedLevel(nextLevel);
     setSelectedBook("All");
     setSelectedChapters([]);
     setAvailableChapters([]);
     setCurrentPage(1);
-    updateVocabularyUrl({ level, book: "All", chapters: [], page: 1 });
+    updateVocabularyUrl({ level: nextLevel, book: "All", chapters: [], page: 1 });
   }
 
   function handleBookChange(book: string) {
@@ -529,7 +576,7 @@ export function VocabularyPage() {
   }
 
   const loadVocabularyFilterOptions = useCallback(async (
-    level = selectedLevel,
+    level = effectiveSelectedLevel,
     book = selectedBook,
   ) => {
     const requestId = filterOptionsRequestIdRef.current + 1;
@@ -574,7 +621,7 @@ export function VocabularyPage() {
         setIsLoadingFilterOptions(false);
       }
     }
-  }, [selectedLevel, selectedBook]);
+  }, [effectiveSelectedLevel, selectedBook]);
 
   useEffect(() => {
     if (!areStudyFiltersReady) {
@@ -583,10 +630,10 @@ export function VocabularyPage() {
 
     // Filter options are loaded from Supabase when the page mounts.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadVocabularyFilterOptions(selectedLevel, selectedBook);
+    void loadVocabularyFilterOptions(effectiveSelectedLevel, selectedBook);
   }, [
     areStudyFiltersReady,
-    selectedLevel,
+    effectiveSelectedLevel,
     selectedBook,
     loadVocabularyFilterOptions,
   ]);
@@ -773,24 +820,26 @@ export function VocabularyPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <AppButton
-                icon={<Plus size={18} />}
-                className="h-12"
-                onClick={() => {
-                  setCreateVocabularyError(null);
-                  setIsAddVocabularyOpen(true);
-                }}
-              >
-                Thêm từ vựng
-              </AppButton>
+            {canManageVocabulary ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <AppButton
+                  icon={<Plus size={18} />}
+                  className="h-12"
+                  onClick={() => {
+                    setCreateVocabularyError(null);
+                    setIsAddVocabularyOpen(true);
+                  }}
+                >
+                  Thêm từ vựng
+                </AppButton>
 
-              <ImportButton onSelectSource={openImportModal} />
+                <ImportButton onSelectSource={openImportModal} />
 
-              <AppButton icon={<Download size={18} />} className="h-12">
-                Export
-              </AppButton>
-            </div>
+                <AppButton icon={<Download size={18} />} className="h-12">
+                  Export
+                </AppButton>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -799,8 +848,9 @@ export function VocabularyPage() {
             <AppSelect
               label="JLPT Level"
               items={levelOptions}
-              value={selectedLevel}
+              value={effectiveSelectedLevel}
               onChange={handleLevelChange}
+              disabled={Boolean(lockedStudentLevel)}
             />
 
             <AppSelect
@@ -866,13 +916,13 @@ export function VocabularyPage() {
                 className="rounded-2xl border border-pink-100 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
                 onClick={() => {
                   setSearchKeyword("");
-                  setSelectedLevel("All");
+                  setSelectedLevel(lockedStudentLevel ?? "All");
                   setSelectedBook("All");
                   setSelectedChapters([]);
                   setCurrentPage(1);
                   setOnlyDifficult(false);
                   updateVocabularyUrl({
-                    level: "All",
+                    level: lockedStudentLevel ?? "All",
                     book: "All",
                     chapters: [],
                     search: "",
@@ -971,25 +1021,29 @@ export function VocabularyPage() {
                             : "Đánh dấu từ khó"}
                       </button>
 
-                      <button
-                        type="button"
-                        className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"
-                        onClick={() => {
-                          setEditVocabularyError(null);
-                          setEditingVocabulary(vocabulary);
-                        }}
-                      >
-                        Edit
-                      </button>
+                      {canManageVocabulary ? (
+                        <>
+                          <button
+                            type="button"
+                            className="flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 shadow-sm transition hover:bg-pink-50"
+                            onClick={() => {
+                              setEditVocabularyError(null);
+                              setEditingVocabulary(vocabulary);
+                            }}
+                          >
+                            Edit
+                          </button>
 
-                      <button
-                        type="button"
-                        disabled={deletingVocabularyId === vocabulary.id}
-                        className="flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        onClick={() => setVocabularyPendingDelete(vocabulary)}
-                      >
-                        {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
-                      </button>
+                          <button
+                            type="button"
+                            disabled={deletingVocabularyId === vocabulary.id}
+                            className="flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => setVocabularyPendingDelete(vocabulary)}
+                          >
+                            {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
+                          </button>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -1007,17 +1061,23 @@ export function VocabularyPage() {
                     ? "Thử đổi bộ lọc hoặc xoá từ khoá tìm kiếm để xem thêm từ vựng."
                     : "Hãy import file HTML hoặc thêm từ thủ công để bắt đầu học cùng AkariNeko."
                 }
-                actionLabel={hasActiveVocabularyFilter ? "Xoá bộ lọc" : "Import từ vựng"}
+                actionLabel={
+                  hasActiveVocabularyFilter
+                    ? "Xoá bộ lọc"
+                    : canManageVocabulary
+                      ? "Import từ vựng"
+                      : undefined
+                }
                 onAction={
                   hasActiveVocabularyFilter
                     ? () => {
                       setSearchKeyword("");
-                      setSelectedLevel("All");
+                      setSelectedLevel(lockedStudentLevel ?? "All");
                       setSelectedBook("All");
                       setSelectedChapters([]);
                       setOnlyDifficult(false);
                       updateVocabularyUrl({
-                        level: "All",
+                        level: lockedStudentLevel ?? "All",
                         book: "All",
                         chapters: [],
                         search: "",
@@ -1025,7 +1085,9 @@ export function VocabularyPage() {
                         page: 1,
                       });
                     }
-                    : () => openImportModal("file")
+                    : canManageVocabulary
+                      ? () => openImportModal("file")
+                      : undefined
                 }
               />
             )}
@@ -1109,25 +1171,29 @@ export function VocabularyPage() {
                           : "Mark"}
                     </button>
 
-                    <button
-                      type="button"
-                      className="akari-vocabulary-action flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 transition hover:bg-pink-50"
-                      onClick={() => {
-                        setEditVocabularyError(null);
-                        setEditingVocabulary(vocabulary);
-                      }}
-                    >
-                      Edit
-                    </button>
+                    {canManageVocabulary ? (
+                      <>
+                        <button
+                          type="button"
+                          className="akari-vocabulary-action flex h-8 min-w-14 items-center justify-center rounded-xl border border-pink-100 bg-white px-3 text-xs font-bold text-pink-400 transition hover:bg-pink-50"
+                          onClick={() => {
+                            setEditVocabularyError(null);
+                            setEditingVocabulary(vocabulary);
+                          }}
+                        >
+                          Edit
+                        </button>
 
-                    <button
-                      type="button"
-                      disabled={deletingVocabularyId === vocabulary.id}
-                      className="akari-vocabulary-action flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={() => setVocabularyPendingDelete(vocabulary)}
-                    >
-                      {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
-                    </button>
+                        <button
+                          type="button"
+                          disabled={deletingVocabularyId === vocabulary.id}
+                          className="akari-vocabulary-action flex h-8 min-w-16 items-center justify-center rounded-xl border border-rose-100 bg-white px-3 text-xs font-bold text-rose-400 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          onClick={() => setVocabularyPendingDelete(vocabulary)}
+                        >
+                          {deletingVocabularyId === vocabulary.id ? "..." : "Delete"}
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               ))
@@ -1145,17 +1211,23 @@ export function VocabularyPage() {
                       ? "Thử đổi bộ lọc hoặc xoá từ khoá tìm kiếm để xem thêm từ vựng."
                       : "Hãy import file HTML hoặc thêm từ thủ công để bắt đầu học cùng AkariNeko."
                   }
-                  actionLabel={hasActiveVocabularyFilter ? "Xoá bộ lọc" : "Import từ vựng"}
+                  actionLabel={
+                    hasActiveVocabularyFilter
+                      ? "Xoá bộ lọc"
+                      : canManageVocabulary
+                        ? "Import từ vựng"
+                        : undefined
+                  }
                   onAction={
                     hasActiveVocabularyFilter
                       ? () => {
                         setSearchKeyword("");
-                        setSelectedLevel("All");
+                        setSelectedLevel(lockedStudentLevel ?? "All");
                         setSelectedBook("All");
                         setSelectedChapters([]);
                         setOnlyDifficult(false);
                         updateVocabularyUrl({
-                          level: "All",
+                          level: lockedStudentLevel ?? "All",
                           book: "All",
                           chapters: [],
                           search: "",
@@ -1163,7 +1235,9 @@ export function VocabularyPage() {
                           page: 1,
                         });
                       }
-                      : () => openImportModal("file")
+                      : canManageVocabulary
+                        ? () => openImportModal("file")
+                        : undefined
                   }
                 />
               </div>
@@ -1311,7 +1385,7 @@ export function VocabularyPage() {
         </SoftPanel>
       </div>
       <ImportVocabularyModal
-        isOpen={isImportModalOpen}
+        isOpen={canManageVocabulary && isImportModalOpen}
         sourceType={importSourceType}
         onClose={closeImportModal}
         onImportCompleted={() => {
@@ -1322,7 +1396,7 @@ export function VocabularyPage() {
       />
 
       <EditVocabularyModal
-        vocabulary={editingVocabulary}
+        vocabulary={canManageVocabulary ? editingVocabulary : null}
         isSaving={isSavingVocabulary}
         errorMessage={editVocabularyError}
         onClose={() => {
@@ -1333,7 +1407,7 @@ export function VocabularyPage() {
       />
 
       <AddVocabularyModal
-        isOpen={isAddVocabularyOpen}
+        isOpen={canManageVocabulary && isAddVocabularyOpen}
         isSaving={isCreatingVocabulary}
         errorMessage={createVocabularyError}
         onClose={() => {
@@ -1344,7 +1418,7 @@ export function VocabularyPage() {
       />
 
       <ConfirmDialog
-        isOpen={vocabularyPendingDelete !== null}
+        isOpen={canManageVocabulary && vocabularyPendingDelete !== null}
         title="Xóa từ vựng?"
         description={
           vocabularyPendingDelete

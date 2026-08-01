@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, RefreshCw, ShieldAlert, UserCheck, XCircle } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, RefreshCw, ShieldAlert, UserCheck, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
     getManagedUserProfiles,
     updateManagedUserApproval,
+    updateManagedUserKaiwaAccess,
     type ManagedUserProfile,
 } from "@/services/adminUserService";
 
@@ -49,6 +50,7 @@ export function AdminUsersPage() {
     const [users, setUsers] = useState<ManagedUserProfile[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+    const [updatingKaiwaUserId, setUpdatingKaiwaUserId] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const loadUsers = useCallback(async () => {
@@ -104,6 +106,28 @@ export function AdminUsersPage() {
             );
         } finally {
             setUpdatingUserId(null);
+        }
+    }
+
+    async function handleKaiwaAccess(user: ManagedUserProfile, canAccessKaiwa: boolean) {
+        setUpdatingKaiwaUserId(user.id);
+        setErrorMessage(null);
+
+        try {
+            await updateManagedUserKaiwaAccess({
+                userId: user.id,
+                canAccessKaiwa,
+            });
+            await loadUsers();
+        } catch (error) {
+            console.error("Failed to update user Kaiwa access:", error);
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : "KhÃ´ng thá»ƒ cáº­p nháº­t quyá»n Kaiwa.",
+            );
+        } finally {
+            setUpdatingKaiwaUserId(null);
         }
     }
 
@@ -173,11 +197,12 @@ export function AdminUsersPage() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <div className="min-w-[920px] p-3">
-                                <div className="akari-vocabulary-table-head grid grid-cols-[1.35fr_0.9fr_0.9fr_1fr_1.45fr] items-center rounded-2xl bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                            <div className="min-w-[1060px] p-3">
+                                <div className="akari-vocabulary-table-head grid grid-cols-[1.35fr_0.85fr_0.8fr_0.9fr_0.9fr_1.55fr] items-center rounded-2xl bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-500">
                                     <div>Học viên</div>
                                     <div>Trạng thái</div>
                                     <div>Vai trò</div>
+                                    <div>Kaiwa</div>
                                     <div>Ngày tạo</div>
                                     <div className="text-right">Thao tác</div>
                                 </div>
@@ -185,11 +210,12 @@ export function AdminUsersPage() {
                                 <div className="mt-3 grid gap-2">
                                     {users.map((user) => {
                                         const isUpdating = updatingUserId === user.id;
+                                        const isUpdatingKaiwa = updatingKaiwaUserId === user.id;
 
                                         return (
                                             <div
                                                 key={user.id}
-                                                className="akari-vocabulary-table-row akari-admin-users-row grid grid-cols-[1.35fr_0.9fr_0.9fr_1fr_1.45fr] items-center rounded-2xl border border-pink-50/80 px-4 py-3 text-sm text-slate-600 transition-colors hover:bg-pink-50/45"
+                                                className="akari-vocabulary-table-row akari-admin-users-row grid grid-cols-[1.35fr_0.85fr_0.8fr_0.9fr_0.9fr_1.55fr] items-center rounded-2xl border border-pink-50/80 px-4 py-3 text-sm text-slate-600 transition-colors hover:bg-pink-50/45"
                                             >
                                                 <div className="min-w-0">
                                                     <p className="truncate font-black text-slate-800">
@@ -210,11 +236,50 @@ export function AdminUsersPage() {
                                                     {getRoleLabel(user.role)}
                                                 </div>
 
+                                                <div>
+                                                    <span
+                                                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black ${
+                                                            user.canAccessKaiwa
+                                                                ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+                                                                : "border-slate-100 bg-slate-50 text-slate-500"
+                                                        }`}
+                                                    >
+                                                        {user.canAccessKaiwa ? (
+                                                            <Eye size={14} />
+                                                        ) : (
+                                                            <EyeOff size={14} />
+                                                        )}
+                                                        {user.canAccessKaiwa ? "Được xem" : "Chưa mở"}
+                                                    </span>
+                                                </div>
+
                                                 <div className="font-semibold text-slate-500">
                                                     {formatDate(user.createdAt)}
                                                 </div>
 
                                                 <div className="flex flex-wrap justify-end gap-2">
+                                                    <button
+                                                        type="button"
+                                                        disabled={isUpdatingKaiwa || user.role === "admin"}
+                                                        className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-xs font-black shadow-sm transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                                                            user.canAccessKaiwa
+                                                                ? "border border-slate-100 bg-white text-slate-500 hover:bg-slate-50"
+                                                                : "bg-violet-500 text-white hover:bg-violet-600"
+                                                        }`}
+                                                        onClick={() =>
+                                                            void handleKaiwaAccess(
+                                                                user,
+                                                                !user.canAccessKaiwa,
+                                                            )
+                                                        }
+                                                    >
+                                                        {user.canAccessKaiwa ? (
+                                                            <EyeOff size={16} />
+                                                        ) : (
+                                                            <Eye size={16} />
+                                                        )}
+                                                        {user.canAccessKaiwa ? "Tắt Kaiwa" : "Mở Kaiwa"}
+                                                    </button>
                                                     <button
                                                         type="button"
                                                         disabled={isUpdating || user.approvalStatus === "approved"}

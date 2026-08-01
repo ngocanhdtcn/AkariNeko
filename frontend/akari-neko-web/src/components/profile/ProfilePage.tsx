@@ -21,6 +21,7 @@ const jlptLevelOptions = ["N5", "N4", "N3", "N2", "N1"];
 
 export function ProfilePage() {
     const { profile, refreshProfile } = useAuth();
+    const canEditJlptLevel = profile?.role === "admin";
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const avatarPreviewObjectUrlRef = useRef<string | null>(null);
 
@@ -122,14 +123,20 @@ export function ProfilePage() {
             await updateCurrentProfile({
                 displayName: displayName.trim() || profile?.email || "Akari user",
                 avatarUrl: nextAvatarUrl || null,
-                currentJlptLevel,
+                currentJlptLevel: canEditJlptLevel
+                    ? currentJlptLevel
+                    : profile?.currentJlptLevel || "N5",
             });
 
             if (previousAvatarUrl && previousAvatarUrl !== nextAvatarUrl) {
                 await deleteCurrentUserAvatarByUrl(previousAvatarUrl);
             }
 
-            if (previousJlptLevel && previousJlptLevel !== currentJlptLevel) {
+            if (
+                canEditJlptLevel &&
+                previousJlptLevel &&
+                previousJlptLevel !== currentJlptLevel
+            ) {
                 ["vocabulary", "flashcard", "quiz"].forEach(clearPersistedStudyFilters);
             }
 
@@ -237,7 +244,14 @@ export function ProfilePage() {
                             items={jlptLevelOptions}
                             value={currentJlptLevel}
                             onChange={setCurrentJlptLevel}
+                            disabled={!canEditJlptLevel || isSaving}
                         />
+
+                        {!canEditJlptLevel ? (
+                            <p className="text-sm font-semibold text-slate-400">
+                                Trình độ JLPT của học sinh do quản trị viên thiết lập.
+                            </p>
+                        ) : null}
 
                         {profileError ? (
                             <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-500">
