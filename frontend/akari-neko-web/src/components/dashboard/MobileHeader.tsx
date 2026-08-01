@@ -27,7 +27,7 @@ export function MobileHeader() {
         <div className="min-w-0 max-w-[128px] min-[410px]:max-w-[152px]">
           <AkariNekoWordmark
             size="sm"
-            subtitle="Issho ni ganbarimashou!"
+            subtitle="明るく・楽しく・日本語"
             className="origin-left scale-[0.82] min-[410px]:scale-90"
           />
 

@@ -1,13 +1,18 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { AkariNekoWordmark } from "../branding/AkariNekoWordmark";
+
+const MotionLink = motion.create(Link);
 
 export function DashboardHero() {
   const { profile } = useAuth();
   const displayName =
     profile?.displayName?.trim() || profile?.email?.split("@")[0] || "Akari";
+  const currentJlptLevel = profile?.currentJlptLevel?.toUpperCase() || "N5";
+  const continueHref = `/vocabulary?level=${encodeURIComponent(currentJlptLevel)}`;
 
   return (
     <motion.section
@@ -98,8 +103,8 @@ export function DashboardHero() {
           />
         </motion.div>
 
-        <motion.button
-          type="button"
+        <MotionLink
+          href={continueHref}
           whileHover={{
             y: -2,
             scale: 1.015,
@@ -110,10 +115,10 @@ export function DashboardHero() {
             duration: 0.16,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="akari-dashboard-hero-cta mt-6 rounded-2xl bg-white/95 px-5 py-3 text-sm font-bold text-slate-700 shadow-sm"
+          className="akari-dashboard-hero-cta mt-6 inline-flex rounded-2xl bg-white/95 px-5 py-3 text-sm font-bold text-slate-700 shadow-sm"
         >
-          Continue studying N3 〉
-        </motion.button>
+          Continue studying {currentJlptLevel} 〉
+        </MotionLink>
       </div>
     </motion.section>
   );

@@ -30,7 +30,7 @@ export type GrammarPoint = {
 export type GrammarFilters = {
   search?: string;
   jlptLevel?: JlptLevel;
-  notes?: string;
+  notes?: string | string[];
   bookmarkedOnly?: boolean;
   sortMode?: "recent" | "notes";
 };
@@ -245,7 +245,9 @@ export async function getGrammarPoints(
     query = query.eq("jlpt_level", effectiveJlptLevel);
   }
 
-  if (filters.notes) {
+  if (Array.isArray(filters.notes) && filters.notes.length > 0) {
+    query = query.in("notes", filters.notes);
+  } else if (typeof filters.notes === "string" && filters.notes) {
     query = query.eq("notes", filters.notes);
   }
 

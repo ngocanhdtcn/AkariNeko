@@ -15,6 +15,7 @@ import { GrammarForm } from "@/components/grammar/GrammarForm";
 import { GrammarImportModal } from "@/components/grammar/GrammarImportModal";
 import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
+import { AppMultiSelect } from "@/components/ui/AppMultiSelect";
 import { AppSelect } from "@/components/ui/AppSelect";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -98,7 +99,7 @@ export function GrammarPage() {
   const { profile } = useAuth();
   const canManageGrammar = profile?.role === "admin";
   const lockedStudentLevel =
-    profile?.role === "student"
+    profile && profile.role !== "admin"
       ? ((profile.currentJlptLevel?.toUpperCase() || "N5") as JlptLevel)
       : null;
   const [items, setItems] = useState<GrammarPoint[]>([]);
@@ -108,7 +109,7 @@ export function GrammarPage() {
   const [isLoadingFilterNotes, setIsLoadingFilterNotes] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedLevel, setSelectedLevel] = useState(allLevelLabel);
-  const [selectedNotes, setSelectedNotes] = useState(allNotesLabel);
+  const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
   const [selectedSort, setSelectedSort] = useState(recentSortLabel);
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -138,13 +139,10 @@ export function GrammarPage() {
     return undefined;
   }, [availableLevels, lockedStudentLevel, selectedLevel]);
 
-  const selectedNotesFilter = useMemo(() => {
-    if (availableNotes.includes(selectedNotes)) {
-      return selectedNotes;
-    }
-
-    return undefined;
-  }, [availableNotes, selectedNotes]);
+  const selectedNotesFilter = useMemo(
+    () => selectedNotes.filter((note) => availableNotes.includes(note)),
+    [availableNotes, selectedNotes],
+  );
 
   const selectedSortMode = selectedSort === notesSortLabel ? "notes" : "recent";
 
@@ -159,7 +157,7 @@ export function GrammarPage() {
   const isFiltered = Boolean(
     search.trim() ||
       selectedLevelFilter ||
-      selectedNotesFilter ||
+      selectedNotesFilter.length > 0 ||
       selectedSortMode !== "recent" ||
       bookmarkedOnly,
   );
@@ -213,14 +211,12 @@ export function GrammarPage() {
       const nextNotes = await getGrammarFilterNotes();
       setAvailableNotes(nextNotes);
       setSelectedNotes((currentNotes) =>
-        currentNotes === allNotesLabel || nextNotes.includes(currentNotes)
-          ? currentNotes
-          : allNotesLabel,
+        currentNotes.filter((note) => nextNotes.includes(note)),
       );
     } catch (error) {
       console.error("Failed to load grammar filter notes:", error);
       setAvailableNotes([]);
-      setSelectedNotes(allNotesLabel);
+      setSelectedNotes([]);
     } finally {
       setIsLoadingFilterNotes(false);
     }
@@ -259,8 +255,8 @@ export function GrammarPage() {
     setCurrentPage(1);
   }
 
-  function handleNotesChange(value: string) {
-    setSelectedNotes(value);
+  function handleNotesChange(values: string[]) {
+    setSelectedNotes(values);
     setCurrentPage(1);
   }
 
@@ -277,7 +273,7 @@ export function GrammarPage() {
   function handleClearFilters() {
     setSearch("");
     setSelectedLevel(lockedStudentLevel ?? allLevelLabel);
-    setSelectedNotes(allNotesLabel);
+    setSelectedNotes([]);
     setSelectedSort(recentSortLabel);
     setBookmarkedOnly(false);
     setCurrentPage(1);
@@ -435,12 +431,15 @@ export function GrammarPage() {
             disabled={Boolean(lockedStudentLevel)}
           />
 
-          <AppSelect
+          <AppMultiSelect
             label="BÀI"
-            items={[allNotesLabel, ...availableNotes]}
-            value={selectedNotes}
+            items={availableNotes}
+            values={selectedNotes}
             onChange={handleNotesChange}
             isLoading={isLoadingFilterNotes}
+            enableRangeSelection
+            showAllOption={!(lockedStudentLevel && availableNotes.length === 1)}
+            allLabel={allNotesLabel}
           />
 
           <AppSelect

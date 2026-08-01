@@ -121,6 +121,13 @@ function ImportButton({
   );
 }
 
+function areStringArraysEqual(firstValues: string[], secondValues: string[]) {
+  return (
+    firstValues.length === secondValues.length &&
+    firstValues.every((value, index) => value === secondValues[index])
+  );
+}
+
 export function VocabularyPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -228,10 +235,13 @@ export function VocabularyPage() {
       Boolean(persistedFilters?.onlyDifficult)),
   );
   const filterOptionsRequestIdRef = useRef(0);
+  const vocabularyRequestIdRef = useRef(0);
+  const activeVocabularyLoadKeyRef = useRef("");
+  const completedVocabularyLoadKeyRef = useRef("");
   const canManageVocabulary = profile?.role === "admin";
   const profileLevelFilter = profile?.currentJlptLevel?.toUpperCase();
   const lockedStudentLevel =
-    profile?.role === "student" ? profileLevelFilter || "N5" : null;
+    profile && profile.role !== "admin" ? profileLevelFilter || "N5" : null;
   const effectiveSelectedLevel = lockedStudentLevel ?? selectedLevel;
   const shouldApplyProfileLevel =
     Boolean(lockedStudentLevel) ||
@@ -245,6 +255,7 @@ export function VocabularyPage() {
       : hasInitialUrlLevelFilter ||
         hasPersistedLevelFilter ||
         (!isLoadingProfile && !shouldApplyProfileLevel);
+  const currentSearchParamsString = searchParams.toString();
 
   const updateVocabularyUrl = useCallback(
     ({
@@ -291,7 +302,7 @@ export function VocabularyPage() {
 
       const queryString = nextParams.toString();
       const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
-      const currentQueryString = searchParams.toString();
+      const currentQueryString = currentSearchParamsString;
       const currentUrl = currentQueryString
         ? `${pathname}?${currentQueryString}`
         : pathname;
@@ -309,7 +320,7 @@ export function VocabularyPage() {
       pathname,
       router,
       searchKeyword,
-      searchParams,
+      currentSearchParamsString,
       selectedBook,
       selectedChapters,
       selectedLevel,
@@ -345,14 +356,15 @@ export function VocabularyPage() {
       return;
     }
 
+    const nextSearchParams = new URLSearchParams(currentSearchParamsString);
     const hasCurrentUrlFilters = Boolean(
-      searchParams.get("level") ||
-      searchParams.get("book") ||
-      searchParams.get("chapters") ||
-      searchParams.get("chapter") ||
-      searchParams.get("search") ||
-      searchParams.get("difficult") ||
-      searchParams.get("page"),
+      nextSearchParams.get("level") ||
+      nextSearchParams.get("book") ||
+      nextSearchParams.get("chapters") ||
+      nextSearchParams.get("chapter") ||
+      nextSearchParams.get("search") ||
+      nextSearchParams.get("difficult") ||
+      nextSearchParams.get("page"),
     );
 
     if (!hasCurrentUrlFilters) {
@@ -371,25 +383,52 @@ export function VocabularyPage() {
 
     didHandleInitialUrlSyncRef.current = true;
 
-    const pageParam = Number(searchParams.get("page") ?? "1");
+    const pageParam = Number(nextSearchParams.get("page") ?? "1");
     const nextPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
-    setSelectedLevel(lockedStudentLevel ?? searchParams.get("level") ?? "All");
-    setSelectedBook(searchParams.get("book") ?? "All");
-    const chaptersParam = searchParams.get("chapters");
-    const legacyChapterParam = searchParams.get("chapter");
-
-    setSelectedChapters(
+    const nextLevel = lockedStudentLevel ?? nextSearchParams.get("level") ?? "All";
+    const nextBook = nextSearchParams.get("book") ?? "All";
+    const chaptersParam = nextSearchParams.get("chapters");
+    const legacyChapterParam = nextSearchParams.get("chapter");
+    const nextChapters =
       chaptersParam
         ? chaptersParam.split(",").map(decodeURIComponent).filter(Boolean)
         : legacyChapterParam && legacyChapterParam !== "All"
           ? [legacyChapterParam]
-          : [],
+          : [];
+    const nextSearchKeyword = nextSearchParams.get("search") ?? "";
+    const nextOnlyDifficult = nextSearchParams.get("difficult") === "1";
+
+    setSelectedLevel((currentLevel) =>
+      currentLevel === nextLevel ? currentLevel : nextLevel,
     );
-    setSearchKeyword(searchParams.get("search") ?? "");
-    setOnlyDifficult(searchParams.get("difficult") === "1");
-    setCurrentPage(nextPage);
-  }, [hasInitialUrlFilters, hasPersistedFilters, lockedStudentLevel, searchParams]);
+    setSelectedBook((currentBook) =>
+      currentBook === nextBook ? currentBook : nextBook,
+    );
+    setSelectedChapters((currentChapters) =>
+      areStringArraysEqual(currentChapters, nextChapters)
+        ? currentChapters
+        : nextChapters,
+    );
+    setSearchKeyword((currentSearchKeyword) =>
+      currentSearchKeyword === nextSearchKeyword
+        ? currentSearchKeyword
+        : nextSearchKeyword,
+    );
+    setOnlyDifficult((currentOnlyDifficult) =>
+      currentOnlyDifficult === nextOnlyDifficult
+        ? currentOnlyDifficult
+        : nextOnlyDifficult,
+    );
+    setCurrentPage((currentPageNumber) =>
+      currentPageNumber === nextPage ? currentPageNumber : nextPage,
+    );
+  }, [
+    currentSearchParamsString,
+    hasInitialUrlFilters,
+    hasPersistedFilters,
+    lockedStudentLevel,
+  ]);
 
   useEffect(() => {
     if (!areStudyFiltersReady) {
@@ -418,6 +457,14 @@ export function VocabularyPage() {
     const nextLevel = lockedStudentLevel ?? profileLevelFilter;
 
     if (!nextLevel) {
+      return;
+    }
+
+    if (
+      lockedStudentLevel &&
+      didApplyProfileLevelRef.current &&
+      selectedLevel === nextLevel
+    ) {
       return;
     }
 
@@ -472,11 +519,34 @@ export function VocabularyPage() {
     updateVocabularyUrl,
   ]);
 
-  const loadVocabularies = useCallback(async (page: number) => {
+  const loadVocabularies = useCallback(async (
+    page: number,
+    options: { force?: boolean } = {},
+  ) => {
     if (!areStudyFiltersReady) {
       return;
     }
 
+    const loadKey = JSON.stringify({
+      page,
+      searchKeyword: searchKeyword.trim(),
+      level: effectiveSelectedLevel,
+      book: selectedBook,
+      chapters: selectedChapters,
+      onlyDifficult,
+    });
+
+    if (
+      !options.force &&
+      (activeVocabularyLoadKeyRef.current === loadKey ||
+        completedVocabularyLoadKeyRef.current === loadKey)
+    ) {
+      return;
+    }
+
+    const requestId = vocabularyRequestIdRef.current + 1;
+    vocabularyRequestIdRef.current = requestId;
+    activeVocabularyLoadKeyRef.current = loadKey;
     setIsLoadingVocabularies(true);
     setVocabularyLoadError(null);
 
@@ -491,14 +561,26 @@ export function VocabularyPage() {
         onlyDifficult,
       });
 
+      if (vocabularyRequestIdRef.current !== requestId) {
+        return;
+      }
+
       setVocabularies(result.items);
       setTotalVocabularyCount(result.totalCount);
+      completedVocabularyLoadKeyRef.current = loadKey;
     } catch (error) {
+      if (vocabularyRequestIdRef.current !== requestId) {
+        return;
+      }
+
       console.error("Failed to load vocabularies:", error);
       const fallbackMessage = "Không thể tải danh sách từ vựng.";
       setVocabularyLoadError(fallbackMessage);
     } finally {
-      setIsLoadingVocabularies(false);
+      if (vocabularyRequestIdRef.current === requestId) {
+        activeVocabularyLoadKeyRef.current = "";
+        setIsLoadingVocabularies(false);
+      }
     }
   }, [
     areStudyFiltersReady,
@@ -512,19 +594,14 @@ export function VocabularyPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadVocabularies(currentPage);
-  }, [
-    loadVocabularies,
-    currentPage,
-    searchKeyword,
-    effectiveSelectedLevel,
-    selectedBook,
-    selectedChapters,
-    onlyDifficult,
-  ]);
+  }, [loadVocabularies, currentPage]);
 
   const levelOptions = lockedStudentLevel ? [lockedStudentLevel] : ["All", ...availableLevels];
 
-  const bookOptions = ["All", ...availableBooks];
+  const bookOptions =
+    lockedStudentLevel && availableBooks.length === 1
+      ? availableBooks
+      : ["All", ...availableBooks];
 
   const chapterOptions = availableChapters;
 
@@ -593,14 +670,30 @@ export function VocabularyPage() {
         return;
       }
 
-      setAvailableLevels(options.levels);
-      setAvailableBooks(options.books);
-      setAvailableChapters(options.chapters);
-      setSelectedBook((currentBook) =>
-        currentBook === "All" || options.books.includes(currentBook)
-          ? currentBook
-          : "All",
+      setAvailableLevels((currentLevels) =>
+        areStringArraysEqual(currentLevels, options.levels)
+          ? currentLevels
+          : options.levels,
       );
+      setAvailableBooks((currentBooks) =>
+        areStringArraysEqual(currentBooks, options.books)
+          ? currentBooks
+          : options.books,
+      );
+      setAvailableChapters((currentChapters) =>
+        areStringArraysEqual(currentChapters, options.chapters)
+          ? currentChapters
+          : options.chapters,
+      );
+      setSelectedBook((currentBook) => {
+        if (lockedStudentLevel && options.books.length === 1) {
+          return options.books[0];
+        }
+
+        return currentBook === "All" || options.books.includes(currentBook)
+          ? currentBook
+          : "All";
+      });
       setSelectedChapters((currentChapters) =>
       {
         const nextChapters = currentChapters.filter((chapter) =>
@@ -621,7 +714,7 @@ export function VocabularyPage() {
         setIsLoadingFilterOptions(false);
       }
     }
-  }, [effectiveSelectedLevel, selectedBook]);
+  }, [effectiveSelectedLevel, lockedStudentLevel, selectedBook]);
 
   useEffect(() => {
     if (!areStudyFiltersReady) {
@@ -648,7 +741,7 @@ export function VocabularyPage() {
     try {
       await deleteVocabulary(vocabularyPendingDelete.id);
       setVocabularyPendingDelete(null);
-      await loadVocabularies(currentPage);
+      await loadVocabularies(currentPage, { force: true });
     } catch (error) {
       console.error("Failed to delete vocabulary:", error);
       const fallbackMessage = "Không thể xoá từ vựng. Vui lòng thử lại.";
@@ -743,7 +836,7 @@ export function VocabularyPage() {
       setIsAddVocabularyOpen(false);
       setCurrentPage(1);
 
-      void loadVocabularies(1);
+      void loadVocabularies(1, { force: true });
       void loadVocabularyFilterOptions();
     } catch (error) {
       console.error("Failed to create vocabulary:", error);
@@ -867,6 +960,8 @@ export function VocabularyPage() {
               onChange={handleChapterChange}
               disabled={isLoadingFilterOptions}
               isLoading={isLoadingFilterOptions}
+              enableRangeSelection
+              showAllOption={!(lockedStudentLevel && chapterOptions.length === 1)}
             />
 
             <label className="grid gap-2">
@@ -952,7 +1047,7 @@ export function VocabularyPage() {
               <button
                 type="button"
                 className="h-10 rounded-2xl border border-pink-100 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-pink-50"
-                onClick={() => void loadVocabularies(currentPage)}
+                onClick={() => void loadVocabularies(currentPage, { force: true })}
               >
                 Làm mới
               </button>
@@ -1390,7 +1485,7 @@ export function VocabularyPage() {
         onClose={closeImportModal}
         onImportCompleted={() => {
           setCurrentPage(1);
-          void loadVocabularies(1);
+          void loadVocabularies(1, { force: true });
           void loadVocabularyFilterOptions();
         }}
       />

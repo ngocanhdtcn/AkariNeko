@@ -94,7 +94,7 @@ export function AppSelect({
           isOpen
             ? "border-pink-300 text-pink-500 ring-4 ring-pink-100/70"
             : "border-pink-100 text-slate-700 hover:border-pink-200 hover:bg-pink-50/50"
-        } disabled:cursor-wait disabled:bg-slate-50 disabled:text-slate-400`}
+        } disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
         onClick={handleToggle}
       >
         <span className="truncate">{value}</span>

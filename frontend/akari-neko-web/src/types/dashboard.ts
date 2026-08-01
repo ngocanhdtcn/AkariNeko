@@ -21,6 +21,7 @@ export type StudyShortcutCard = {
   icon: LucideIcon;
   title: string;
   description: string;
+  href: string;
   iconClassName: string;
   cardClassName: string;
 };

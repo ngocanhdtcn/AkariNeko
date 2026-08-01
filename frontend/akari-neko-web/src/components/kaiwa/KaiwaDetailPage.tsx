@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import type { KaiwaLesson } from "@/data/kaiwaData";
 import { getYouTubeEmbedUrl, getYouTubeVideoId } from "@/lib/youtube";
@@ -69,7 +69,10 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
   const videoUrls = lesson.videoUrls.length > 0 ? lesson.videoUrls : lesson.videoUrl ? [lesson.videoUrl] : [];
   const videoTitlesByUrl = useYouTubeVideoTitles(videoUrls);
   const pdfUrls = lesson.pdfUrls.length > 0 ? lesson.pdfUrls : lesson.pdfUrl ? [lesson.pdfUrl] : [];
-  const audioUrls = lesson.audioUrls.length > 0 ? lesson.audioUrls : lesson.audioUrl ? [lesson.audioUrl] : [];
+  const audioUrls = useMemo(
+    () => lesson.audioUrls.length > 0 ? lesson.audioUrls : lesson.audioUrl ? [lesson.audioUrl] : [],
+    [lesson.audioUrl, lesson.audioUrls],
+  );
   const selectedVideoUrl = videoUrls[selectedVideoIndex] ?? "";
   const selectedYouTubeEmbedUrl = selectedVideoUrl ? getYouTubeEmbedUrl(selectedVideoUrl) : "";
   const selectedPdfUrl = pdfUrls[selectedPdfIndex] ?? "";
@@ -372,7 +375,7 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
                     <Volume2 size={17} className="text-amber-500" />
                     {getFileLabelFromUrl(audioUrl, `MP3 ${index + 1}`)}
                   </div>
-                  <audio controls src={audioUrl} className="w-full" />
+                  <audio controls preload="metadata" src={audioUrl} className="w-full" />
                 </div>
               ))}
             </div>

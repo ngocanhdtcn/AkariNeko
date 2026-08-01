@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   getDashboardStats,
   type DashboardStats,
@@ -15,6 +16,7 @@ import { RightStatsPanel } from "./RightStatsPanel";
 import { StudyShortcutCards } from "./StudyShortcutCards";
 
 export function DashboardLayout() {
+  const { profile } = useAuth();
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
     null,
   );
@@ -24,6 +26,7 @@ export function DashboardLayout() {
   );
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const isLoadingDashboardStatsRef = useRef(false);
+  const canAccessKaiwa = profile?.role === "admin" || Boolean(profile?.canAccessKaiwa);
 
   const loadDashboardStats = useCallback(async () => {
     if (isLoadingDashboardStatsRef.current) {
@@ -67,8 +70,8 @@ export function DashboardLayout() {
     >
       <DashboardHero />
       <MobileStatsSection />
-      <KaiwaHomeSection />
-      <StudyShortcutCards />
+      {canAccessKaiwa ? <KaiwaHomeSection /> : null}
+      <StudyShortcutCards showKaiwa={canAccessKaiwa} />
       <RecentVocabularyTable refreshKey={dashboardRefreshKey} />
       <RecentGrammarTable refreshKey={dashboardRefreshKey} />
     </AppShell>

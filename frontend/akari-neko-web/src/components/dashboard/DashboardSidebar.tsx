@@ -21,9 +21,17 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { profile } = useAuth();
   const hasMessageAccess = canUseMessages(profile);
-  const visibleDashboardMenuItems = hasMessageAccess
-    ? dashboardMenuItems
-    : dashboardMenuItems.filter((item) => item.href !== "/messages");
+  const visibleDashboardMenuItems = dashboardMenuItems.filter((item) => {
+    if (item.href === "/messages") {
+      return hasMessageAccess;
+    }
+
+    if (item.href === "/settings") {
+      return profile?.role === "admin";
+    }
+
+    return true;
+  });
   const menuItems =
     profile?.role === "admin"
       ? [

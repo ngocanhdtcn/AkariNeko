@@ -239,12 +239,20 @@ export function QuizPage() {
     const [availableLevels, setAvailableLevels] = useState<string[]>([]);
     const [availableBooks, setAvailableBooks] = useState<string[]>([]);
     const [availableChapters, setAvailableChapters] = useState<string[]>([]);
+    const lockedStudentLevel =
+        profile && profile.role !== "admin"
+            ? profile.currentJlptLevel?.toUpperCase() || "N5"
+            : null;
+    const effectiveSelectedLevel = lockedStudentLevel ?? selectedLevel;
     const shouldApplyProfileLevel =
-        !hasPersistedFilters &&
-        selectedLevel === "All" &&
-        Boolean(profile?.currentJlptLevel);
+        Boolean(lockedStudentLevel) ||
+        (!hasPersistedFilters &&
+            selectedLevel === "All" &&
+            Boolean(profile?.currentJlptLevel));
     const areStudyFiltersReady =
-        hasPersistedFilters || (!isLoadingProfile && !shouldApplyProfileLevel);
+        lockedStudentLevel
+            ? true
+            : hasPersistedFilters || (!isLoadingProfile && !shouldApplyProfileLevel);
 
     const currentQuestion = questions[currentQuestionIndex] ?? null;
     const isQuizCompleted =
@@ -265,16 +273,19 @@ export function QuizPage() {
             : 0;
 
     const levelOptions = ["All", ...availableLevels];
-    const bookOptions = ["All", ...availableBooks];
+    const bookOptions =
+        lockedStudentLevel && availableBooks.length === 1
+            ? availableBooks
+            : ["All", ...availableBooks];
     const chapterOptions = availableChapters;
 
     const hasActiveFilter =
-        selectedLevel !== "All" ||
+        effectiveSelectedLevel !== "All" ||
         selectedBook !== "All" ||
         selectedChapters.length > 0 ||
         onlyDifficult;
 
-    async function loadFilterOptions(level = selectedLevel, book = selectedBook) {
+    async function loadFilterOptions(level = effectiveSelectedLevel, book = selectedBook) {
         if (!areStudyFiltersReady) {
             return;
         }
@@ -290,11 +301,15 @@ export function QuizPage() {
             setAvailableLevels(options.levels);
             setAvailableBooks(options.books);
             setAvailableChapters(options.chapters);
-            setSelectedBook((currentBook) =>
-                currentBook === "All" || options.books.includes(currentBook)
+            setSelectedBook((currentBook) => {
+                if (lockedStudentLevel && options.books.length === 1) {
+                    return options.books[0];
+                }
+
+                return currentBook === "All" || options.books.includes(currentBook)
                     ? currentBook
-                    : "All",
-            );
+                    : "All";
+            });
             setSelectedChapters((currentChapters) =>
             {
                 const nextChapters = currentChapters.filter((chapter) =>
@@ -327,13 +342,13 @@ export function QuizPage() {
 
         try {
             const vocabularies = await getQuizVocabularies({
-                level: selectedLevel,
+                level: effectiveSelectedLevel,
                 book: selectedBook,
                 chapters: selectedChapters,
                 onlyDifficult,
             });
             const filterKey = getQuizFilterKey({
-                level: selectedLevel,
+                level: effectiveSelectedLevel,
                 book: selectedBook,
                 chapters: selectedChapters,
                 onlyDifficult,
@@ -424,7 +439,7 @@ export function QuizPage() {
     }
 
     function handleLevelChange(level: string) {
-        setSelectedLevel(level);
+        setSelectedLevel(lockedStudentLevel ?? level);
         setSelectedBook("All");
         setSelectedChapters([]);
         setAvailableChapters([]);
@@ -437,7 +452,7 @@ export function QuizPage() {
     }
 
     function handleClearFilters() {
-        setSelectedLevel("All");
+        setSelectedLevel(lockedStudentLevel ?? "All");
         setSelectedBook("All");
         setSelectedChapters([]);
         setOnlyDifficult(false);
@@ -524,9 +539,9 @@ export function QuizPage() {
         }
 
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        void loadFilterOptions(selectedLevel, selectedBook);
+        void loadFilterOptions(effectiveSelectedLevel, selectedBook);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [areStudyFiltersReady, selectedLevel, selectedBook]);
+    }, [areStudyFiltersReady, effectiveSelectedLevel, selectedBook]);
 
     useEffect(() => {
         if (!areStudyFiltersReady) {
@@ -534,7 +549,7 @@ export function QuizPage() {
         }
 
         writePersistedStudyFilters("quiz", {
-            level: selectedLevel,
+            level: effectiveSelectedLevel,
             book: selectedBook,
             chapters: selectedChapters,
             onlyDifficult,
@@ -544,7 +559,7 @@ export function QuizPage() {
         onlyDifficult,
         selectedBook,
         selectedChapters,
-        selectedLevel,
+        effectiveSelectedLevel,
     ]);
 
     useEffect(() => {
@@ -571,7 +586,7 @@ export function QuizPage() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadQuiz();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedLevel, selectedBook, selectedChapters, onlyDifficult]);
+    }, [effectiveSelectedLevel, selectedBook, selectedChapters, onlyDifficult]);
 
     useEffect(() => {
         return () => {
@@ -601,7 +616,7 @@ export function QuizPage() {
                 correctCount,
                 wrongCount,
                 scorePercent,
-                level: selectedLevel,
+                level: effectiveSelectedLevel,
                 book: selectedBook,
                 chapter:
                     selectedChapters.length > 0 ? selectedChapters.join(", ") : "All",
@@ -669,9 +684,10 @@ export function QuizPage() {
                 <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto_auto] xl:items-end">
                     <AppSelect
                         label="JLPT Level"
-                        items={levelOptions}
-                        value={selectedLevel}
+                        items={lockedStudentLevel ? [lockedStudentLevel] : levelOptions}
+                        value={effectiveSelectedLevel}
                         onChange={handleLevelChange}
+                        disabled={Boolean(lockedStudentLevel)}
                     />
 
                     <AppSelect
@@ -688,6 +704,8 @@ export function QuizPage() {
                         onChange={setSelectedChapters}
                         disabled={isLoadingFilterOptions}
                         isLoading={isLoadingFilterOptions}
+                        enableRangeSelection
+                        showAllOption={!(lockedStudentLevel && chapterOptions.length === 1)}
                     />
 
                     <div className="rounded-2xl bg-pink-50 px-4 py-3 text-sm font-bold text-pink-500">

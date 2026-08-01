@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BookOpen, Save, Settings, Volume2, VolumeX } from "lucide-react";
+import { Bell, BookOpen, Save, Settings, ShieldAlert, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppBadge } from "@/components/ui/AppBadge";
 import { AppButton } from "@/components/ui/AppButton";
@@ -99,7 +99,7 @@ function ToggleButton({
 }
 
 export function SettingsPage() {
-    const { profile } = useAuth();
+    const { isLoadingProfile, profile } = useAuth();
     const [settings, setSettings] =
         useState<UserSettingsUpdate>(defaultUserSettings);
     const [isLoading, setIsLoading] = useState(true);
@@ -116,7 +116,7 @@ export function SettingsPage() {
     useEffect(() => {
         const profileId = profile?.id;
 
-        if (!profileId) {
+        if (!profileId || profile?.role !== "admin") {
             return;
         }
 
@@ -165,7 +165,7 @@ export function SettingsPage() {
         return () => {
             isMounted = false;
         };
-    }, [profile?.id]);
+    }, [profile?.id, profile?.role]);
 
     function updateSetting<Key extends keyof UserSettingsUpdate>(
         key: Key,
@@ -212,6 +212,26 @@ export function SettingsPage() {
         } finally {
             setIsSaving(false);
         }
+    }
+
+    if (isLoadingProfile) {
+        return <LoadingSkeleton variant="card" className="min-h-[420px]" />;
+    }
+
+    if (profile?.role !== "admin") {
+        return (
+            <section className="rounded-[28px] border border-rose-100 bg-white/95 p-8 text-center shadow-sm">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-rose-50 text-rose-500">
+                    <ShieldAlert size={28} />
+                </div>
+                <h1 className="mt-4 text-2xl font-black text-slate-900">
+                    Không có quyền truy cập
+                </h1>
+                <p className="mt-2 text-sm font-semibold text-slate-500">
+                    Chỉ tài khoản quản trị viên mới có thể xem và chỉnh sửa cài đặt.
+                </p>
+            </section>
+        );
     }
 
     if (isLoading) {

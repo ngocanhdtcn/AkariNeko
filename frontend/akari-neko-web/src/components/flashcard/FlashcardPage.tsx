@@ -93,12 +93,20 @@ export function FlashcardPage() {
     const [availableLevels, setAvailableLevels] = useState<string[]>([]);
     const [availableBooks, setAvailableBooks] = useState<string[]>([]);
     const [availableChapters, setAvailableChapters] = useState<string[]>([]);
+    const lockedStudentLevel =
+        profile && profile.role !== "admin"
+            ? profile.currentJlptLevel?.toUpperCase() || "N5"
+            : null;
+    const effectiveSelectedLevel = lockedStudentLevel ?? selectedLevel;
     const shouldApplyProfileLevel =
-        !hasPersistedFilters &&
-        selectedLevel === "All" &&
-        Boolean(profile?.currentJlptLevel);
+        Boolean(lockedStudentLevel) ||
+        (!hasPersistedFilters &&
+            selectedLevel === "All" &&
+            Boolean(profile?.currentJlptLevel));
     const areStudyFiltersReady =
-        hasPersistedFilters || (!isLoadingProfile && !shouldApplyProfileLevel);
+        lockedStudentLevel
+            ? true
+            : hasPersistedFilters || (!isLoadingProfile && !shouldApplyProfileLevel);
 
     const currentVocabulary = vocabularies[currentIndex] ?? null;
     const currentGrammarPoint = grammarPoints[currentIndex] ?? null;
@@ -125,7 +133,7 @@ export function FlashcardPage() {
 
         try {
             const data = await getFlashcardVocabularies({
-                level: selectedLevel,
+                level: effectiveSelectedLevel,
                 book: selectedBook,
                 chapters: selectedChapters,
                 onlyDifficult,
@@ -161,7 +169,7 @@ export function FlashcardPage() {
     }, [
         areStudyFiltersReady,
         studyMode,
-        selectedLevel,
+        effectiveSelectedLevel,
         selectedBook,
         selectedChapters,
         onlyDifficult,
@@ -184,7 +192,7 @@ export function FlashcardPage() {
         try {
             const data = await getGrammarPoints({
                 jlptLevel:
-                    selectedLevel === "All" ? undefined : (selectedLevel as JlptLevel),
+                    effectiveSelectedLevel === "All" ? undefined : (effectiveSelectedLevel as JlptLevel),
             });
 
             if (grammarRequestIdRef.current !== requestId) {
@@ -211,7 +219,7 @@ export function FlashcardPage() {
                 setIsLoading(false);
             }
         }
-    }, [areStudyFiltersReady, selectedLevel, studyMode]);
+    }, [areStudyFiltersReady, effectiveSelectedLevel, studyMode]);
 
     const handleNextCard = useCallback(() => {
         if (currentDeckCount === 0) {
@@ -262,7 +270,7 @@ export function FlashcardPage() {
     }
 
     const loadFilterOptions = useCallback(async (
-        level = selectedLevel,
+        level = effectiveSelectedLevel,
         book = selectedBook,
     ) => {
         const requestId = filterOptionsRequestIdRef.current + 1;
@@ -282,11 +290,15 @@ export function FlashcardPage() {
             setAvailableLevels(options.levels);
             setAvailableBooks(options.books);
             setAvailableChapters(options.chapters);
-            setSelectedBook((currentBook) =>
-                currentBook === "All" || options.books.includes(currentBook)
+            setSelectedBook((currentBook) => {
+                if (lockedStudentLevel && options.books.length === 1) {
+                    return options.books[0];
+                }
+
+                return currentBook === "All" || options.books.includes(currentBook)
                     ? currentBook
-                    : "All",
-            );
+                    : "All";
+            });
             setSelectedChapters((currentChapters) =>
             {
                 const nextChapters = currentChapters.filter((chapter) =>
@@ -309,7 +321,7 @@ export function FlashcardPage() {
                 setIsLoadingFilterOptions(false);
             }
         }
-    }, [selectedLevel, selectedBook]);
+    }, [effectiveSelectedLevel, lockedStudentLevel, selectedBook]);
 
     useEffect(() => {
         if (!areStudyFiltersReady) {
@@ -317,8 +329,8 @@ export function FlashcardPage() {
         }
 
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        void loadFilterOptions(selectedLevel, selectedBook);
-    }, [areStudyFiltersReady, selectedLevel, selectedBook, loadFilterOptions]);
+        void loadFilterOptions(effectiveSelectedLevel, selectedBook);
+    }, [areStudyFiltersReady, effectiveSelectedLevel, selectedBook, loadFilterOptions]);
 
     useEffect(() => {
         if (!areStudyFiltersReady) {
@@ -326,7 +338,7 @@ export function FlashcardPage() {
         }
 
         writePersistedStudyFilters("flashcard", {
-            level: selectedLevel,
+            level: effectiveSelectedLevel,
             book: selectedBook,
             chapters: selectedChapters,
             onlyDifficult,
@@ -339,7 +351,7 @@ export function FlashcardPage() {
         onlyDifficult,
         selectedBook,
         selectedChapters,
-        selectedLevel,
+        effectiveSelectedLevel,
     ]);
 
     useEffect(() => {
@@ -404,11 +416,14 @@ export function FlashcardPage() {
     }, [handleNextCard, handlePreviousCard]);
 
     const levelOptions = ["All", ...availableLevels];
-    const bookOptions = ["All", ...availableBooks];
+    const bookOptions =
+        lockedStudentLevel && availableBooks.length === 1
+            ? availableBooks
+            : ["All", ...availableBooks];
     const chapterOptions = availableChapters;
 
     function handleLevelChange(level: string) {
-        setSelectedLevel(level);
+        setSelectedLevel(lockedStudentLevel ?? level);
         setSelectedBook("All");
         setSelectedChapters([]);
         setAvailableChapters([]);
@@ -519,14 +534,14 @@ export function FlashcardPage() {
     }
 
     const hasActiveFilter =
-        selectedLevel !== "All" ||
+        effectiveSelectedLevel !== "All" ||
         (studyMode === "vocabulary" &&
             (selectedBook !== "All" ||
                 selectedChapters.length > 0 ||
                 onlyDifficult));
 
     function handleClearFilters() {
-        setSelectedLevel("All");
+        setSelectedLevel(lockedStudentLevel ?? "All");
         setSelectedBook("All");
         setSelectedChapters([]);
         setOnlyDifficult(false);
@@ -558,7 +573,7 @@ export function FlashcardPage() {
                 reviewedCount: sessionStats.reviewedCount,
                 rememberedCount: sessionStats.rememberedCount,
                 forgotCount: sessionStats.forgotCount,
-                level: selectedLevel,
+                level: effectiveSelectedLevel,
                 book: selectedBook,
                 chapter:
                     selectedChapters.length > 0 ? selectedChapters.join(", ") : "All",
@@ -702,9 +717,10 @@ export function FlashcardPage() {
                 }`}>
                     <AppSelect
                         label="JLPT Level"
-                        items={levelOptions}
-                        value={selectedLevel}
+                        items={lockedStudentLevel ? [lockedStudentLevel] : levelOptions}
+                        value={effectiveSelectedLevel}
                         onChange={handleLevelChange}
+                        disabled={Boolean(lockedStudentLevel)}
                     />
 
                     {studyMode === "vocabulary" ? (
@@ -723,6 +739,8 @@ export function FlashcardPage() {
                                 onChange={setSelectedChapters}
                                 disabled={isLoadingFilterOptions}
                                 isLoading={isLoadingFilterOptions}
+                                enableRangeSelection
+                                showAllOption={!(lockedStudentLevel && chapterOptions.length === 1)}
                             />
 
                             <AppSelect
