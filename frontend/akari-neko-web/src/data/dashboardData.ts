@@ -2,7 +2,6 @@
   BarChart3,
   BookOpen,
   CalendarDays,
-  ClipboardCheck,
   ClipboardList,
   FileText,
   Flashlight,
@@ -197,13 +196,6 @@ export const studyShortcutCards: StudyShortcutCard[] = [
     description: "Luyện tập với câu hỏi thú vị",
     iconClassName: "from-amber-300 to-orange-400 text-white",
     cardClassName: "from-amber-50 to-white",
-  },
-  {
-    icon: ClipboardCheck,
-    title: "Mock Test",
-    description: "Kiểm tra trình độ như thi thật",
-    iconClassName: "from-violet-300 to-purple-400 text-white",
-    cardClassName: "from-violet-50 to-white",
   },
 ];
 

@@ -62,13 +62,35 @@ export async function clearStoredAuthSession() {
         return;
     }
 
-    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
-        const key = localStorage.key(index);
+    const storages = [window.localStorage, window.sessionStorage];
 
-        if (key && /^sb-.+-auth-token$/.test(key)) {
-            localStorage.removeItem(key);
+    for (const storage of storages) {
+        for (let index = storage.length - 1; index >= 0; index -= 1) {
+            const key = storage.key(index);
+
+            if (key && /^sb-.+-auth-token$/.test(key)) {
+                storage.removeItem(key);
+            }
         }
     }
+}
+
+export async function getCurrentSession() {
+    const {
+        data: { session },
+        error,
+    } = await supabase.auth.getSession();
+
+    if (error) {
+        if (isInvalidRefreshTokenError(error)) {
+            await clearStoredAuthSession();
+            return null;
+        }
+
+        throw error;
+    }
+
+    return session;
 }
 
 export async function signUpWithEmail({
@@ -136,10 +158,18 @@ export async function signInWithEmail({
     email: string;
     password: string;
 }) {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    let { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
     });
+
+    if (error && isInvalidRefreshTokenError(error)) {
+        await clearStoredAuthSession();
+        ({ data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        }));
+    }
 
     if (error) {
         throw error;
@@ -152,24 +182,17 @@ export async function signOut() {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
+        if (isInvalidRefreshTokenError(error)) {
+            await clearStoredAuthSession();
+            return;
+        }
+
         throw error;
     }
 }
 
 export async function getCurrentProfile(): Promise<AuthProfile | null> {
-    const {
-        data: { session },
-        error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-        if (isInvalidRefreshTokenError(sessionError)) {
-            await clearStoredAuthSession();
-            return null;
-        }
-
-        throw sessionError;
-    }
+    const session = await getCurrentSession();
 
     const userEmail = session?.user?.email;
 
@@ -238,19 +261,7 @@ export async function getCurrentProfile(): Promise<AuthProfile | null> {
 }
 
 export async function getCurrentUserId(): Promise<string | null> {
-    const {
-        data: { session },
-        error,
-    } = await supabase.auth.getSession();
-
-    if (error) {
-        if (isInvalidRefreshTokenError(error)) {
-            await clearStoredAuthSession();
-            return null;
-        }
-
-        throw error;
-    }
+    const session = await getCurrentSession();
 
     return session?.user?.id ?? null;
 }

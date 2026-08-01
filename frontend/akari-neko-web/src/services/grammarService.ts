@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { getCurrentSession } from "@/services/authService";
 
 export type JlptLevel = "N5" | "N4" | "N3" | "N2" | "N1";
 
@@ -115,14 +116,7 @@ function compareGrammarByNotes(left: GrammarPoint, right: GrammarPoint) {
 }
 
 async function getSessionUserId() {
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error) {
-    throw toFriendlyError(error, "Không thể kiểm tra phiên đăng nhập.");
-  }
+  const session = await getCurrentSession();
 
   return session?.user?.id ?? null;
 }

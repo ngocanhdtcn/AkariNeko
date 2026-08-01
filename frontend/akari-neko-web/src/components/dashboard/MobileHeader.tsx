@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
 import { getCurrentPageTitle } from "@/lib/navigation";
+import { canUseMessages } from "@/lib/messageAccess";
 import { AkariNekoWordmark } from "../branding/AkariNekoWordmark";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
@@ -14,6 +15,7 @@ export function MobileHeader() {
   const currentPageTitle = getCurrentPageTitle(pathname);
   const { profile, logout } = useAuth();
   const { unreadMessageCount } = useMessageNotification();
+  const hasMessageAccess = canUseMessages(profile);
 
   return (
     <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[26px] border border-pink-100/80 bg-white/85 px-3 py-3 shadow-[0_18px_50px_rgba(236,72,153,0.09)] backdrop-blur-xl lg:hidden">
@@ -43,19 +45,21 @@ export function MobileHeader() {
           <Search size={18} />
         </button>
 
-        <Link
-          href="/messages"
-          aria-label="Messages"
-          className="relative flex h-10 w-10 items-center justify-center rounded-full border border-pink-100 bg-white text-slate-700 shadow-sm"
-        >
-          <MessageCircle size={18} />
+        {hasMessageAccess ? (
+          <Link
+            href="/messages"
+            aria-label="Messages"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-pink-100 bg-white text-slate-700 shadow-sm"
+          >
+            <MessageCircle size={18} />
 
-          {unreadMessageCount > 0 ? (
-            <span className="absolute -right-1 -top-1 rounded-full bg-pink-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-              {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
-            </span>
-          ) : null}
-        </Link>
+            {unreadMessageCount > 0 ? (
+              <span className="absolute -right-1 -top-1 rounded-full bg-pink-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+              </span>
+            ) : null}
+          </Link>
+        ) : null}
 
         <Link
           href="/profile"

@@ -18,6 +18,7 @@ import {
   getCurrentPageTitle,
   getCurrentSearchPlaceholder,
 } from "@/lib/navigation";
+import { canUseMessages } from "@/lib/messageAccess";
 import type { ReactNode } from "react";
 
 type DashboardTopBarProps = {
@@ -40,9 +41,10 @@ export function DashboardTopBar({
     searchPlaceholderOverride ?? getCurrentSearchPlaceholder(pathname);
   const { onlineUserCount } = useOnlineUsers();
   const { unreadMessageCount } = useMessageNotification();
+  const hasMessageAccess = canUseMessages(profile);
 
   return (
-    <header className="hidden min-h-[88px] grid-cols-[minmax(220px,auto)_minmax(280px,620px)_minmax(300px,auto)] items-center gap-4 rounded-[30px] border border-pink-100/80 bg-white/95 px-5 py-4 shadow-[0_18px_50px_rgba(236,72,153,0.09)] lg:sticky lg:top-4 lg:z-40 lg:grid">
+    <header className="hidden min-h-[88px] shrink-0 grid-cols-[minmax(220px,auto)_minmax(280px,620px)_minmax(300px,auto)] items-center gap-4 rounded-[30px] border border-pink-100/80 bg-white/95 px-5 py-4 shadow-[0_18px_50px_rgba(236,72,153,0.09)] lg:z-40 lg:grid">
       <div className="flex min-w-0 items-center gap-4">
         <button
           type="button"
@@ -83,18 +85,20 @@ export function DashboardTopBar({
           {onlineUserCount} online
         </div>
 
-        <Link
-          href="/messages"
-          className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-pink-100 bg-white text-slate-500 shadow-sm transition hover:bg-pink-50 hover:text-pink-500"
-        >
-          <MessageCircle size={18} />
+        {hasMessageAccess ? (
+          <Link
+            href="/messages"
+            className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-pink-100 bg-white text-slate-500 shadow-sm transition hover:bg-pink-50 hover:text-pink-500"
+          >
+            <MessageCircle size={18} />
 
-          {unreadMessageCount > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-black text-white">
-              {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
-            </span>
-          ) : null}
-        </Link>
+            {unreadMessageCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-black text-white">
+                {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+              </span>
+            ) : null}
+          </Link>
+        ) : null}
 
         <Link
           href="/profile"

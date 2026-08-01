@@ -86,16 +86,16 @@ export function AppShell({
   }
 
   return (
-    <main className="akari-mobile-scroll min-h-screen flex flex-col overflow-x-hidden bg-[linear-gradient(135deg,#fff8fb,#fffdf8_48%,#f7f2ff)] p-2 text-slate-800 sm:p-4">
+    <main className="akari-mobile-scroll min-h-screen flex flex-col overflow-x-clip bg-[linear-gradient(135deg,#fff8fb,#fffdf8_48%,#f7f2ff)] p-2 text-slate-800 sm:p-4 lg:h-screen lg:overflow-hidden lg:px-6 xl:px-8">
+      <DashboardSidebar isCollapsed={isSidebarCollapsed} />
+
       <div
-        className={`mx-auto grid w-full max-w-[1740px] gap-3 transition-[grid-template-columns] duration-300 ease-out sm:gap-4 lg:items-start ${isSidebarCollapsed
-          ? "lg:grid-cols-[112px_minmax(0,1fr)]"
-          : "lg:grid-cols-[300px_minmax(0,1fr)]"
+        className={`grid w-full min-w-0 gap-3 transition-[margin] duration-300 ease-out sm:gap-4 lg:h-full lg:w-auto lg:overflow-visible lg:pr-1 ${isSidebarCollapsed
+          ? "lg:ml-[140px]"
+          : "lg:ml-[328px]"
           }`}
       >
-        <DashboardSidebar isCollapsed={isSidebarCollapsed} />
-
-        <section className="grid min-w-0 gap-3 sm:gap-4 lg:col-start-2">
+        <section className="grid min-w-0 gap-3 sm:gap-4 lg:h-full lg:grid-rows-[auto_minmax(0,1fr)]">
           <MobileHeader />
 
           <DashboardTopBar
@@ -105,20 +105,23 @@ export function AppShell({
             searchPlaceholder={topBarSearchPlaceholder}
           />
 
-          <div className="min-w-0 flex-1 overflow-x-hidden pb-44 lg:pb-0 lg:pt-4">
-            {rightPanel ? (
-              <div className="grid min-w-0 h-full gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-stretch">
-                <section className="grid min-w-0 content-start gap-4 h-full">
-                  {children}
-                </section>
-
-                {rightPanel}
-              </div>
-            ) : (
+          <div className="min-w-0 flex-1 overflow-x-clip pb-44 lg:min-h-0 lg:overflow-y-auto lg:pb-0 lg:pr-1 xl:pr-2">
+            <div
+              className={`grid min-w-0 gap-4 ${rightPanel
+                ? "xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start"
+                : ""
+                }`}
+            >
               <section className="grid min-w-0 content-start gap-4 h-full">
                 {children}
               </section>
-            )}
+
+              {rightPanel ? (
+                <div className="akari-desktop-right-panel hidden min-w-0 xl:block">
+                  {rightPanel}
+                </div>
+              ) : null}
+            </div>
           </div>
         </section>
       </div>

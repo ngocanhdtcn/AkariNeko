@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { getCurrentProfile } from "@/services/authService";
+import { getCurrentProfile, getCurrentSession } from "@/services/authService";
 
 export type DevCheckItem = {
     label: string;
@@ -131,14 +131,7 @@ export async function runDevChecks(): Promise<DevCheckItem[]> {
     }
 
     try {
-        const {
-            data: { session },
-            error,
-        } = await supabase.auth.getSession();
-
-        if (error) {
-            throw error;
-        }
+        const session = await getCurrentSession();
 
         results.push({
             label: "Supabase session",

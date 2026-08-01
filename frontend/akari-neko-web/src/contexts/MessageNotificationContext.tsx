@@ -15,6 +15,7 @@ import {
     markMessagesAsRead,
     subscribeToMessages,
 } from "@/services/messageService";
+import { canUseMessages } from "@/lib/messageAccess";
 
 type MessageNotificationContextValue = {
     unreadMessageCount: number;
@@ -32,6 +33,7 @@ export function MessageNotificationProvider({
     const pathname = usePathname();
     const { profile } = useAuth();
     const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+    const hasMessageAccess = canUseMessages(profile);
 
     const resetUnreadMessageCount = useCallback(async () => {
         try {
@@ -53,7 +55,7 @@ export function MessageNotificationProvider({
     }, []);
 
     useEffect(() => {
-        if (!profile) {
+        if (!profile || !hasMessageAccess) {
             const timeoutId = window.setTimeout(() => {
                 setUnreadMessageCount(0);
             }, 0);
@@ -74,10 +76,16 @@ export function MessageNotificationProvider({
         }, 0);
 
         return () => window.clearTimeout(timeoutId);
-    }, [loadUnreadMessageCount, pathname, profile, resetUnreadMessageCount]);
+    }, [
+        hasMessageAccess,
+        loadUnreadMessageCount,
+        pathname,
+        profile,
+        resetUnreadMessageCount,
+    ]);
 
     useEffect(() => {
-        if (!profile) {
+        if (!profile || !hasMessageAccess) {
             const timeoutId = window.setTimeout(() => {
                 setUnreadMessageCount(0);
             }, 0);
@@ -102,7 +110,7 @@ export function MessageNotificationProvider({
         });
 
         return unsubscribe;
-    }, [pathname, profile, resetUnreadMessageCount]);
+    }, [hasMessageAccess, pathname, profile, resetUnreadMessageCount]);
 
     const value = useMemo(
         () => ({

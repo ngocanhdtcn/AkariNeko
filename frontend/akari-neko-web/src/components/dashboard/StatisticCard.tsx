@@ -38,18 +38,20 @@ export function StatisticCard({
   chartClassName,
 }: StatisticCardProps) {
   return (
-    <div className="rounded-[20px] border border-pink-50 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2">
+    <div className="min-w-0 rounded-[20px] border border-pink-50 bg-white p-4 shadow-sm">
+      <div className="flex min-w-0 items-center gap-2">
         <span
-          className={`flex h-8 w-8 items-center justify-center rounded-xl ${iconClassName}`}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${iconClassName}`}
         >
           <Icon size={16} strokeWidth={2.4} />
         </span>
 
-        <p className="text-xs font-semibold text-slate-500">{label}</p>
+        <p className="min-w-0 truncate text-xs font-semibold text-slate-500">
+          {label}
+        </p>
       </div>
 
-      <p className="mt-3 text-2xl font-black text-slate-800">{value}</p>
+      <p className="mt-3 truncate text-2xl font-black text-slate-800">{value}</p>
 
       <MiniChart className={chartClassName} />
     </div>

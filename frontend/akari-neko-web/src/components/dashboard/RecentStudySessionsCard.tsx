@@ -52,13 +52,13 @@ export function RecentStudySessionsCard({
       {isLoading ? (
         <LoadingSkeleton variant="list" rows={3} />
       ) : sessions.length > 0 ? (
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3">
           {sessions.map((session) => (
             <div
               key={session.id}
-              className="rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
+              className="min-w-0 rounded-2xl border border-pink-50 bg-white px-4 py-3 shadow-sm"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-bold text-slate-700">
                     {formatStudyDate(session.createdAt)}
@@ -75,21 +75,21 @@ export function RecentStudySessionsCard({
                   ) : null}
                 </div>
 
-                <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-black text-pink-500">
+                <span className="shrink-0 rounded-full bg-pink-50 px-3 py-1 text-xs font-black text-pink-500">
                   {session.reviewedCount} từ
                 </span>
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-bold">
-                <div className="rounded-xl bg-slate-50 px-2 py-2 text-slate-600">
+              <div className="mt-3 grid min-w-0 grid-cols-3 gap-2 text-center text-xs font-bold">
+                <div className="min-w-0 truncate rounded-xl bg-slate-50 px-2 py-2 text-slate-600">
                   Reviewed {session.reviewedCount}
                 </div>
 
-                <div className="rounded-xl bg-emerald-50 px-2 py-2 text-emerald-600">
+                <div className="min-w-0 truncate rounded-xl bg-emerald-50 px-2 py-2 text-emerald-600">
                   Remember {session.rememberedCount}
                 </div>
 
-                <div className="rounded-xl bg-rose-50 px-2 py-2 text-rose-500">
+                <div className="min-w-0 truncate rounded-xl bg-rose-50 px-2 py-2 text-rose-500">
                   Forgot {session.forgotCount}
                 </div>
               </div>

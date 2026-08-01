@@ -9,6 +9,7 @@ import { AkariNekoWordmark } from "../branding/AkariNekoWordmark";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { canUseMessages } from "@/lib/messageAccess";
 
 type DashboardSidebarProps = {
   isCollapsed: boolean;
@@ -19,10 +20,14 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
   const { unreadMessageCount } = useMessageNotification();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { profile } = useAuth();
+  const hasMessageAccess = canUseMessages(profile);
+  const visibleDashboardMenuItems = hasMessageAccess
+    ? dashboardMenuItems
+    : dashboardMenuItems.filter((item) => item.href !== "/messages");
   const menuItems =
     profile?.role === "admin"
       ? [
-        ...dashboardMenuItems,
+        ...visibleDashboardMenuItems,
         {
           icon: ShieldCheck,
           label: "Duyệt học viên",
@@ -33,11 +38,11 @@ export function DashboardSidebar({ isCollapsed }: DashboardSidebarProps) {
           activeItemClassName: "bg-emerald-50 text-emerald-600",
         },
       ]
-      : dashboardMenuItems;
+      : visibleDashboardMenuItems;
 
   return (
     <aside
-      className={`akari-desktop-sidebar hidden min-h-0 rounded-[30px] border border-pink-100/80 bg-white/95 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.10)] transition-all duration-300 ease-out lg:fixed lg:top-8 lg:z-30 lg:grid lg:h-[calc(100dvh-3rem)] lg:grid-rows-[auto_minmax(0,1fr)_auto] ${isCollapsed ? "akari-desktop-sidebar-collapsed px-4" : "px-5"
+      className={`akari-desktop-sidebar hidden min-h-0 rounded-[30px] border border-pink-100/80 bg-white/95 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.10)] transition-all duration-300 ease-out lg:fixed lg:left-6 lg:top-8 lg:z-30 lg:grid lg:h-[calc(100dvh-3rem)] lg:grid-rows-[auto_minmax(0,1fr)_auto] xl:left-8 ${isCollapsed ? "akari-desktop-sidebar-collapsed px-4" : "px-5"
         }`}
     >
       <div

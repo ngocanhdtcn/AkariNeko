@@ -2,6 +2,7 @@
 
 import { MessageCircle, Send, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessageNotification } from "@/contexts/MessageNotificationContext";
 import { useOnlineUsers } from "@/contexts/OnlineUsersContext";
@@ -22,6 +23,7 @@ import {
     subscribeToMessages,
     type ChatMessage,
 } from "@/services/messageService";
+import { canUseMessages } from "@/lib/messageAccess";
 
 function formatMessageTime(value: string) {
     return new Intl.DateTimeFormat("vi-VN", {
@@ -31,9 +33,11 @@ function formatMessageTime(value: string) {
 }
 
 export function MessagesPage() {
+    const router = useRouter();
     const { resetUnreadMessageCount } = useMessageNotification();
-    const { profile } = useAuth();
+    const { profile, isLoadingProfile } = useAuth();
     const { onlineUsers, onlineUserCount } = useOnlineUsers();
+    const hasMessageAccess = canUseMessages(profile);
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [messageText, setMessageText] = useState("");
@@ -102,6 +106,10 @@ export function MessagesPage() {
     }, [profile?.id]);
 
     const loadMessages = useCallback(async () => {
+        if (!hasMessageAccess) {
+            return;
+        }
+
         setIsLoadingMessages(true);
         setMessageError(null);
 
@@ -116,9 +124,13 @@ export function MessagesPage() {
         } finally {
             setIsLoadingMessages(false);
         }
-    }, [loadMissingSenderProfiles]);
+    }, [hasMessageAccess, loadMissingSenderProfiles]);
 
     async function handleSendMessage() {
+        if (!hasMessageAccess) {
+            return;
+        }
+
         // 日本語: 改行を保持したまま送信するため、trim せずにそのまま送る
         const content = messageText;
 
@@ -142,6 +154,15 @@ export function MessagesPage() {
     }
 
     useEffect(() => {
+        if (isLoadingProfile) {
+            return;
+        }
+
+        if (!hasMessageAccess) {
+            router.replace("/");
+            return;
+        }
+
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadMessages();
 
@@ -157,7 +178,13 @@ export function MessagesPage() {
         });
 
         return unsubscribe;
-    }, [loadMessages, loadMissingSenderProfiles]);
+    }, [
+        hasMessageAccess,
+        isLoadingProfile,
+        loadMessages,
+        loadMissingSenderProfiles,
+        router,
+    ]);
 
     useEffect(() => {
         const chatScrollElement = chatScrollRef.current;
@@ -180,9 +207,21 @@ export function MessagesPage() {
     }, [isLoadingMessages, messages.length]);
 
     useEffect(() => {
+        if (!hasMessageAccess) {
+            return;
+        }
+
         void resetUnreadMessageCount();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [hasMessageAccess]);
+
+    if (isLoadingProfile || !hasMessageAccess) {
+        return (
+            <div className="grid min-h-[50vh] place-items-center">
+                <LoadingSkeleton variant="card" className="w-[min(92vw,420px)]" />
+            </div>
+        );
+    }
 
     return (
         <div className="messages-page gap-5">

@@ -66,7 +66,7 @@ export function RightStatsPanel({
   });
 
   return (
-    <aside className="hidden gap-4 xl:grid xl:content-start">
+    <aside className="grid min-w-0 content-start gap-4">
       <SoftPanel className="p-5">
         <div className="mb-5 flex items-center gap-3">
           <IconBadge icon={Target} />
@@ -76,12 +76,12 @@ export function RightStatsPanel({
           </h3>
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex min-w-0 items-center gap-5">
           <ProgressRing percent={isLoading ? 0 : dailyGoalPercent} />
 
-          <div className="grid flex-1 gap-4 text-sm text-slate-600">
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2">
+          <div className="grid min-w-0 flex-1 gap-4 text-sm text-slate-600">
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2">
                 <BookOpen size={17} className="text-emerald-500" />
                 {isLoading
                   ? "..."
@@ -90,16 +90,16 @@ export function RightStatsPanel({
               <span className="text-xs text-slate-500">Flashcard</span>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2">
                 <GraduationCap size={17} className="text-violet-500" />
                 18 / 20 câu
               </span>
               <span className="text-xs text-slate-500">Ngữ pháp</span>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2">
                 <ClipboardList size={17} className="text-pink-500" />3 / 5 bài
               </span>
               <span className="text-xs text-slate-500">Bài kiểm tra</span>
@@ -138,7 +138,7 @@ export function RightStatsPanel({
         {isLoading ? (
           <LoadingSkeleton variant="stats" rows={2} className="grid-cols-2" />
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid min-w-0 grid-cols-2 gap-3">
             {displayStudyStatistics.map((statistic) => (
               <StatisticCard
                 key={statistic.label}

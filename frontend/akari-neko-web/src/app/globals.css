@@ -714,12 +714,18 @@ body {
 }
 
 .akari-desktop-sidebar {
-  left: max(1rem, calc((100vw - 1740px) / 2));
   width: 300px;
 }
 
 .akari-desktop-sidebar-collapsed {
   width: 112px;
+}
+
+.akari-desktop-right-panel {
+  align-self: start;
+  width: 100%;
+  overflow-y: visible;
+  overflow-x: hidden;
 }
 
 .akari-scroll-locked .akari-mobile-bottom-nav {
