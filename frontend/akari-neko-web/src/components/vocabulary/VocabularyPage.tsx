@@ -962,6 +962,7 @@ export function VocabularyPage() {
               isLoading={isLoadingFilterOptions}
               enableRangeSelection
               showAllOption={!(lockedStudentLevel && chapterOptions.length === 1)}
+              menuAlign="left"
             />
 
             <label className="grid gap-2">

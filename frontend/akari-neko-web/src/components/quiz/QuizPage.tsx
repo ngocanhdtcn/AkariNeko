@@ -708,6 +708,7 @@ export function QuizPage() {
                         isLoading={isLoadingFilterOptions}
                         enableRangeSelection
                         showAllOption
+                        menuAlign="left"
                     />
 
                     <div className="rounded-2xl bg-pink-50 px-4 py-3 text-sm font-bold text-pink-500">

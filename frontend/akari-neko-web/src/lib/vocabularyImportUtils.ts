@@ -185,6 +185,13 @@ function detectBookName(filePath: string, existingBooks: string[]) {
     );
   }
 
+  if (lowerPath.includes("ngọc ánh")) {
+    return (
+      findMatchingExistingBook("ngọc ánh", existingBooks) ??
+      "Ngọc Ánh"
+    );
+  }
+
   if (lowerPath.includes("jlpt")) {
     return findMatchingExistingBook("jlpt", existingBooks) ?? "JLPT Vocabulary";
   }

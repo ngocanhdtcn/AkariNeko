@@ -13,6 +13,7 @@ type AppMultiSelectProps = {
   enableRangeSelection?: boolean;
   showAllOption?: boolean;
   allLabel?: string;
+  menuAlign?: "center" | "left";
 };
 
 type RangeSelectProps = {
@@ -135,6 +136,7 @@ export function AppMultiSelect({
   enableRangeSelection = false,
   showAllOption = true,
   allLabel = "All",
+  menuAlign = "center",
 }: AppMultiSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [rangeStart, setRangeStart] = useState("");
@@ -142,7 +144,25 @@ export function AppMultiSelect({
   const [openRangeSelect, setOpenRangeSelect] = useState<"start" | "end" | null>(
     null,
   );
+  const [menuOffset, setMenuOffset] = useState(0);
   const selectRef = useRef<HTMLDivElement | null>(null);
+
+  function updateMenuOffset() {
+    if (!selectRef.current) {
+      return;
+    }
+
+    const rect = selectRef.current.getBoundingClientRect();
+    const viewportPadding = 16;
+    const menuWidth = Math.min(608, window.innerWidth - viewportPadding * 2);
+    const centeredLeft = rect.left + rect.width / 2 - menuWidth / 2;
+    const clampedLeft = Math.min(
+      Math.max(centeredLeft, viewportPadding),
+      window.innerWidth - viewportPadding - menuWidth,
+    );
+
+    setMenuOffset(clampedLeft - centeredLeft);
+  }
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -170,6 +190,21 @@ export function AppMultiSelect({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || menuAlign !== "center") {
+      return;
+    }
+
+    updateMenuOffset();
+    window.addEventListener("resize", updateMenuOffset);
+    window.addEventListener("scroll", updateMenuOffset, true);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuOffset);
+      window.removeEventListener("scroll", updateMenuOffset, true);
+    };
+  }, [isOpen, menuAlign]);
 
   function handleToggle() {
     if (disabled) {
@@ -254,7 +289,12 @@ export function AppMultiSelect({
       </button>
 
       {isOpen ? (
-        <div className="akari-select-menu absolute left-1/2 top-[calc(100%+8px)] z-[100] flex max-h-[26rem] w-[calc(100vw-2rem)] max-w-[38rem] -translate-x-1/2 flex-col overflow-visible rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)]">
+        <div
+          className={`akari-select-menu absolute top-[calc(100%+8px)] z-[100] flex max-h-[26rem] w-[calc(100vw-2rem)] max-w-[38rem] flex-col overflow-visible rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)] ${
+            menuAlign === "left" ? "left-0" : "left-1/2 -translate-x-1/2"
+          }`}
+          style={menuAlign === "center" ? { marginLeft: menuOffset } : undefined}
+        >
           {showAllOption ? (
             <button
               type="button"

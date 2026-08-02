@@ -123,6 +123,41 @@ function getUniqueStringOptions(values: Array<string | null | undefined>) {
     ).sort();
 }
 
+function getVocabularyChapterLessonNumber(chapter: string) {
+    const normalizedChapter = chapter.trim();
+    const numericOnlyMatch = normalizedChapter.match(/^\d+$/u);
+
+    if (numericOnlyMatch) {
+        return Number(numericOnlyMatch[0]);
+    }
+
+    const lessonMatch = normalizedChapter.match(
+        /^(?:bài|bai|lesson|chapter|chap)\s*(\d+)\b/iu,
+    );
+
+    return lessonMatch ? Number(lessonMatch[1]) : null;
+}
+
+function compareVocabularyChapters(firstChapter: string, secondChapter: string) {
+    const firstLessonNumber = getVocabularyChapterLessonNumber(firstChapter);
+    const secondLessonNumber = getVocabularyChapterLessonNumber(secondChapter);
+
+    if (firstLessonNumber !== null && secondLessonNumber !== null) {
+        if (firstLessonNumber !== secondLessonNumber) {
+            return firstLessonNumber - secondLessonNumber;
+        }
+
+        return firstChapter.localeCompare(secondChapter, "vi", {
+            numeric: true,
+            sensitivity: "base",
+        });
+    }
+
+    return firstChapter.localeCompare(secondChapter, "vi", {
+        sensitivity: "base",
+    });
+}
+
 export function invalidateVocabularyFilterOptionsCache() {
     vocabularyOptionRowsCache = null;
 }
@@ -297,7 +332,9 @@ export async function getVocabularyFilterOptions({
             ),
         ),
         books: getUniqueStringOptions(bookRows.map((row) => row.book)),
-        chapters: getUniqueStringOptions(chapterRows.map((row) => row.chapter)),
+        chapters: getUniqueStringOptions(chapterRows.map((row) => row.chapter)).sort(
+            compareVocabularyChapters,
+        ),
     };
 }
 

@@ -595,6 +595,7 @@ export function GrammarPage() {
             enableRangeSelection
             showAllOption
             allLabel={allNotesLabel}
+            menuAlign="left"
           />
 
           <AppSelect

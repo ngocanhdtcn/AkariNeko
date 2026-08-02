@@ -743,6 +743,7 @@ export function FlashcardPage() {
                                 isLoading={isLoadingFilterOptions}
                                 enableRangeSelection
                                 showAllOption
+                                menuAlign="left"
                             />
 
                             <AppSelect
