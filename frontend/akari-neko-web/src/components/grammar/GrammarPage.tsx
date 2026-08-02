@@ -9,7 +9,7 @@ import {
   ScrollText,
   Search,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GrammarCard } from "@/components/grammar/GrammarCard";
 import { GrammarForm } from "@/components/grammar/GrammarForm";
 import { GrammarImportModal } from "@/components/grammar/GrammarImportModal";
@@ -35,8 +35,10 @@ import {
   type JlptLevel,
 } from "@/services/grammarService";
 
-const GRAMMAR_PAGE_SIZE = 12;
-const CARD_GRID_MAX_WIDTH = "max-w-[1360px]";
+const DEFAULT_GRAMMAR_COLUMN_COUNT = 3;
+const MAX_GRAMMAR_ROWS_PER_PAGE = 4;
+const GRAMMAR_CARD_GRID_CLASS =
+  "grid w-full min-w-0 gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(320px,1fr))]";
 const allLevelLabel = "All";
 const allNotesLabel = "All";
 const recentSortLabel = "Mới nhất";
@@ -44,9 +46,7 @@ const notesSortLabel = "Theo bài";
 
 function GrammarCardSkeletonGrid() {
   return (
-    <div
-      className={`mx-auto grid w-full ${CARD_GRID_MAX_WIDTH} min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`}
-    >
+    <div className={GRAMMAR_CARD_GRID_CLASS}>
       {Array.from({ length: 3 }).map((_, index) => (
         <article
           key={index}
@@ -95,6 +95,15 @@ function getActionErrorMessage(error: unknown, fallbackMessage: string) {
   return fallbackMessage;
 }
 
+function getGridColumnCount(element: HTMLElement) {
+  const gridTemplateColumns = window.getComputedStyle(element).gridTemplateColumns;
+  const columnCount = gridTemplateColumns
+    .split(" ")
+    .filter((column) => column.trim().length > 0).length;
+
+  return Math.max(1, columnCount);
+}
+
 export function GrammarPage() {
   const { profile } = useAuth();
   const canManageGrammar = profile?.role === "admin";
@@ -126,6 +135,10 @@ export function GrammarPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [grammarColumnCount, setGrammarColumnCount] = useState(
+    DEFAULT_GRAMMAR_COLUMN_COUNT,
+  );
+  const grammarGridRef = useRef<HTMLDivElement | null>(null);
 
   const selectedLevelFilter = useMemo(() => {
     if (lockedStudentLevel) {
@@ -145,15 +158,16 @@ export function GrammarPage() {
   );
 
   const selectedSortMode = selectedSort === notesSortLabel ? "notes" : "recent";
+  const grammarPageSize = grammarColumnCount * MAX_GRAMMAR_ROWS_PER_PAGE;
 
-  const totalPages = Math.max(1, Math.ceil(items.length / GRAMMAR_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(items.length / grammarPageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const visiblePageNumbers = getVisiblePageNumbers(safeCurrentPage, totalPages);
   const displayItems = items.slice(
-    (safeCurrentPage - 1) * GRAMMAR_PAGE_SIZE,
-    safeCurrentPage * GRAMMAR_PAGE_SIZE,
+    (safeCurrentPage - 1) * grammarPageSize,
+    safeCurrentPage * grammarPageSize,
   );
-  const shouldShowPagination = items.length > GRAMMAR_PAGE_SIZE;
+  const shouldShowPagination = items.length > grammarPageSize;
   const isFiltered = Boolean(
     search.trim() ||
       selectedLevelFilter ||
@@ -235,6 +249,25 @@ export function GrammarPage() {
     void loadFilterLevels();
     void loadFilterNotes();
   }, [loadFilterLevels, loadFilterNotes]);
+
+  useEffect(() => {
+    const gridElement = grammarGridRef.current;
+
+    if (!gridElement) {
+      return;
+    }
+
+    function updateColumnCount() {
+      setGrammarColumnCount(getGridColumnCount(gridElement));
+    }
+
+    updateColumnCount();
+
+    const resizeObserver = new ResizeObserver(updateColumnCount);
+    resizeObserver.observe(gridElement);
+
+    return () => resizeObserver.disconnect();
+  }, [displayItems.length, isLoading, loadError]);
 
   function handleAdd() {
     if (!canManageGrammar) {
@@ -536,9 +569,7 @@ export function GrammarPage() {
         />
       ) : items.length ? (
         <>
-          <div
-            className={`mx-auto grid w-full ${CARD_GRID_MAX_WIDTH} min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`}
-          >
+          <div ref={grammarGridRef} className={GRAMMAR_CARD_GRID_CLASS}>
             {displayItems.map((item) => (
               <GrammarCard
                 key={item.id}
