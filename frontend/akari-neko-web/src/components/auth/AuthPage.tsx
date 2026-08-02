@@ -25,6 +25,89 @@ import {
 
 type AuthMode = "login" | "signup";
 
+const invalidLoginMessage =
+    "Tài khoản hoặc mật khẩu không chính xác, xin hãy nhập lại.";
+const serverAuthErrorMessage = "Hệ thống đã bảo trì, xin vui lòng thử lại sau.";
+
+function getAuthErrorText(error: unknown) {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof error.message === "string"
+    ) {
+        return error.message;
+    }
+
+    return "";
+}
+
+function getAuthErrorStatus(error: unknown) {
+    if (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        typeof error.status === "number"
+    ) {
+        return error.status;
+    }
+
+    return null;
+}
+
+function getAuthErrorCode(error: unknown) {
+    if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string"
+    ) {
+        return error.code;
+    }
+
+    return "";
+}
+
+function isInvalidLoginError(error: unknown) {
+    const code = getAuthErrorCode(error).toLowerCase();
+    const message = getAuthErrorText(error).toLowerCase();
+
+    return (
+        code === "invalid_credentials" ||
+        /invalid login credentials|invalid credentials/.test(message)
+    );
+}
+
+function isServerAuthError(error: unknown) {
+    const status = getAuthErrorStatus(error);
+    const message = getAuthErrorText(error).toLowerCase();
+
+    return (
+        (status !== null && status >= 500) ||
+        /failed to fetch|fetch failed|network error|networkerror|timeout|service unavailable|internal server error|bad gateway|gateway timeout/.test(
+            message,
+        )
+    );
+}
+
+function getAuthErrorMessage(error: unknown, isSignup: boolean) {
+    if (!isSignup && isInvalidLoginError(error)) {
+        return invalidLoginMessage;
+    }
+
+    if (isServerAuthError(error)) {
+        return serverAuthErrorMessage;
+    }
+
+    return isSignup
+        ? "Không thể đăng ký. Kiểm tra email/mật khẩu hoặc tài khoản đã tồn tại."
+        : invalidLoginMessage;
+}
+
 const missionItems = [
     {
         icon: BookOpen,
@@ -175,11 +258,10 @@ export function AuthPage() {
                     : "/account-pending",
             );
         } catch (error) {
-            console.error("Auth failed:", error);
-            const fallbackMessage = isSignup
-                ? "Không thể đăng ký. Kiểm tra email/password hoặc tài khoản đã tồn tại."
-                : "Không thể đăng nhập. Kiểm tra email/password.";
-            setAuthError(error instanceof Error ? error.message : fallbackMessage);
+            if (!isInvalidLoginError(error)) {
+                console.warn("Auth failed:", getAuthErrorText(error));
+            }
+            setAuthError(getAuthErrorMessage(error, isSignup));
         } finally {
             setIsSubmitting(false);
         }

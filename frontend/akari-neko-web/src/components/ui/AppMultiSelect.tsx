@@ -20,6 +20,9 @@ type RangeSelectProps = {
   items: string[];
   value: string;
   onChange: (value: string) => void;
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  menuAlign: "left" | "right";
 };
 
 function getDisplayValue(values: string[], items: string[], allLabel: string) {
@@ -34,12 +37,18 @@ function getDisplayValue(values: string[], items: string[], allLabel: string) {
   return `${values.length} selected`;
 }
 
-function RangeSelect({ label, items, value, onChange }: RangeSelectProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
+function RangeSelect({
+  label,
+  items,
+  value,
+  onChange,
+  isOpen,
+  onOpenChange,
+  menuAlign,
+}: RangeSelectProps) {
   function handleSelect(item: string) {
     onChange(item);
-    setIsOpen(false);
+    onOpenChange(false);
   }
 
   return (
@@ -50,14 +59,16 @@ function RangeSelect({ label, items, value, onChange }: RangeSelectProps) {
       <button
         type="button"
         aria-expanded={isOpen}
-        className={`flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-xl border bg-white px-3 text-left text-xs font-bold shadow-sm outline-none transition focus-visible:ring-4 focus-visible:ring-pink-100 ${
+        className={`flex min-h-10 w-full min-w-0 items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 text-left text-sm font-bold shadow-sm outline-none transition focus-visible:ring-4 focus-visible:ring-pink-100 ${
           isOpen
             ? "border-pink-300 text-pink-500 ring-4 ring-pink-100/70"
             : "border-pink-100 text-slate-700 hover:border-pink-200 hover:bg-pink-50/50"
         }`}
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => onOpenChange(!isOpen)}
       >
-        <span className="min-w-0 truncate">{value || "Chọn bài"}</span>
+        <span className="min-w-0 whitespace-normal break-words leading-snug">
+          {value || "Chọn bài"}
+        </span>
         <ChevronDown
           size={15}
           className={`shrink-0 text-slate-400 transition ${
@@ -67,17 +78,23 @@ function RangeSelect({ label, items, value, onChange }: RangeSelectProps) {
       </button>
 
       {isOpen ? (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-[140] max-h-44 w-full min-w-28 overflow-y-auto rounded-xl border border-pink-100 bg-white p-1.5 shadow-[0_18px_50px_rgba(236,72,153,0.18)]">
+        <div
+          className={`absolute top-[calc(100%+6px)] z-[140] max-h-80 w-[24rem] max-w-[calc(100vw-3rem)] overflow-y-auto rounded-xl border border-pink-100 bg-white p-1.5 shadow-[0_18px_50px_rgba(236,72,153,0.18)] ${
+            menuAlign === "right" ? "right-0" : "left-0"
+          }`}
+        >
           <button
             type="button"
-            className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold transition ${
+            className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-bold transition ${
               value === ""
                 ? "bg-pink-50 text-pink-500"
                 : "text-slate-600 hover:bg-violet-50 hover:text-violet-500"
             }`}
             onClick={() => handleSelect("")}
           >
-            <span className="min-w-0 truncate">Chọn bài</span>
+            <span className="min-w-0 whitespace-normal break-words leading-snug">
+              Chọn bài
+            </span>
             {value === "" ? <Check size={14} className="shrink-0" /> : null}
           </button>
 
@@ -88,14 +105,16 @@ function RangeSelect({ label, items, value, onChange }: RangeSelectProps) {
               <button
                 key={item}
                 type="button"
-                className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold transition ${
+                className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-bold transition ${
                   isSelected
                     ? "bg-pink-50 text-pink-500"
                     : "text-slate-600 hover:bg-violet-50 hover:text-violet-500"
                 }`}
                 onClick={() => handleSelect(item)}
               >
-                <span className="min-w-0 truncate">{item}</span>
+                <span className="min-w-0 whitespace-normal break-words leading-snug">
+                  {item}
+                </span>
                 {isSelected ? <Check size={14} className="shrink-0" /> : null}
               </button>
             );
@@ -120,6 +139,9 @@ export function AppMultiSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
+  const [openRangeSelect, setOpenRangeSelect] = useState<"start" | "end" | null>(
+    null,
+  );
   const selectRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -129,12 +151,14 @@ export function AppMultiSelect({
         !selectRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
+        setOpenRangeSelect(null);
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsOpen(false);
+        setOpenRangeSelect(null);
       }
     }
 
@@ -152,16 +176,25 @@ export function AppMultiSelect({
       return;
     }
 
-    setIsOpen((current) => !current);
+    setIsOpen((current) => {
+      const nextIsOpen = !current;
+      if (!nextIsOpen) {
+        setOpenRangeSelect(null);
+      }
+
+      return nextIsOpen;
+    });
   }
 
   function handleToggleItem(item: string) {
     if (values.includes(item)) {
       onChange(values.filter((value) => value !== item));
+      setOpenRangeSelect(null);
       return;
     }
 
     onChange([...values, item]);
+    setOpenRangeSelect(null);
   }
 
   function handleApplyRange() {
@@ -183,12 +216,13 @@ export function AppMultiSelect({
     const fromIndex = Math.min(startIndex, endIndex);
     const toIndex = Math.max(startIndex, endIndex);
     onChange(items.slice(fromIndex, toIndex + 1));
+    setOpenRangeSelect(null);
   }
 
   return (
     <div
       ref={selectRef}
-      className={`relative grid gap-2 ${isOpen ? "z-[90]" : "z-40"}`}
+      className={`relative grid min-w-[180px] gap-2 ${isOpen ? "z-[90]" : "z-40"}`}
     >
       <span className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
         {label}
@@ -220,7 +254,7 @@ export function AppMultiSelect({
       </button>
 
       {isOpen ? (
-        <div className="akari-select-menu absolute left-0 top-[calc(100%+8px)] z-[100] flex max-h-80 w-72 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)]">
+        <div className="akari-select-menu absolute left-1/2 top-[calc(100%+8px)] z-[100] flex max-h-[26rem] w-[calc(100vw-2rem)] max-w-[38rem] -translate-x-1/2 flex-col overflow-visible rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_18px_50px_rgba(236,72,153,0.18)]">
           {showAllOption ? (
             <button
               type="button"
@@ -231,7 +265,7 @@ export function AppMultiSelect({
               }`}
               onClick={() => onChange([])}
             >
-              <span className="min-w-0 truncate sm:whitespace-nowrap">
+              <span className="min-w-0 whitespace-normal break-words leading-snug">
                 {allLabel}
               </span>
               {values.length === 0 ? (
@@ -242,18 +276,28 @@ export function AppMultiSelect({
 
           {enableRangeSelection && items.length > 1 ? (
             <div className="mb-2 grid shrink-0 gap-2 rounded-xl border border-pink-100 bg-pink-50/70 p-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <RangeSelect
                   label="Từ bài"
                   items={items}
                   value={rangeStart}
                   onChange={setRangeStart}
+                  isOpen={openRangeSelect === "start"}
+                  onOpenChange={(nextIsOpen) =>
+                    setOpenRangeSelect(nextIsOpen ? "start" : null)
+                  }
+                  menuAlign="left"
                 />
                 <RangeSelect
                   label="Đến bài"
                   items={items}
                   value={rangeEnd}
                   onChange={setRangeEnd}
+                  isOpen={openRangeSelect === "end"}
+                  onOpenChange={(nextIsOpen) =>
+                    setOpenRangeSelect(nextIsOpen ? "end" : null)
+                  }
+                  menuAlign="right"
                 />
               </div>
 
@@ -282,7 +326,9 @@ export function AppMultiSelect({
                   }`}
                   onClick={() => handleToggleItem(item)}
                 >
-                  <span className="min-w-0 truncate">{item}</span>
+                  <span className="min-w-0 whitespace-normal break-words leading-snug">
+                    {item}
+                  </span>
                   {isSelected ? <Check size={16} className="shrink-0" /> : null}
                 </button>
               );
