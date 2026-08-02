@@ -3,14 +3,18 @@
 import { CheckCircle2, Eye, EyeOff, RefreshCw, ShieldAlert, UserCheck, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { AppSelect } from "@/components/ui/AppSelect";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import {
     getManagedUserProfiles,
     updateManagedUserApproval,
+    updateManagedUserJlptLevel,
     updateManagedUserKaiwaAccess,
     type ManagedUserProfile,
 } from "@/services/adminUserService";
+
+const jlptLevelOptions = ["N5", "N4", "N3", "N2", "N1"];
 
 function formatDate(value: string | null) {
     if (!value) {
@@ -51,6 +55,8 @@ export function AdminUsersPage() {
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const [updatingKaiwaUserId, setUpdatingKaiwaUserId] = useState<string | null>(null);
+    const [updatingLevelUserId, setUpdatingLevelUserId] = useState<string | null>(null);
+    const [draftJlptLevels, setDraftJlptLevels] = useState<Record<string, string>>({});
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const loadUsers = useCallback(async () => {
@@ -74,7 +80,6 @@ export function AdminUsersPage() {
 
     useEffect(() => {
         if (profile?.role === "admin") {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             void loadUsers();
         }
     }, [loadUsers, profile?.role]);
@@ -128,6 +133,63 @@ export function AdminUsersPage() {
             );
         } finally {
             setUpdatingKaiwaUserId(null);
+        }
+    }
+
+    function handleJlptLevelDraftChange(user: ManagedUserProfile, currentJlptLevel: string) {
+        setDraftJlptLevels((currentDrafts) => {
+            if (user.currentJlptLevel === currentJlptLevel) {
+                const { [user.id]: _removedLevel, ...remainingDrafts } = currentDrafts;
+                void _removedLevel;
+                return remainingDrafts;
+            }
+
+            return {
+                ...currentDrafts,
+                [user.id]: currentJlptLevel,
+            };
+        });
+    }
+
+    async function handleJlptLevelSave(user: ManagedUserProfile) {
+        const currentJlptLevel = draftJlptLevels[user.id];
+
+        if (!currentJlptLevel || user.currentJlptLevel === currentJlptLevel) {
+            return;
+        }
+
+        setUpdatingLevelUserId(user.id);
+        setErrorMessage(null);
+
+        try {
+            await updateManagedUserJlptLevel({
+                userId: user.id,
+                currentJlptLevel,
+            });
+            setUsers((currentUsers) =>
+                currentUsers.map((currentUser) =>
+                    currentUser.id === user.id
+                        ? {
+                              ...currentUser,
+                              currentJlptLevel,
+                          }
+                        : currentUser,
+                ),
+            );
+            setDraftJlptLevels((currentDrafts) => {
+                const { [user.id]: _removedLevel, ...remainingDrafts } = currentDrafts;
+                void _removedLevel;
+                return remainingDrafts;
+            });
+        } catch (error) {
+            console.error("Failed to update user JLPT level:", error);
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : "KhÃ´ng thá»ƒ cáº­p nháº­t cáº¥p Ä‘á»™ JLPT.",
+            );
+        } finally {
+            setUpdatingLevelUserId(null);
         }
     }
 
@@ -197,11 +259,12 @@ export function AdminUsersPage() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <div className="min-w-[1060px] p-3">
-                                <div className="akari-vocabulary-table-head grid grid-cols-[1.35fr_0.85fr_0.8fr_0.9fr_0.9fr_1.55fr] items-center rounded-2xl bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                            <div className="min-w-[1280px] p-3">
+                                <div className="akari-vocabulary-table-head grid grid-cols-[1.35fr_0.85fr_0.75fr_1.05fr_0.85fr_0.9fr_1.55fr] items-center rounded-2xl bg-gradient-to-r from-pink-50/80 to-white px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-500">
                                     <div>Học viên</div>
                                     <div>Trạng thái</div>
                                     <div>Vai trò</div>
+                                    <div>Cấp độ</div>
                                     <div>Kaiwa</div>
                                     <div>Ngày tạo</div>
                                     <div className="text-right">Thao tác</div>
@@ -211,11 +274,16 @@ export function AdminUsersPage() {
                                     {users.map((user) => {
                                         const isUpdating = updatingUserId === user.id;
                                         const isUpdatingKaiwa = updatingKaiwaUserId === user.id;
+                                        const isUpdatingLevel = updatingLevelUserId === user.id;
+                                        const selectedJlptLevel =
+                                            draftJlptLevels[user.id] ?? user.currentJlptLevel;
+                                        const hasUnsavedJlptLevel =
+                                            selectedJlptLevel !== user.currentJlptLevel;
 
                                         return (
                                             <div
                                                 key={user.id}
-                                                className="akari-vocabulary-table-row akari-admin-users-row grid grid-cols-[1.35fr_0.85fr_0.8fr_0.9fr_0.9fr_1.55fr] items-center rounded-2xl border border-pink-50/80 px-4 py-3 text-sm text-slate-600 transition-colors hover:bg-pink-50/45"
+                                                className="akari-vocabulary-table-row akari-admin-users-row grid grid-cols-[1.35fr_0.85fr_0.75fr_1.05fr_0.85fr_0.9fr_1.55fr] items-center rounded-2xl border border-pink-50/80 px-4 py-3 text-sm text-slate-600 transition-colors hover:bg-pink-50/45"
                                             >
                                                 <div className="min-w-0">
                                                     <p className="truncate font-black text-slate-800">
@@ -234,6 +302,32 @@ export function AdminUsersPage() {
 
                                                 <div className="font-bold text-slate-600">
                                                     {getRoleLabel(user.role)}
+                                                </div>
+
+                                                <div className="flex items-end gap-2">
+                                                    <div className="w-24">
+                                                        <AppSelect
+                                                            label="JLPT"
+                                                            items={jlptLevelOptions}
+                                                            value={selectedJlptLevel}
+                                                            disabled={isUpdatingLevel || user.role === "admin"}
+                                                            isLoading={isUpdatingLevel}
+                                                            onChange={(level) =>
+                                                                handleJlptLevelDraftChange(user, level)
+                                                            }
+                                                        />
+                                                    </div>
+                                                    {hasUnsavedJlptLevel ? (
+                                                        <button
+                                                            type="button"
+                                                            disabled={isUpdatingLevel}
+                                                            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-pink-500 px-3 text-xs font-black text-white shadow-sm transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-45"
+                                                            onClick={() => void handleJlptLevelSave(user)}
+                                                        >
+                                                            <CheckCircle2 size={16} />
+                                                            Lưu
+                                                        </button>
+                                                    ) : null}
                                                 </div>
 
                                                 <div>

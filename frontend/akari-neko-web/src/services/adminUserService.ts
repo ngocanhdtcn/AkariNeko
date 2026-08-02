@@ -6,6 +6,7 @@ export type ManagedUserProfile = {
     displayName: string;
     role: "student" | "admin";
     approvalStatus: "pending" | "approved" | "rejected";
+    currentJlptLevel: string;
     canAccessKaiwa: boolean;
     createdAt: string | null;
     approvedAt: string | null;
@@ -17,6 +18,7 @@ type ManagedUserProfileRow = {
     display_name: string | null;
     role: "student" | "admin" | null;
     approval_status: "pending" | "approved" | "rejected" | null;
+    current_jlpt_level: string | null;
     can_access_kaiwa: boolean | null;
     created_at: string | null;
     approved_at: string | null;
@@ -31,6 +33,7 @@ function mapManagedUser(row: ManagedUserProfileRow): ManagedUserProfile {
         displayName: row.display_name ?? email,
         role: row.role ?? "student",
         approvalStatus: row.approval_status ?? "pending",
+        currentJlptLevel: row.current_jlpt_level ?? "N5",
         canAccessKaiwa: row.role === "admin" || (row.can_access_kaiwa ?? false),
         createdAt: row.created_at,
         approvedAt: row.approved_at,
@@ -47,6 +50,7 @@ export async function getManagedUserProfiles(): Promise<ManagedUserProfile[]> {
                 "display_name",
                 "role",
                 "approval_status",
+                "current_jlpt_level",
                 "can_access_kaiwa",
                 "created_at",
                 "approved_at",
@@ -88,6 +92,23 @@ export async function updateManagedUserKaiwaAccess({
     const { error } = await supabase.rpc("set_user_kaiwa_access", {
         target_user_id: userId,
         can_access: canAccessKaiwa,
+    });
+
+    if (error) {
+        throw error;
+    }
+}
+
+export async function updateManagedUserJlptLevel({
+    userId,
+    currentJlptLevel,
+}: {
+    userId: string;
+    currentJlptLevel: string;
+}): Promise<void> {
+    const { error } = await supabase.rpc("set_user_jlpt_level", {
+        target_user_id: userId,
+        new_jlpt_level: currentJlptLevel,
     });
 
     if (error) {
