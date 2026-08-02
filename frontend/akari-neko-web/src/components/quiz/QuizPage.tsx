@@ -51,6 +51,13 @@ const QUIZ_GROUP_TARGETS = {
     correct: 2,
 };
 
+function areStringArraysEqual(firstItems: string[], secondItems: string[]) {
+    return (
+        firstItems.length === secondItems.length &&
+        firstItems.every((item, index) => item === secondItems[index])
+    );
+}
+
 function shuffleArray<T>(items: T[]) {
     const shuffled = [...items];
 
@@ -310,20 +317,15 @@ export function QuizPage() {
                     ? currentBook
                     : "All";
             });
-            setSelectedChapters((currentChapters) =>
-            {
+            setSelectedChapters((currentChapters) => {
                 const nextChapters = currentChapters.filter((chapter) =>
                     options.chapters.includes(chapter),
                 );
 
-                return nextChapters.length === currentChapters.length &&
-                    nextChapters.every(
-                        (chapter, index) => chapter === currentChapters[index],
-                    )
+                return areStringArraysEqual(currentChapters, nextChapters)
                     ? currentChapters
                     : nextChapters;
-            },
-            );
+            });
         } catch (error) {
             console.error("Failed to load quiz filter options:", error);
             setLoadError("Không thể tải bộ lọc quiz.");
@@ -705,7 +707,7 @@ export function QuizPage() {
                         disabled={isLoadingFilterOptions}
                         isLoading={isLoadingFilterOptions}
                         enableRangeSelection
-                        showAllOption={!(lockedStudentLevel && chapterOptions.length === 1)}
+                        showAllOption
                     />
 
                     <div className="rounded-2xl bg-pink-50 px-4 py-3 text-sm font-bold text-pink-500">

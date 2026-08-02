@@ -33,6 +33,13 @@ import {
 const FLASHCARD_LIMIT_OPTIONS = ["100 từ", "Tất cả theo filter"] as const;
 type FlashcardLimitOption = (typeof FLASHCARD_LIMIT_OPTIONS)[number];
 
+function areStringArraysEqual(firstItems: string[], secondItems: string[]) {
+    return (
+        firstItems.length === secondItems.length &&
+        firstItems.every((item, index) => item === secondItems[index])
+    );
+}
+
 export function FlashcardPage() {
     const { profile, isLoadingProfile } = useAuth();
     const [studyMode, setStudyMode] = useState<"vocabulary" | "grammar">("vocabulary");
@@ -299,20 +306,15 @@ export function FlashcardPage() {
                     ? currentBook
                     : "All";
             });
-            setSelectedChapters((currentChapters) =>
-            {
+            setSelectedChapters((currentChapters) => {
                 const nextChapters = currentChapters.filter((chapter) =>
                     options.chapters.includes(chapter),
                 );
 
-                return nextChapters.length === currentChapters.length &&
-                    nextChapters.every(
-                        (chapter, index) => chapter === currentChapters[index],
-                    )
+                return areStringArraysEqual(currentChapters, nextChapters)
                     ? currentChapters
                     : nextChapters;
-            },
-            );
+            });
         } catch (error) {
             console.error("Failed to load flashcard filter options:", error);
             setLoadError("Không thể tải bộ lọc flashcard.");
@@ -740,7 +742,7 @@ export function FlashcardPage() {
                                 disabled={isLoadingFilterOptions}
                                 isLoading={isLoadingFilterOptions}
                                 enableRangeSelection
-                                showAllOption={!(lockedStudentLevel && chapterOptions.length === 1)}
+                                showAllOption
                             />
 
                             <AppSelect

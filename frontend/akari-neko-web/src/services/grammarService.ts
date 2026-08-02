@@ -35,6 +35,10 @@ export type GrammarFilters = {
   sortMode?: "recent" | "notes";
 };
 
+export type GrammarFilterNotesParams = {
+  jlptLevel?: JlptLevel;
+};
+
 export type GrammarMutation = {
   jlptLevel: JlptLevel;
   title: string;
@@ -111,6 +115,36 @@ function compareNaturalText(left: string, right: string) {
     numeric: true,
     sensitivity: "base",
   });
+}
+
+function sanitizeLikePattern(value: string) {
+  return value.trim().replace(/[%,]/g, " ");
+}
+
+function getGrammarNoteFilterOption(note: string | null | undefined) {
+  const normalizedNote = note?.trim() ?? "";
+
+  if (!normalizedNote) {
+    return "";
+  }
+
+  const searchableNote = normalizedNote
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const asciiLessonMatch = searchableNote.match(/\bbai\s*\d+(?:\s*[+-]\s*\d+)?/i);
+
+  if (asciiLessonMatch) {
+    const lessonNumber = asciiLessonMatch[0]
+      .replace(/^bai/i, "")
+      .trim()
+      .replace(/\s*([+-])\s*/g, "$1");
+
+    return `Bài ${lessonNumber}`;
+  }
+
+  const lessonMatch = normalizedNote.match(/\b[Bb]ài\s*\d+(?:\s*[+-]\s*\d+)?/u);
+
+  return lessonMatch ? lessonMatch[0].replace(/\s+/g, " ") : normalizedNote;
 }
 
 function compareGrammarByNotes(left: GrammarPoint, right: GrammarPoint) {
@@ -194,7 +228,7 @@ function mapGrammarMutation(payload: GrammarMutation | GrammarPatch) {
 }
 
 function sanitizeSearchTerm(value: string) {
-  return value.trim().replace(/[%,]/g, " ");
+  return sanitizeLikePattern(value);
 }
 
 async function getBookmarkedGrammarIds(userId: string) {
@@ -246,9 +280,16 @@ export async function getGrammarPoints(
   }
 
   if (Array.isArray(filters.notes) && filters.notes.length > 0) {
-    query = query.in("notes", filters.notes);
-  } else if (typeof filters.notes === "string" && filters.notes) {
-    query = query.eq("notes", filters.notes);
+    const notePatterns = filters.notes
+      .map(sanitizeLikePattern)
+      .filter(Boolean)
+      .map((note) => `notes.ilike.%${note}%`);
+
+    if (notePatterns.length > 0) {
+      query = query.or(notePatterns.join(","));
+    }
+  } else if (typeof filters.notes === "string" && filters.notes.trim()) {
+    query = query.ilike("notes", `%${sanitizeLikePattern(filters.notes)}%`);
   }
 
   const searchTerm = sanitizeSearchTerm(filters.search ?? "");
@@ -340,12 +381,15 @@ export async function getGrammarFilterLevels(): Promise<JlptLevel[]> {
   return JLPT_LEVEL_ORDER.filter((level) => levelSet.has(level));
 }
 
-export async function getGrammarFilterNotes(): Promise<string[]> {
+export async function getGrammarFilterNotes({
+  jlptLevel,
+}: GrammarFilterNotesParams = {}): Promise<string[]> {
   const lockedLevel = await getStudentLockedContentLevel(normalizeJlptLevel);
+  const effectiveJlptLevel = lockedLevel ?? jlptLevel;
   let query = supabase.from("grammar_points").select("notes");
 
-  if (lockedLevel) {
-    query = query.eq("jlpt_level", lockedLevel);
+  if (effectiveJlptLevel) {
+    query = query.eq("jlpt_level", effectiveJlptLevel);
   }
 
   const { data, error } = await query;
@@ -356,7 +400,7 @@ export async function getGrammarFilterNotes(): Promise<string[]> {
 
   const notesSet = new Set(
     ((data ?? []) as Array<{ notes: string | null }>)
-      .map((row) => row.notes?.trim() ?? "")
+      .map((row) => getGrammarNoteFilterOption(row.notes))
       .filter(Boolean),
   );
 

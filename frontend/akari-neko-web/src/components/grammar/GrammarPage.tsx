@@ -9,7 +9,14 @@ import {
   ScrollText,
   Search,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { GrammarCard } from "@/components/grammar/GrammarCard";
 import { GrammarForm } from "@/components/grammar/GrammarForm";
 import { GrammarImportModal } from "@/components/grammar/GrammarImportModal";
@@ -36,17 +43,29 @@ import {
 } from "@/services/grammarService";
 
 const DEFAULT_GRAMMAR_COLUMN_COUNT = 3;
+const GRAMMAR_CARD_MIN_WIDTH = 320;
+const GRAMMAR_CARD_GRID_GAP = 16;
 const MAX_GRAMMAR_ROWS_PER_PAGE = 4;
 const GRAMMAR_CARD_GRID_CLASS =
-  "grid w-full min-w-0 gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(320px,1fr))]";
+  "grid w-full min-w-0 gap-4";
 const allLevelLabel = "All";
 const allNotesLabel = "All";
 const recentSortLabel = "Mới nhất";
 const notesSortLabel = "Theo bài";
 
-function GrammarCardSkeletonGrid() {
+function getGrammarGridStyle(columnCount: number): CSSProperties {
+  return {
+    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+  };
+}
+
+function GrammarCardSkeletonGrid({
+  columnCount,
+}: {
+  columnCount: number;
+}) {
   return (
-    <div className={GRAMMAR_CARD_GRID_CLASS}>
+    <div className={GRAMMAR_CARD_GRID_CLASS} style={getGrammarGridStyle(columnCount)}>
       {Array.from({ length: 3 }).map((_, index) => (
         <article
           key={index}
@@ -95,13 +114,91 @@ function getActionErrorMessage(error: unknown, fallbackMessage: string) {
   return fallbackMessage;
 }
 
+function getResponsiveGrammarColumnCount(width: number) {
+  if (width < 768) {
+    return 1;
+  }
+
+  if (width < 1280) {
+    return 2;
+  }
+
+  return Math.max(
+    DEFAULT_GRAMMAR_COLUMN_COUNT,
+    Math.floor(
+      (width + GRAMMAR_CARD_GRID_GAP) /
+        (GRAMMAR_CARD_MIN_WIDTH + GRAMMAR_CARD_GRID_GAP),
+    ),
+  );
+}
+
 function getGridColumnCount(element: HTMLElement) {
+  const elementWidth = element.getBoundingClientRect().width;
+
+  if (elementWidth > 0) {
+    return getResponsiveGrammarColumnCount(elementWidth);
+  }
+
   const gridTemplateColumns = window.getComputedStyle(element).gridTemplateColumns;
   const columnCount = gridTemplateColumns
     .split(" ")
     .filter((column) => column.trim().length > 0).length;
 
   return Math.max(1, columnCount);
+}
+
+function compareNaturalText(left: string, right: string) {
+  return left.localeCompare(right, "vi", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function getAvailableNotesFromGrammarItems(grammarItems: GrammarPoint[]) {
+  return Array.from(
+    new Set(
+      grammarItems
+        .map((item) => getGrammarNoteFilterOption(item.notes))
+        .filter(Boolean),
+    ),
+  ).sort(compareNaturalText);
+}
+
+function mergeNoteOptions(firstItems: string[], secondItems: string[]) {
+  return Array.from(new Set([...firstItems, ...secondItems])).sort(compareNaturalText);
+}
+
+function areStringArraysEqual(firstItems: string[], secondItems: string[]) {
+  return (
+    firstItems.length === secondItems.length &&
+    firstItems.every((item, index) => item === secondItems[index])
+  );
+}
+
+function getGrammarNoteFilterOption(note: string | null | undefined) {
+  const normalizedNote = note?.trim() ?? "";
+
+  if (!normalizedNote) {
+    return "";
+  }
+
+  const searchableNote = normalizedNote
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const asciiLessonMatch = searchableNote.match(/\bbai\s*\d+(?:\s*[+-]\s*\d+)?/i);
+
+  if (asciiLessonMatch) {
+    const lessonNumber = asciiLessonMatch[0]
+      .replace(/^bai/i, "")
+      .trim()
+      .replace(/\s*([+-])\s*/g, "$1");
+
+    return `Bài ${lessonNumber}`;
+  }
+
+  const lessonMatch = normalizedNote.match(/\b[Bb]ài\s*\d+(?:\s*[+-]\s*\d+)?/u);
+
+  return lessonMatch ? lessonMatch[0].replace(/\s+/g, " ") : normalizedNote;
 }
 
 export function GrammarPage() {
@@ -138,7 +235,7 @@ export function GrammarPage() {
   const [grammarColumnCount, setGrammarColumnCount] = useState(
     DEFAULT_GRAMMAR_COLUMN_COUNT,
   );
-  const grammarGridRef = useRef<HTMLDivElement | null>(null);
+  const grammarLayoutRef = useRef<HTMLDivElement | null>(null);
 
   const selectedLevelFilter = useMemo(() => {
     if (lockedStudentLevel) {
@@ -158,6 +255,10 @@ export function GrammarPage() {
   );
 
   const selectedSortMode = selectedSort === notesSortLabel ? "notes" : "recent";
+  const grammarGridStyle = useMemo(
+    () => getGrammarGridStyle(grammarColumnCount),
+    [grammarColumnCount],
+  );
   const grammarPageSize = grammarColumnCount * MAX_GRAMMAR_ROWS_PER_PAGE;
 
   const totalPages = Math.max(1, Math.ceil(items.length / grammarPageSize));
@@ -189,6 +290,16 @@ export function GrammarPage() {
         sortMode: selectedSortMode,
       });
       setItems(nextItems);
+      setAvailableNotes((currentNotes) => {
+        const nextNotes = mergeNoteOptions(
+          currentNotes,
+          getAvailableNotesFromGrammarItems(nextItems),
+        );
+
+        return areStringArraysEqual(currentNotes, nextNotes)
+          ? currentNotes
+          : nextNotes;
+      });
     } catch (error) {
       console.error("Failed to load grammar items:", error);
       setLoadError("Không thể tải danh sách ngữ pháp. Vui lòng thử lại.");
@@ -222,19 +333,25 @@ export function GrammarPage() {
     setIsLoadingFilterNotes(true);
 
     try {
-      const nextNotes = await getGrammarFilterNotes();
-      setAvailableNotes(nextNotes);
+      const nextNotes = await getGrammarFilterNotes({
+        jlptLevel: selectedLevelFilter,
+      });
+      setAvailableNotes((currentNotes) => {
+        return areStringArraysEqual(currentNotes, nextNotes)
+          ? currentNotes
+          : nextNotes;
+      });
       setSelectedNotes((currentNotes) =>
-        currentNotes.filter((note) => nextNotes.includes(note)),
+        nextNotes.length > 0
+          ? currentNotes.filter((note) => nextNotes.includes(note))
+          : currentNotes,
       );
     } catch (error) {
       console.error("Failed to load grammar filter notes:", error);
-      setAvailableNotes([]);
-      setSelectedNotes([]);
     } finally {
       setIsLoadingFilterNotes(false);
     }
-  }, []);
+  }, [selectedLevelFilter]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -251,23 +368,25 @@ export function GrammarPage() {
   }, [loadFilterLevels, loadFilterNotes]);
 
   useEffect(() => {
-    const gridElement = grammarGridRef.current;
+    const gridElement = grammarLayoutRef.current;
 
     if (!gridElement) {
       return;
     }
 
+    const currentGridElement = gridElement;
+
     function updateColumnCount() {
-      setGrammarColumnCount(getGridColumnCount(gridElement));
+      setGrammarColumnCount(getGridColumnCount(currentGridElement));
     }
 
     updateColumnCount();
 
     const resizeObserver = new ResizeObserver(updateColumnCount);
-    resizeObserver.observe(gridElement);
+    resizeObserver.observe(currentGridElement);
 
     return () => resizeObserver.disconnect();
-  }, [displayItems.length, isLoading, loadError]);
+  }, []);
 
   function handleAdd() {
     if (!canManageGrammar) {
@@ -408,7 +527,10 @@ export function GrammarPage() {
   }
 
   return (
-    <div className="grid w-full min-w-0 gap-4 pb-24 lg:pb-0">
+    <div
+      ref={grammarLayoutRef}
+      className="grid w-full min-w-0 gap-4 pb-24 lg:pb-0"
+    >
       <section className="akari-grammar-hero relative z-40 overflow-hidden rounded-3xl border border-pink-100 bg-[linear-gradient(105deg,#fff2f7_0%,#fff9fc_48%,#eee8ff_100%)] p-6 shadow-[0_18px_50px_rgba(236,72,153,0.10)]">
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-200/35 blur-3xl" />
         <div className="pointer-events-none absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-pink-200/35 blur-3xl" />
@@ -471,7 +593,7 @@ export function GrammarPage() {
             onChange={handleNotesChange}
             isLoading={isLoadingFilterNotes}
             enableRangeSelection
-            showAllOption={!(lockedStudentLevel && availableNotes.length === 1)}
+            showAllOption
             allLabel={allNotesLabel}
           />
 
@@ -558,7 +680,7 @@ export function GrammarPage() {
       ) : null}
 
       {isLoading ? (
-        <GrammarCardSkeletonGrid />
+        <GrammarCardSkeletonGrid columnCount={grammarColumnCount} />
       ) : loadError ? (
         <EmptyState
           icon={<RotateCcw size={24} />}
@@ -569,7 +691,7 @@ export function GrammarPage() {
         />
       ) : items.length ? (
         <>
-          <div ref={grammarGridRef} className={GRAMMAR_CARD_GRID_CLASS}>
+          <div className={GRAMMAR_CARD_GRID_CLASS} style={grammarGridStyle}>
             {displayItems.map((item) => (
               <GrammarCard
                 key={item.id}
