@@ -33,6 +33,7 @@ function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
         correctCount: 0,
         wrongCount: 0,
         isDifficult: false,
+        isLearned: false,
         createdAt: row.created_at,
     };
 }

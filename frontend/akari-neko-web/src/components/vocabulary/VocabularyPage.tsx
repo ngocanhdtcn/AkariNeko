@@ -36,11 +36,39 @@ import {
   DuplicateVocabularyError,
   getVocabularies,
   getVocabularyFilterOptions,
+  resetFilteredVocabularyLearnedStatuses,
   updateVocabulary,
   updateVocabularyDifficulty,
+  updateVocabularyLearned,
   type CreateVocabularyInput,
+  type VocabularyLearnedFilter,
   type VocabularyListItem,
 } from "@/services/vocabularyService";
+
+const VOCABULARY_LEARNED_FILTER_OPTIONS: Array<{
+  label: string;
+  value: VocabularyLearnedFilter;
+}> = [
+  { label: "Tất cả từ", value: "all" },
+  { label: "Từ đã thuộc", value: "learned" },
+  { label: "Từ chưa thuộc", value: "unlearned" },
+];
+
+const DEFAULT_VOCABULARY_LEARNED_FILTER: VocabularyLearnedFilter = "unlearned";
+
+function getVocabularyLearnedFilterLabel(filter: VocabularyLearnedFilter) {
+  return (
+    VOCABULARY_LEARNED_FILTER_OPTIONS.find((option) => option.value === filter)
+      ?.label ?? "Từ chưa thuộc"
+  );
+}
+
+function getVocabularyLearnedFilterValue(label: string) {
+  return (
+    VOCABULARY_LEARNED_FILTER_OPTIONS.find((option) => option.label === label)
+      ?.value ?? DEFAULT_VOCABULARY_LEARNED_FILTER
+  );
+}
 
 function ImportButton({
   onSelectSource,
@@ -170,6 +198,8 @@ export function VocabularyPage() {
   const [updatingDifficultyId, setUpdatingDifficultyId] = useState<string | null>(
     null,
   );
+  const [updatingLearnedId, setUpdatingLearnedId] = useState<string | null>(null);
+  const [isUpdatingAllLearned, setIsUpdatingAllLearned] = useState(false);
 
   function openImportModal(sourceType: "file" | "folder") {
     setImportSourceType(sourceType);
@@ -183,6 +213,7 @@ export function VocabularyPage() {
   const VOCABULARY_PAGE_SIZE = 15;
   const [vocabularies, setVocabularies] = useState<VocabularyListItem[]>([]);
   const [totalVocabularyCount, setTotalVocabularyCount] = useState(0);
+  const [hiddenLearnedCount, setHiddenLearnedCount] = useState(0);
   const [availableLevels, setAvailableLevels] = useState<string[]>([]);
   const [availableBooks, setAvailableBooks] = useState<string[]>([]);
   const [availableChapters, setAvailableChapters] = useState<string[]>([]);
@@ -234,6 +265,8 @@ export function VocabularyPage() {
       hasPersistedFilters &&
       Boolean(persistedFilters?.onlyDifficult)),
   );
+  const [vocabularyLearnedFilter, setVocabularyLearnedFilter] =
+    useState<VocabularyLearnedFilter>(DEFAULT_VOCABULARY_LEARNED_FILTER);
   const filterOptionsRequestIdRef = useRef(0);
   const vocabularyRequestIdRef = useRef(0);
   const activeVocabularyLoadKeyRef = useRef("");
@@ -339,6 +372,7 @@ export function VocabularyPage() {
     selectedBook !== "All" ||
     selectedChapters.length > 0 ||
     onlyDifficult ||
+    vocabularyLearnedFilter !== "unlearned" ||
     Boolean(searchKeyword.trim());
 
   const totalPages = Math.max(
@@ -534,6 +568,7 @@ export function VocabularyPage() {
       book: selectedBook,
       chapters: selectedChapters,
       onlyDifficult,
+      learnedFilter: vocabularyLearnedFilter,
     });
 
     if (
@@ -559,6 +594,7 @@ export function VocabularyPage() {
         book: selectedBook,
         chapters: selectedChapters,
         onlyDifficult,
+        learnedFilter: vocabularyLearnedFilter,
       });
 
       if (vocabularyRequestIdRef.current !== requestId) {
@@ -567,6 +603,7 @@ export function VocabularyPage() {
 
       setVocabularies(result.items);
       setTotalVocabularyCount(result.totalCount);
+      setHiddenLearnedCount(result.hiddenLearnedCount);
       completedVocabularyLoadKeyRef.current = loadKey;
     } catch (error) {
       if (vocabularyRequestIdRef.current !== requestId) {
@@ -589,6 +626,7 @@ export function VocabularyPage() {
     selectedBook,
     selectedChapters,
     onlyDifficult,
+    vocabularyLearnedFilter,
   ]);
 
   useEffect(() => {
@@ -604,6 +642,12 @@ export function VocabularyPage() {
       : ["All", ...availableBooks];
 
   const chapterOptions = availableChapters;
+
+  function handleVocabularyLearnedFilterChange(label: string) {
+    setVocabularyLearnedFilter(getVocabularyLearnedFilterValue(label));
+    setCurrentPage(1);
+    updateVocabularyUrl({ page: 1 });
+  }
 
   function handleLevelChange(level: string) {
     const nextLevel = lockedStudentLevel ?? level;
@@ -887,6 +931,95 @@ export function VocabularyPage() {
     }
   }
 
+  async function handleToggleVocabularyLearned(vocabulary: VocabularyListItem) {
+    setUpdatingLearnedId(vocabulary.id);
+    setVocabularyLoadError(null);
+    const previousVocabularies = vocabularies;
+    const previousTotalVocabularyCount = totalVocabularyCount;
+    const previousHiddenLearnedCount = hiddenLearnedCount;
+    const nextIsLearned = !vocabulary.isLearned;
+
+    const shouldRemoveFromCurrentList =
+      (nextIsLearned && vocabularyLearnedFilter === "unlearned") ||
+      (!nextIsLearned && vocabularyLearnedFilter === "learned");
+
+    if (shouldRemoveFromCurrentList) {
+      setVocabularies((currentVocabularies) =>
+        currentVocabularies.filter(
+          (currentVocabulary) => currentVocabulary.id !== vocabulary.id,
+        ),
+      );
+      setTotalVocabularyCount((currentCount) => Math.max(0, currentCount - 1));
+    } else {
+      setVocabularies((currentVocabularies) =>
+        currentVocabularies.map((currentVocabulary) =>
+          currentVocabulary.id === vocabulary.id
+            ? {
+              ...currentVocabulary,
+              isLearned: nextIsLearned,
+            }
+            : currentVocabulary,
+        ),
+      );
+    }
+
+    setHiddenLearnedCount((currentCount) =>
+      nextIsLearned
+        ? currentCount + 1
+        : Math.max(0, currentCount - 1),
+    );
+
+    try {
+      await updateVocabularyLearned(vocabulary.id, nextIsLearned);
+    } catch (error) {
+      console.error("Failed to update vocabulary learned status:", error);
+      setVocabularies(previousVocabularies);
+      setTotalVocabularyCount(previousTotalVocabularyCount);
+      setHiddenLearnedCount(previousHiddenLearnedCount);
+      const fallbackMessage =
+        error instanceof Error &&
+          error.name === "VocabularyLearnedStorageNotReadyError"
+          ? "Database chưa có cột lưu trạng thái Learned. Vui lòng chạy script SQL add-vocabulary-learned-progress trước."
+          : "Không thể cập nhật trạng thái đã thuộc.";
+      setVocabularyLoadError(fallbackMessage);
+    } finally {
+      setUpdatingLearnedId(null);
+    }
+  }
+
+  async function handleResetLearnedVocabularies() {
+    if (isUpdatingAllLearned || isLoadingVocabularies) {
+      return;
+    }
+
+    setIsUpdatingAllLearned(true);
+    setVocabularyLoadError(null);
+
+    try {
+      await resetFilteredVocabularyLearnedStatuses({
+        searchKeyword,
+        level: effectiveSelectedLevel,
+        book: selectedBook,
+        chapters: selectedChapters,
+        onlyDifficult,
+      });
+      completedVocabularyLoadKeyRef.current = "";
+      setCurrentPage(1);
+      updateVocabularyUrl({ page: 1 });
+      await loadVocabularies(1, { force: true });
+    } catch (error) {
+      console.error("Failed to reset vocabulary learned statuses:", error);
+      const fallbackMessage =
+        error instanceof Error &&
+          error.name === "VocabularyLearnedStorageNotReadyError"
+          ? "Database chưa có cột lưu trạng thái Learned. Vui lòng chạy script SQL add-vocabulary-learned-progress trước."
+          : "Không thể reset trạng thái Learned.";
+      setVocabularyLoadError(fallbackMessage);
+    } finally {
+      setIsUpdatingAllLearned(false);
+    }
+  }
+
   return (
     <>
       <div className="grid gap-4">
@@ -937,7 +1070,7 @@ export function VocabularyPage() {
         </section>
 
         <SoftPanel className="relative z-30 p-4 sm:p-5">
-          <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_1fr_auto] xl:items-end">
+          <div className="grid gap-4 xl:grid-cols-[auto_auto_auto_auto_1fr_auto] xl:items-end">
             <AppSelect
               label="JLPT Level"
               items={levelOptions}
@@ -965,6 +1098,13 @@ export function VocabularyPage() {
               menuAlign="left"
             />
 
+            <AppSelect
+              label="Vocabulary"
+              items={VOCABULARY_LEARNED_FILTER_OPTIONS.map((option) => option.label)}
+              value={getVocabularyLearnedFilterLabel(vocabularyLearnedFilter)}
+              onChange={handleVocabularyLearnedFilterChange}
+            />
+
             <label className="grid gap-2">
               <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
                 Search
@@ -984,28 +1124,44 @@ export function VocabularyPage() {
               </div>
             </label>
 
-            <button
-              type="button"
-              className={`h-12 w-full rounded-2xl border px-4 text-sm font-bold shadow-sm transition xl:w-auto ${onlyDifficult
-                ? "border-amber-200 bg-amber-50 text-amber-500"
-                : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
-                }`}
-              onClick={() => {
-                const nextOnlyDifficult = !onlyDifficult;
-                setOnlyDifficult(nextOnlyDifficult);
-                setCurrentPage(1);
-                updateVocabularyUrl({ difficult: nextOnlyDifficult, page: 1 });
-              }}
-            >
-              {onlyDifficult ? "Only difficult: ON" : "Only difficult"}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={`h-12 w-full rounded-2xl border px-4 text-sm font-bold shadow-sm transition xl:w-auto ${onlyDifficult
+                  ? "border-amber-200 bg-amber-50 text-amber-500"
+                  : "border-pink-100 bg-white text-slate-600 hover:bg-pink-50"
+                  }`}
+                onClick={() => {
+                  const nextOnlyDifficult = !onlyDifficult;
+                  setOnlyDifficult(nextOnlyDifficult);
+                  setCurrentPage(1);
+                  updateVocabularyUrl({ difficult: nextOnlyDifficult, page: 1 });
+                }}
+              >
+                {onlyDifficult ? "Only difficult: ON" : "Only difficult"}
+              </button>
+
+              <button
+                type="button"
+                disabled={
+                  isUpdatingAllLearned ||
+                  isLoadingVocabularies ||
+                  totalVocabularyCount + hiddenLearnedCount === 0
+                }
+                className="h-12 w-full rounded-2xl border border-emerald-100 bg-white px-4 text-sm font-bold text-emerald-600 shadow-sm transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50 xl:w-auto"
+                onClick={() => void handleResetLearnedVocabularies()}
+              >
+                {isUpdatingAllLearned ? "Đang cập nhật..." : "Reset Learned"}
+              </button>
+            </div>
           </div>
 
           {searchKeyword ||
             selectedLevel !== "All" ||
             selectedBook !== "All" ||
             selectedChapters.length > 0 ||
-            onlyDifficult ? (
+            onlyDifficult ||
+            vocabularyLearnedFilter !== DEFAULT_VOCABULARY_LEARNED_FILTER ? (
             <div className="mt-4 flex justify-end">
               <button
                 type="button"
@@ -1017,6 +1173,7 @@ export function VocabularyPage() {
                   setSelectedChapters([]);
                   setCurrentPage(1);
                   setOnlyDifficult(false);
+                  setVocabularyLearnedFilter(DEFAULT_VOCABULARY_LEARNED_FILTER);
                   updateVocabularyUrl({
                     level: lockedStudentLevel ?? "All",
                     book: "All",
@@ -1117,6 +1274,22 @@ export function VocabularyPage() {
                             : "Đánh dấu từ khó"}
                       </button>
 
+                      <button
+                        type="button"
+                        disabled={updatingLearnedId === vocabulary.id}
+                        className={`rounded-xl border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50 ${vocabulary.isLearned
+                          ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+                          : "border-emerald-100 bg-white text-emerald-600"
+                          }`}
+                        onClick={() => void handleToggleVocabularyLearned(vocabulary)}
+                      >
+                        {updatingLearnedId === vocabulary.id
+                          ? "..."
+                          : vocabulary.isLearned
+                            ? "Chưa thuộc"
+                            : "Đã thuộc"}
+                      </button>
+
                       {canManageVocabulary ? (
                         <>
                           <button
@@ -1172,6 +1345,9 @@ export function VocabularyPage() {
                       setSelectedBook("All");
                       setSelectedChapters([]);
                       setOnlyDifficult(false);
+                      setVocabularyLearnedFilter(
+                        DEFAULT_VOCABULARY_LEARNED_FILTER,
+                      );
                       updateVocabularyUrl({
                         level: lockedStudentLevel ?? "All",
                         book: "All",
@@ -1228,6 +1404,12 @@ export function VocabularyPage() {
                         Hard
                       </span>
                     ) : null}
+
+                    {vocabulary.isLearned ? (
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-black text-emerald-600">
+                        Learned
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="min-w-0 truncate font-semibold text-slate-700">
@@ -1265,6 +1447,22 @@ export function VocabularyPage() {
                         : vocabulary.isDifficult
                           ? "Difficult"
                           : "Mark"}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={updatingLearnedId === vocabulary.id}
+                      className={`akari-vocabulary-action flex h-8 min-w-20 items-center justify-center rounded-xl border px-3 text-xs font-bold transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50 ${vocabulary.isLearned
+                        ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+                        : "border-emerald-100 bg-white text-emerald-600"
+                        }`}
+                      onClick={() => void handleToggleVocabularyLearned(vocabulary)}
+                    >
+                      {updatingLearnedId === vocabulary.id
+                        ? "..."
+                        : vocabulary.isLearned
+                          ? "Unlearn"
+                          : "Learned"}
                     </button>
 
                     {canManageVocabulary ? (
@@ -1322,6 +1520,9 @@ export function VocabularyPage() {
                         setSelectedBook("All");
                         setSelectedChapters([]);
                         setOnlyDifficult(false);
+                        setVocabularyLearnedFilter(
+                          DEFAULT_VOCABULARY_LEARNED_FILTER,
+                        );
                         updateVocabularyUrl({
                           level: lockedStudentLevel ?? "All",
                           book: "All",

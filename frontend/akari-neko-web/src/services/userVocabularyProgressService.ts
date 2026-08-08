@@ -6,6 +6,7 @@ export type UserVocabularyProgress = {
     correctCount: number;
     wrongCount: number;
     isDifficult: boolean;
+    isLearned: boolean;
 };
 
 type UserVocabularyProgressRow = {
@@ -13,14 +14,25 @@ type UserVocabularyProgressRow = {
     correct_count: number | null;
     wrong_count: number | null;
     is_difficult: boolean | null;
+    is_learned?: boolean | null;
 };
 
 const DEFAULT_PROGRESS: UserVocabularyProgress = {
     correctCount: 0,
     wrongCount: 0,
     isDifficult: false,
+    isLearned: false,
 };
 const PROGRESS_QUERY_BATCH_SIZE = 200;
+
+export class VocabularyLearnedStorageNotReadyError extends Error {
+    constructor() {
+        super(
+            "Database chưa có cột is_learned trong user_vocabulary_progress.",
+        );
+        this.name = "VocabularyLearnedStorageNotReadyError";
+    }
+}
 
 function normalizeProgressRow(
     row: UserVocabularyProgressRow | null | undefined,
@@ -33,6 +45,7 @@ function normalizeProgressRow(
         correctCount: row.correct_count ?? 0,
         wrongCount: row.wrong_count ?? 0,
         isDifficult: row.is_difficult ?? false,
+        isLearned: row.is_learned ?? false,
     };
 }
 
@@ -73,6 +86,20 @@ export async function getUserVocabularyProgressMap(
         }
     }
 
+    const learnedVocabularyIdSet = new Set(await getLearnedVocabularyIds());
+
+    for (const vocabularyId of uniqueVocabularyIds) {
+        if (!learnedVocabularyIdSet.has(vocabularyId)) {
+            continue;
+        }
+
+        const progress = progressMap.get(vocabularyId) ?? DEFAULT_PROGRESS;
+        progressMap.set(vocabularyId, {
+            ...progress,
+            isLearned: true,
+        });
+    }
+
     return progressMap;
 }
 
@@ -88,6 +115,7 @@ export function mergeVocabularyWithProgress(
             correctCount: progress.correctCount,
             wrongCount: progress.wrongCount,
             isDifficult: progress.isDifficult,
+            isLearned: progress.isLearned,
         };
     });
 }
@@ -116,6 +144,32 @@ export async function getDifficultVocabularyIds(): Promise<string[]> {
         .eq("is_difficult", true);
 
     if (error) {
+        throw error;
+    }
+
+    return ((data ?? []) as Array<{ vocabulary_id: string }>).map(
+        (row) => row.vocabulary_id,
+    );
+}
+
+export async function getLearnedVocabularyIds(): Promise<string[]> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        return [];
+    }
+
+    const { data, error } = await supabase
+        .from("user_vocabulary_progress")
+        .select("vocabulary_id")
+        .eq("user_id", userId)
+        .eq("is_learned", true);
+
+    if (error) {
+        if (isMissingLearnedColumnError(error)) {
+            return [];
+        }
+
         throw error;
     }
 
@@ -270,4 +324,144 @@ export async function setVocabularyDifficult(
     if (error) {
         throw error;
     }
+}
+
+function isMissingLearnedColumnError(error: { code?: string; message?: string }) {
+    return (
+        error.code === "42703" ||
+        Boolean(error.message?.includes("is_learned"))
+    );
+}
+
+export async function setVocabularyLearned(
+    vocabularyId: string,
+    isLearned: boolean,
+): Promise<void> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
+    const { data, error: selectError } = await supabase
+        .from("user_vocabulary_progress")
+        .select("vocabulary_id,correct_count,wrong_count,is_difficult")
+        .eq("user_id", userId)
+        .eq("vocabulary_id", vocabularyId)
+        .maybeSingle();
+
+    if (selectError) {
+        throw selectError;
+    }
+
+    const now = new Date().toISOString();
+
+    if (data) {
+        const { error } = await supabase
+            .from("user_vocabulary_progress")
+            .update({
+                is_learned: isLearned,
+                updated_at: now,
+            })
+            .eq("user_id", userId)
+            .eq("vocabulary_id", vocabularyId);
+
+        if (error) {
+            if (isMissingLearnedColumnError(error)) {
+                throw new VocabularyLearnedStorageNotReadyError();
+            }
+
+            throw error;
+        }
+
+        return;
+    }
+
+    const { error } = await supabase.from("user_vocabulary_progress").insert({
+        user_id: userId,
+        vocabulary_id: vocabularyId,
+        correct_count: 0,
+        wrong_count: 0,
+        is_difficult: false,
+        is_learned: isLearned,
+        updated_at: now,
+    });
+
+    if (error) {
+        if (isMissingLearnedColumnError(error)) {
+            throw new VocabularyLearnedStorageNotReadyError();
+        }
+
+        throw error;
+    }
+}
+
+export async function resetVocabularyLearnedStatuses(
+    vocabularyIds: string[],
+): Promise<number> {
+    const userId = await getCurrentUserId();
+    const uniqueVocabularyIds = getUniqueVocabularyIds(vocabularyIds);
+
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
+    if (uniqueVocabularyIds.length === 0) {
+        return 0;
+    }
+
+    let updatedCount = 0;
+    const now = new Date().toISOString();
+
+    for (let index = 0; index < uniqueVocabularyIds.length; index += PROGRESS_QUERY_BATCH_SIZE) {
+        const vocabularyIdBatch = uniqueVocabularyIds.slice(
+            index,
+            index + PROGRESS_QUERY_BATCH_SIZE,
+        );
+
+        const { data: learnedRows, error: selectError } = await supabase
+            .from("user_vocabulary_progress")
+            .select("vocabulary_id")
+            .eq("user_id", userId)
+            .eq("is_learned", true)
+            .in("vocabulary_id", vocabularyIdBatch);
+
+        if (selectError) {
+            if (isMissingLearnedColumnError(selectError)) {
+                throw new VocabularyLearnedStorageNotReadyError();
+            }
+
+            throw selectError;
+        }
+
+        const learnedIds = ((learnedRows ?? []) as Array<{ vocabulary_id: string }>).map(
+            (row) => row.vocabulary_id,
+        );
+
+        if (learnedIds.length === 0) {
+            continue;
+        }
+
+        const { error } = await supabase
+            .from("user_vocabulary_progress")
+            .update({
+                is_learned: false,
+                updated_at: now,
+            })
+            .eq("user_id", userId)
+            .eq("is_learned", true)
+            .in("vocabulary_id", learnedIds);
+
+        if (error) {
+            if (isMissingLearnedColumnError(error)) {
+                throw new VocabularyLearnedStorageNotReadyError();
+            }
+
+            throw error;
+        }
+
+        updatedCount += learnedIds.length;
+    }
+
+    return updatedCount;
 }
