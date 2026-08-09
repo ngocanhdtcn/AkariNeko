@@ -1,5 +1,13 @@
 export type KaiwaLevel = "N5" | "N4" | "N3" | "N2" | "N1";
 
+export type KaiwaHtmlDocument = {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  fileName: string;
+};
+
 export type KaiwaLesson = {
   id: string;
   level: KaiwaLevel;
@@ -17,6 +25,7 @@ export type KaiwaLesson = {
   videoUrls: string[];
   pdfUrls: string[];
   audioUrls: string[];
+  htmlDocuments: KaiwaHtmlDocument[];
   notes: {
     vocabulary: string[];
     patterns: string[];

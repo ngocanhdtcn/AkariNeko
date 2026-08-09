@@ -18,6 +18,7 @@ import {
     createFlashcardStudySession,
     getFlashcardVocabularies,
     reviewFlashcard,
+    updateFlashcardStudySession,
     type ReviewFlashcardResult,
 } from "@/services/flashcardService";
 import {
@@ -59,6 +60,10 @@ export function FlashcardPage() {
     const flashcardsRequestIdRef = useRef(0);
     const grammarRequestIdRef = useRef(0);
     const filterOptionsRequestIdRef = useRef(0);
+    const activeStudySessionIdRef = useRef<string | null>(null);
+    const activeStudySessionGenerationRef = useRef(0);
+    const isPersistingActiveSessionRef = useRef(false);
+    const pendingActiveSessionStatsRef = useRef<FlashcardSessionStats | null>(null);
     const [isSavingSession, setIsSavingSession] = useState(false);
     const [isSessionSaved, setIsSessionSaved] = useState(false);
     const [sessionSavedMessage, setSessionSavedMessage] = useState<string | null>(
@@ -72,6 +77,11 @@ export function FlashcardPage() {
     };
 
     const [sessionStats, setSessionStats] = useState<FlashcardSessionStats>({
+        reviewedCount: 0,
+        rememberedCount: 0,
+        forgotCount: 0,
+    });
+    const sessionStatsRef = useRef<FlashcardSessionStats>({
         reviewedCount: 0,
         rememberedCount: 0,
         forgotCount: 0,
@@ -96,6 +106,19 @@ export function FlashcardPage() {
                 : "100 từ",
         );
     const [showHiragana, setShowHiragana] = useState(true);
+
+    function resetFlashcardSessionStats() {
+        const emptyStats = {
+            reviewedCount: 0,
+            rememberedCount: 0,
+            forgotCount: 0,
+        };
+
+        sessionStatsRef.current = emptyStats;
+        pendingActiveSessionStatsRef.current = null;
+        activeStudySessionGenerationRef.current += 1;
+        setSessionStats(emptyStats);
+    }
 
     const [availableLevels, setAvailableLevels] = useState<string[]>([]);
     const [availableBooks, setAvailableBooks] = useState<string[]>([]);
@@ -156,12 +179,9 @@ export function FlashcardPage() {
             setCurrentIndex(0);
             setIsFlipped(false);
 
-            setSessionStats({
-                reviewedCount: 0,
-                rememberedCount: 0,
-                forgotCount: 0,
-            });
+            resetFlashcardSessionStats();
 
+            activeStudySessionIdRef.current = null;
             setSessionSavedMessage(null);
             setIsSessionSaved(false);
         } catch (error) {
@@ -210,11 +230,8 @@ export function FlashcardPage() {
             if (isActiveGrammarMode) {
                 setCurrentIndex(0);
                 setIsFlipped(false);
-                setSessionStats({
-                    reviewedCount: 0,
-                    rememberedCount: 0,
-                    forgotCount: 0,
-                });
+                resetFlashcardSessionStats();
+                activeStudySessionIdRef.current = null;
                 setSessionSavedMessage(null);
                 setIsSessionSaved(false);
             }
@@ -470,8 +487,11 @@ export function FlashcardPage() {
         );
     }
 
-    function updateSessionStats(result: ReviewFlashcardResult) {
-        setSessionStats((current) => ({
+    function getNextSessionStats(
+        current: FlashcardSessionStats,
+        result: ReviewFlashcardResult,
+    ): FlashcardSessionStats {
+        return {
             reviewedCount: current.reviewedCount + 1,
             rememberedCount:
                 result === "remember"
@@ -479,7 +499,73 @@ export function FlashcardPage() {
                     : current.rememberedCount,
             forgotCount:
                 result === "forgot" ? current.forgotCount + 1 : current.forgotCount,
-        }));
+        };
+    }
+
+    function updateSessionStats(result: ReviewFlashcardResult) {
+        const nextStats = getNextSessionStats(sessionStatsRef.current, result);
+        sessionStatsRef.current = nextStats;
+        setSessionStats(nextStats);
+    }
+
+    async function persistActiveVocabularySession(
+        nextSessionStats: FlashcardSessionStats,
+    ) {
+        if (nextSessionStats.reviewedCount === 0 || studyMode !== "vocabulary") {
+            return;
+        }
+
+        if (isPersistingActiveSessionRef.current) {
+            pendingActiveSessionStatsRef.current = nextSessionStats;
+            return;
+        }
+
+        isPersistingActiveSessionRef.current = true;
+        const sessionGeneration = activeStudySessionGenerationRef.current;
+
+        try {
+            const payload = {
+                reviewedCount: nextSessionStats.reviewedCount,
+                rememberedCount: nextSessionStats.rememberedCount,
+                forgotCount: nextSessionStats.forgotCount,
+                level: effectiveSelectedLevel,
+                book: selectedBook,
+                chapter:
+                    selectedChapters.length > 0 ? selectedChapters.join(", ") : "All",
+                onlyDifficult,
+            };
+
+            if (!activeStudySessionIdRef.current) {
+                const sessionId = await createFlashcardStudySession(payload);
+
+                if (activeStudySessionGenerationRef.current === sessionGeneration) {
+                    activeStudySessionIdRef.current = sessionId;
+                }
+
+                return;
+            }
+
+            if (activeStudySessionGenerationRef.current === sessionGeneration) {
+                await updateFlashcardStudySession(
+                    activeStudySessionIdRef.current,
+                    payload,
+                );
+            }
+        } catch (error) {
+            console.error("Failed to persist active flashcard session:", error);
+            setLoadError("Không thể cập nhật thống kê phiên học.");
+        } finally {
+            isPersistingActiveSessionRef.current = false;
+            const pendingStats = pendingActiveSessionStatsRef.current;
+            pendingActiveSessionStatsRef.current = null;
+
+            if (
+                pendingStats &&
+                activeStudySessionGenerationRef.current === sessionGeneration
+            ) {
+                void persistActiveVocabularySession(pendingStats);
+            }
+        }
     }
 
     function handleReviewFlashcard(result: ReviewFlashcardResult) {
@@ -513,6 +599,7 @@ export function FlashcardPage() {
         updateReviewedVocabularyLocally(reviewedVocabulary.id, result);
         setSessionSavedMessage(null);
         setIsSessionSaved(false);
+        const nextSessionStats = getNextSessionStats(sessionStatsRef.current, result);
         updateSessionStats(result);
         handleNextCard();
         setIsReviewing(false);
@@ -522,15 +609,13 @@ export function FlashcardPage() {
             const fallbackMessage = "Không thể lưu kết quả ôn tập.";
             setLoadError(fallbackMessage);
         });
+        void persistActiveVocabularySession(nextSessionStats);
     }
 
     function handleResetSession() {
-        setSessionStats({
-            reviewedCount: 0,
-            rememberedCount: 0,
-            forgotCount: 0,
-        });
+        resetFlashcardSessionStats();
 
+        activeStudySessionIdRef.current = null;
         setCurrentIndex(0);
         setIsFlipped(false);
     }
@@ -555,11 +640,8 @@ export function FlashcardPage() {
         setIsFlipped(false);
         setSessionSavedMessage(null);
         setIsSessionSaved(false);
-        setSessionStats({
-            reviewedCount: 0,
-            rememberedCount: 0,
-            forgotCount: 0,
-        });
+        resetFlashcardSessionStats();
+        activeStudySessionIdRef.current = null;
     }
 
     async function handleSaveStudySession() {
@@ -571,7 +653,7 @@ export function FlashcardPage() {
         setLoadError(null);
 
         try {
-            await createFlashcardStudySession({
+            const payload = {
                 reviewedCount: sessionStats.reviewedCount,
                 rememberedCount: sessionStats.rememberedCount,
                 forgotCount: sessionStats.forgotCount,
@@ -580,15 +662,22 @@ export function FlashcardPage() {
                 chapter:
                     selectedChapters.length > 0 ? selectedChapters.join(", ") : "All",
                 onlyDifficult,
-            });
+            };
+
+            if (activeStudySessionIdRef.current) {
+                await updateFlashcardStudySession(
+                    activeStudySessionIdRef.current,
+                    payload,
+                );
+            } else {
+                activeStudySessionIdRef.current =
+                    await createFlashcardStudySession(payload);
+            }
 
             setSessionSavedMessage("Đã lưu phiên học. Hãy ôn thêm từ mới để bắt đầu phiên tiếp theo.");
             setIsSessionSaved(true);
-            setSessionStats({
-                reviewedCount: 0,
-                rememberedCount: 0,
-                forgotCount: 0,
-            });
+            activeStudySessionIdRef.current = null;
+            resetFlashcardSessionStats();
         } catch (error) {
             console.error("Failed to save flashcard study session:", error);
             const fallbackMessage = "Không thể lưu phiên học.";

@@ -65,6 +65,7 @@ function getPdfViewerUrl(url: string) {
 export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
   const [selectedPdfIndex, setSelectedPdfIndex] = useState(0);
+  const [selectedHtmlIndex, setSelectedHtmlIndex] = useState(0);
   const heroImage = lesson.thumbnailUrl ?? "/akari-assets/hero-bg.png";
   const videoUrls = lesson.videoUrls.length > 0 ? lesson.videoUrls : lesson.videoUrl ? [lesson.videoUrl] : [];
   const videoTitlesByUrl = useYouTubeVideoTitles(videoUrls);
@@ -77,6 +78,8 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
   const selectedYouTubeEmbedUrl = selectedVideoUrl ? getYouTubeEmbedUrl(selectedVideoUrl) : "";
   const selectedPdfUrl = pdfUrls[selectedPdfIndex] ?? "";
   const selectedPdfViewerUrl = selectedPdfUrl ? getPdfViewerUrl(selectedPdfUrl) : "";
+  const htmlDocuments = lesson.htmlDocuments;
+  const selectedHtmlDocument = htmlDocuments[selectedHtmlIndex] ?? null;
   const noteGroups = [
     {
       title: "Từ vựng",
@@ -343,6 +346,101 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
             </div>
           )}
         </article>
+
+        {htmlDocuments.length > 0 ? (
+          <article className="grid h-full content-start rounded-[28px] border border-pink-100/80 bg-white/90 p-4 shadow-[0_14px_34px_rgba(236,72,153,0.08)] sm:p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500">
+                  <FileText size={20} />
+                </span>
+                <div>
+                  <h2 className="text-lg font-black text-slate-800">
+                    Tai lieu HTML
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    Tai lieu bo sung do admin upload cho bai Kaiwa nay.
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-2xl bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-500">
+                {htmlDocuments.length} HTML
+              </span>
+            </div>
+
+            {selectedHtmlDocument ? (
+              <>
+                <div className="grid gap-4 lg:grid-cols-[minmax(260px,0.45fr)_minmax(0,1fr)]">
+                  <div className="grid content-start gap-2">
+                    {htmlDocuments.map((document, index) => (
+                      <button
+                        key={document.id || document.url}
+                        type="button"
+                        onClick={() => setSelectedHtmlIndex(index)}
+                        className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                          selectedHtmlIndex === index
+                            ? "border-emerald-200 bg-emerald-50"
+                            : "border-pink-100 bg-white hover:bg-emerald-50/60"
+                        }`}
+                      >
+                        <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500 text-white">
+                          <FileText size={18} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-black text-slate-800">
+                            {document.title || `HTML ${index + 1}`}
+                          </span>
+                          <span className="block truncate text-xs font-semibold text-slate-500">
+                            {document.description || document.fileName}
+                          </span>
+                        </span>
+                        <ChevronRight size={17} className="text-slate-400" />
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="overflow-hidden rounded-[18px] border border-emerald-100 bg-white">
+                    <div className="border-b border-emerald-100 bg-emerald-50/70 px-4 py-3">
+                      <p className="text-sm font-black text-slate-800">
+                        {selectedHtmlDocument.title}
+                      </p>
+                      {selectedHtmlDocument.description ? (
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                          {selectedHtmlDocument.description}
+                        </p>
+                      ) : null}
+                    </div>
+                    <iframe
+                      title={selectedHtmlDocument.title}
+                      src={selectedHtmlDocument.url}
+                      sandbox=""
+                      className="h-[560px] w-full border-0 bg-white"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href={selectedHtmlDocument.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-black text-white shadow-[0_12px_24px_rgba(16,185,129,0.18)] transition hover:bg-emerald-600"
+                  >
+                    <ExternalLink size={16} />
+                    Mo tab moi
+                  </a>
+                  <a
+                    href={selectedHtmlDocument.url}
+                    download
+                    className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:bg-pink-50"
+                  >
+                    <Download size={16} />
+                    Tai xuong
+                  </a>
+                </div>
+              </>
+            ) : null}
+          </article>
+        ) : null}
 
         <article className="grid h-full content-start rounded-[28px] border border-pink-100/80 bg-white/90 p-4 shadow-[0_14px_34px_rgba(236,72,153,0.08)] sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">

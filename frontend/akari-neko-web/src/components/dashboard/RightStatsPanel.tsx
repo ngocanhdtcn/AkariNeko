@@ -31,34 +31,47 @@ export function RightStatsPanel({
   onRefresh,
 }: RightStatsPanelProps) {
   const totalVocabularyCount = dashboardStats?.totalVocabularyCount ?? 0;
+  const reviewedVocabularyCount = dashboardStats?.reviewedVocabularyCount ?? 0;
+  const difficultVocabularyCount = dashboardStats?.difficultVocabularyCount ?? 0;
+  const vocabularyAccuracyPercent =
+    dashboardStats?.vocabularyAccuracyPercent ?? 0;
   const todayReviewedCount =
     dashboardStats?.todayFlashcardStudyStats.reviewedCount ?? 0;
   const todayQuizCount = dashboardStats?.todayQuizStats.quizCount ?? 0;
+  const todayQuizQuestionCount =
+    dashboardStats?.todayQuizStats.questionCount ?? 0;
   const recentStudySessions = dashboardStats?.recentStudySessions ?? [];
   const dailyGoalPercent = Math.min(
     100,
     Math.round((todayReviewedCount / DAILY_FLASHCARD_REVIEW_GOAL) * 100),
   );
 
-  const displayStudyStatistics = studyStatistics.map((statistic) => {
-    if (statistic.label === "Từ vựng đã học") {
+  const displayStudyStatistics = studyStatistics.map((statistic, index) => {
+    if (index === 0) {
       return {
         ...statistic,
-        value: isLoading ? "..." : String(totalVocabularyCount),
+        value: isLoading ? "..." : String(reviewedVocabularyCount),
       };
     }
 
-    if (statistic.label === "Bài kiểm tra") {
+    if (index === 1) {
+      return {
+        ...statistic,
+        value: isLoading ? "..." : String(difficultVocabularyCount),
+      };
+    }
+
+    if (index === 2) {
       return {
         ...statistic,
         value: isLoading ? "..." : String(todayQuizCount),
       };
     }
 
-    if (statistic.label === "Ôn hôm nay") {
+    if (index === 3) {
       return {
         ...statistic,
-        value: isLoading ? "..." : String(todayReviewedCount),
+        value: isLoading ? "..." : `${vocabularyAccuracyPercent}%`,
       };
     }
 
@@ -93,14 +106,15 @@ export function RightStatsPanel({
             <div className="flex min-w-0 items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2">
                 <GraduationCap size={17} className="text-violet-500" />
-                18 / 20 câu
+                {isLoading ? "..." : `${reviewedVocabularyCount} / ${totalVocabularyCount} từ`}
               </span>
-              <span className="text-xs text-slate-500">Ngữ pháp</span>
+              <span className="text-xs text-slate-500">Đã review</span>
             </div>
 
             <div className="flex min-w-0 items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2">
-                <ClipboardList size={17} className="text-pink-500" />3 / 5 bài
+                <ClipboardList size={17} className="text-pink-500" />
+                {isLoading ? "..." : `${todayQuizQuestionCount} câu`}
               </span>
               <span className="text-xs text-slate-500">Bài kiểm tra</span>
             </div>

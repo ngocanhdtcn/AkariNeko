@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import type { KaiwaLesson, KaiwaLevel } from "@/data/kaiwaData";
+import type { KaiwaHtmlDocument, KaiwaLesson, KaiwaLevel } from "@/data/kaiwaData";
 import { getCurrentProfile } from "@/services/authService";
 import { requireAdminContentAccess } from "@/services/studentAccessService";
 
@@ -21,6 +21,7 @@ type KaiwaLessonRow = {
   video_urls: unknown;
   pdf_urls: unknown;
   audio_urls: unknown;
+  html_documents: unknown;
   notes: unknown;
   is_locked: boolean | null;
   is_published: boolean | null;
@@ -40,6 +41,11 @@ export type CreateKaiwaLessonPayload = {
   videoFiles?: File[];
   pdfFiles?: File[];
   audioFiles?: File[];
+  htmlDocuments?: {
+    file: File;
+    title: string;
+    description: string;
+  }[];
 };
 
 export type UpdateKaiwaLessonMediaPayload = {
@@ -48,6 +54,12 @@ export type UpdateKaiwaLessonMediaPayload = {
   pdfUrls?: string[];
   audioUrls?: string[];
   audioFiles?: File[];
+  htmlDocuments?: KaiwaHtmlDocument[];
+  htmlFiles?: {
+    file: File;
+    title: string;
+    description: string;
+  }[];
 };
 
 const kaiwaColumns = [
@@ -66,6 +78,7 @@ const kaiwaColumns = [
   "video_urls",
   "pdf_urls",
   "audio_urls",
+  "html_documents",
   "notes",
   "is_locked",
   "is_published",
@@ -161,6 +174,47 @@ function normalizeUrlList(value: unknown, fallbackUrl: string | null) {
   return fallbackUrl ? [fallbackUrl] : [];
 }
 
+function normalizeHtmlDocuments(value: unknown): KaiwaHtmlDocument[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (typeof item !== "object" || item === null) {
+        return null;
+      }
+
+      const document = item as Partial<Record<keyof KaiwaHtmlDocument, unknown>>;
+      const url = typeof document.url === "string" ? document.url.trim() : "";
+
+      if (!url) {
+        return null;
+      }
+
+      const fileName =
+        typeof document.fileName === "string" && document.fileName.trim()
+          ? document.fileName.trim()
+          : "document.html";
+
+      return {
+        id:
+          typeof document.id === "string" && document.id.trim()
+            ? document.id.trim()
+            : crypto.randomUUID(),
+        title:
+          typeof document.title === "string" && document.title.trim()
+            ? document.title.trim()
+            : fileName,
+        description:
+          typeof document.description === "string" ? document.description.trim() : "",
+        url,
+        fileName,
+      };
+    })
+    .filter((item): item is KaiwaHtmlDocument => Boolean(item));
+}
+
 function mapKaiwaLessonRow(row: KaiwaLessonRow): KaiwaLesson {
   const videoUrls = normalizeUrlList(row.video_urls, row.video_url);
   const pdfUrls = normalizeUrlList(row.pdf_urls, row.pdf_url);
@@ -182,6 +236,7 @@ function mapKaiwaLessonRow(row: KaiwaLessonRow): KaiwaLesson {
     videoUrls,
     pdfUrls,
     audioUrls,
+    htmlDocuments: normalizeHtmlDocuments(row.html_documents),
     notes: normalizeNotes(row.notes),
   };
 }
@@ -312,6 +367,29 @@ export async function getKaiwaLessonById(id: string): Promise<KaiwaLesson | null
   return lesson;
 }
 
+async function uploadKaiwaHtmlDocuments(
+  documents: CreateKaiwaLessonPayload["htmlDocuments"],
+  folder: string,
+) {
+  if (!documents?.length) {
+    return [];
+  }
+
+  return Promise.all(
+    documents.map(async (document) => {
+      const url = await uploadKaiwaFile(document.file, folder, ".html");
+
+      return {
+        id: crypto.randomUUID(),
+        title: document.title.trim() || document.file.name,
+        description: document.description.trim(),
+        url,
+        fileName: document.file.name,
+      };
+    }),
+  );
+}
+
 export async function createKaiwaLesson(
   payload: CreateKaiwaLessonPayload,
 ): Promise<KaiwaLesson> {
@@ -326,10 +404,11 @@ export async function createKaiwaLesson(
     .filter(Boolean)
     .join("/");
 
-  const [uploadedVideoUrls, pdfUrls, audioUrls] = await Promise.all([
+  const [uploadedVideoUrls, pdfUrls, audioUrls, htmlDocuments] = await Promise.all([
     uploadKaiwaFiles(payload.videoFiles, `${baseFolder}/video`, ".mp4"),
     uploadKaiwaFiles(payload.pdfFiles, `${baseFolder}/pdf`, ".pdf"),
     uploadKaiwaFiles(payload.audioFiles, `${baseFolder}/audio`, ".mp3"),
+    uploadKaiwaHtmlDocuments(payload.htmlDocuments, `${baseFolder}/html`),
   ]);
   const videoUrls = [
     ...(payload.videoUrls ?? []).filter((url) => url.trim().length > 0),
@@ -360,6 +439,7 @@ export async function createKaiwaLesson(
       video_urls: videoUrls,
       pdf_urls: pdfUrls,
       audio_urls: audioUrls,
+      html_documents: htmlDocuments,
       notes: { vocabulary: [], patterns: [], reminders: [] },
     })
     .select(kaiwaColumns)
@@ -386,17 +466,20 @@ export async function updateKaiwaLessonMedia(
     .filter(Boolean)
     .join("/");
 
-  const uploadedAudioUrls = await uploadKaiwaFiles(
-    payload.audioFiles,
-    `${baseFolder}/audio`,
-    ".mp3",
-  );
+  const [uploadedAudioUrls, uploadedHtmlDocuments] = await Promise.all([
+    uploadKaiwaFiles(payload.audioFiles, `${baseFolder}/audio`, ".mp3"),
+    uploadKaiwaHtmlDocuments(payload.htmlFiles, `${baseFolder}/html`),
+  ]);
   const audioUrls = [
     ...(payload.audioUrls ?? []).filter((url) => url.trim().length > 0),
     ...uploadedAudioUrls,
   ];
   const videoUrls = (payload.videoUrls ?? []).filter((url) => url.trim().length > 0);
   const pdfUrls = (payload.pdfUrls ?? []).filter((url) => url.trim().length > 0);
+  const htmlDocuments = [
+    ...(payload.htmlDocuments ?? []).filter((document) => document.url.trim().length > 0),
+    ...uploadedHtmlDocuments,
+  ];
 
   const { data, error } = await supabase
     .from("kaiwa_lessons")
@@ -407,6 +490,7 @@ export async function updateKaiwaLessonMedia(
       video_urls: videoUrls,
       pdf_urls: pdfUrls,
       audio_urls: audioUrls,
+      html_documents: htmlDocuments,
     })
     .eq("slug", payload.lesson.id)
     .select(kaiwaColumns)

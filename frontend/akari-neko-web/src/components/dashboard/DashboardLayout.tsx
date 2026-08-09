@@ -69,7 +69,10 @@ export function DashboardLayout() {
       }
     >
       <DashboardHero />
-      <MobileStatsSection />
+      <MobileStatsSection
+        dashboardStats={dashboardStats}
+        isLoading={isLoadingDashboardStats}
+      />
       {canAccessKaiwa ? <KaiwaHomeSection /> : null}
       <StudyShortcutCards showKaiwa={canAccessKaiwa} />
       <RecentVocabularyTable refreshKey={dashboardRefreshKey} />

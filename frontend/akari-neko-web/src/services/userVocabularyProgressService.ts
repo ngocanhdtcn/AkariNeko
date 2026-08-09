@@ -9,6 +9,14 @@ export type UserVocabularyProgress = {
     isLearned: boolean;
 };
 
+export type CurrentUserVocabularyReviewStats = {
+    reviewedVocabularyCount: number;
+    correctCount: number;
+    wrongCount: number;
+    totalReviewCount: number;
+    learnedVocabularyCount: number;
+};
+
 type UserVocabularyProgressRow = {
     vocabulary_id: string;
     correct_count: number | null;
@@ -199,6 +207,74 @@ export async function countCurrentUserDifficultVocabularies(): Promise<number> {
     }
 
     return count ?? 0;
+}
+
+export async function getCurrentUserVocabularyReviewStats(): Promise<CurrentUserVocabularyReviewStats> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        return {
+            reviewedVocabularyCount: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            totalReviewCount: 0,
+            learnedVocabularyCount: 0,
+        };
+    }
+
+    let progressRows: unknown[] = [];
+    const { data, error } = await supabase
+        .from("user_vocabulary_progress")
+        .select("correct_count,wrong_count,is_learned")
+        .eq("user_id", userId);
+
+    if (error) {
+        if (!isMissingLearnedColumnError(error)) {
+            throw error;
+        }
+
+        const fallbackResult = await supabase
+            .from("user_vocabulary_progress")
+            .select("correct_count,wrong_count")
+            .eq("user_id", userId);
+
+        if (fallbackResult.error) {
+            throw fallbackResult.error;
+        }
+
+        progressRows = fallbackResult.data ?? [];
+    } else {
+        progressRows = data ?? [];
+    }
+
+    return (progressRows as Array<{
+        correct_count: number | null;
+        wrong_count: number | null;
+        is_learned?: boolean | null;
+    }>).reduce(
+        (summary, row) => {
+            const correctCount = row.correct_count ?? 0;
+            const wrongCount = row.wrong_count ?? 0;
+            const totalReviewCount = correctCount + wrongCount;
+
+            return {
+                reviewedVocabularyCount:
+                    summary.reviewedVocabularyCount + (totalReviewCount > 0 ? 1 : 0),
+                correctCount: summary.correctCount + correctCount,
+                wrongCount: summary.wrongCount + wrongCount,
+                totalReviewCount: summary.totalReviewCount + totalReviewCount,
+                learnedVocabularyCount:
+                    summary.learnedVocabularyCount + (row.is_learned ? 1 : 0),
+            };
+        },
+        {
+            reviewedVocabularyCount: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            totalReviewCount: 0,
+            learnedVocabularyCount: 0,
+        },
+    );
 }
 
 export async function upsertVocabularyProgressReview(

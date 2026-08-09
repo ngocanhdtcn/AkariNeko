@@ -2,9 +2,39 @@
 
 import { ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
-import { mobileStatistics } from "@/data/dashboardData";
+import { DAILY_FLASHCARD_REVIEW_GOAL } from "@/config/studyGoalConfig";
+import type { DashboardStats } from "@/services/dashboardStatsService";
 
-export function MobileStatsSection() {
+type MobileStatsSectionProps = {
+  dashboardStats: DashboardStats | null;
+  isLoading: boolean;
+};
+
+export function MobileStatsSection({
+  dashboardStats,
+  isLoading,
+}: MobileStatsSectionProps) {
+  const todayReviewedCount =
+    dashboardStats?.todayFlashcardStudyStats.reviewedCount ?? 0;
+  const reviewedVocabularyCount = dashboardStats?.reviewedVocabularyCount ?? 0;
+  const difficultVocabularyCount = dashboardStats?.difficultVocabularyCount ?? 0;
+  const vocabularyAccuracyPercent =
+    dashboardStats?.vocabularyAccuracyPercent ?? 0;
+  const remainingTodayCount = Math.max(
+    0,
+    DAILY_FLASHCARD_REVIEW_GOAL - todayReviewedCount,
+  );
+  const dailyGoalPercent = Math.min(
+    100,
+    Math.round((todayReviewedCount / DAILY_FLASHCARD_REVIEW_GOAL) * 100),
+  );
+  const displayMobileStatistics = [
+    { label: "Accuracy", value: `${vocabularyAccuracyPercent}%`, trend: "" },
+    { label: "Words reviewed", value: String(reviewedVocabularyCount), trend: "" },
+    { label: "Difficult words", value: String(difficultVocabularyCount), trend: "" },
+    { label: "Today", value: String(todayReviewedCount), trend: "" },
+  ];
+
   return (
     <section className="grid gap-4 lg:hidden">
       <div className="rounded-[26px] border border-pink-100/80 bg-white/90 p-5 shadow-[0_18px_50px_rgba(236,72,153,0.09)]">
@@ -17,24 +47,31 @@ export function MobileStatsSection() {
         </div>
 
         <div className="grid grid-cols-[130px_1fr] items-center gap-4">
-          <div className="grid h-30 w-30 place-items-center rounded-full bg-[conic-gradient(#8b5cf6_0_72%,#f1eaf6_72%_100%)]">
+          <div
+            className="grid h-30 w-30 place-items-center rounded-full"
+            style={{
+              background: `conic-gradient(#8b5cf6 0 ${isLoading ? 0 : dailyGoalPercent}%, #f1eaf6 ${isLoading ? 0 : dailyGoalPercent}% 100%)`,
+            }}
+          >
             <div className="grid h-22 w-22 place-items-center rounded-full bg-white">
-              <p className="text-3xl font-black text-slate-800">72%</p>
+              <p className="text-3xl font-black text-slate-800">
+                {isLoading ? "..." : `${dailyGoalPercent}%`}
+              </p>
             </div>
           </div>
 
           <div className="grid gap-3 text-sm text-slate-600">
             <div className="flex justify-between border-b border-pink-50 pb-2">
               <span>Đã học</span>
-              <b>36 từ</b>
+              <b>{isLoading ? "..." : `${todayReviewedCount} lượt`}</b>
             </div>
             <div className="flex justify-between border-b border-pink-50 pb-2">
               <span>Còn lại</span>
-              <b>14 từ</b>
+              <b>{isLoading ? "..." : `${remainingTodayCount} lượt`}</b>
             </div>
             <div className="flex justify-between">
-              <span>Thời gian</span>
-              <b>28 phút</b>
+              <span>Mục tiêu</span>
+              <b>{DAILY_FLASHCARD_REVIEW_GOAL} lượt</b>
             </div>
           </div>
         </div>
@@ -84,7 +121,7 @@ export function MobileStatsSection() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {mobileStatistics.map((statistic) => (
+          {displayMobileStatistics.map((statistic) => (
             <div
               key={statistic.label}
               className="rounded-2xl border border-pink-50 bg-white p-4 shadow-sm"
@@ -95,9 +132,11 @@ export function MobileStatsSection() {
 
               <p className="mt-1 text-xl font-black text-slate-800">
                 {statistic.value}{" "}
-                <span className="text-sm text-emerald-500">
-                  {statistic.trend}
-                </span>
+                {statistic.trend ? (
+                  <span className="text-sm text-emerald-500">
+                    {statistic.trend}
+                  </span>
+                ) : null}
               </p>
 
               <div className="mt-3 h-6 rounded-lg bg-gradient-to-r from-violet-100 via-white to-pink-100" />

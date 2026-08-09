@@ -261,7 +261,7 @@ export const studyStatistics: StudyStatistic[] = [
     chartClassName: "from-pink-200 via-pink-50 to-pink-100",
   },
   {
-    label: "Ngữ pháp đã học",
+    label: "Từ khó",
     value: "128",
     icon: CalendarDays,
     iconClassName: "bg-violet-50 text-violet-500",

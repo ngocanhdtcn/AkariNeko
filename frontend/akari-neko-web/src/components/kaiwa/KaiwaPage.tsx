@@ -46,7 +46,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useYouTubeVideoTitles } from "@/hooks/useYouTubeVideoTitles";
 import { AppShell } from "@/components/layout/AppShell";
-import type { KaiwaLesson, KaiwaLevel } from "@/data/kaiwaData";
+import type { KaiwaHtmlDocument, KaiwaLesson, KaiwaLevel } from "@/data/kaiwaData";
 import { getDisplayFileNameFromUrl } from "@/lib/fileLabels";
 import { getYouTubeVideoId, isYouTubeUrl } from "@/lib/youtube";
 import {
@@ -70,6 +70,11 @@ const levelOptions: KaiwaSelectedLevel[] = [
 
 type ViewMode = "study" | "manage";
 type DeleteMode = "archive" | "delete";
+type HtmlDocumentDraft = {
+  file: File;
+  title: string;
+  description: string;
+};
 const kaiwaLevelValues: KaiwaLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 const KAIWA_CREATE_DRAFT_KEY = "akari:kaiwa:create-draft";
 const KAIWA_SELECTED_LEVEL_KEY = "akari:kaiwa:selected-level";
@@ -85,6 +90,7 @@ const createKaiwaModalSession: {
   videoUrlText: string;
   pdfFiles: File[];
   audioFiles: File[];
+  htmlDocuments: HtmlDocumentDraft[];
 } = {
   isOpen: false,
   form: null,
@@ -92,6 +98,7 @@ const createKaiwaModalSession: {
   videoUrlText: "",
   pdfFiles: [],
   audioFiles: [],
+  htmlDocuments: [],
 };
 
 function parseVideoUrlText(value: string) {
@@ -120,6 +127,7 @@ function resetCreateKaiwaModalSession() {
   createKaiwaModalSession.videoUrlText = "";
   createKaiwaModalSession.pdfFiles = [];
   createKaiwaModalSession.audioFiles = [];
+  createKaiwaModalSession.htmlDocuments = [];
   createKaiwaModalSession.isOpen = false;
 }
 
@@ -808,6 +816,9 @@ function CreateKaiwaModal({
   const [audioFiles, setAudioFiles] = useState<File[]>(
     () => createKaiwaModalSession.audioFiles,
   );
+  const [htmlDocuments, setHtmlDocuments] = useState<HtmlDocumentDraft[]>(
+    () => createKaiwaModalSession.htmlDocuments,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [fileNotice, setFileNotice] = useState("");
@@ -818,12 +829,13 @@ function CreateKaiwaModal({
     () => getNextKaiwaLessonNumber(lessons, form.level, form.source),
     [form.level, form.source, lessons],
   );
-  const selectedFiles = [...videoFiles, ...pdfFiles, ...audioFiles];
+  const htmlFiles = htmlDocuments.map((document) => document.file);
+  const selectedFiles = [...videoFiles, ...pdfFiles, ...audioFiles, ...htmlFiles];
   const videoUrls = parseVideoUrlText(videoUrlText);
   const videoTitlesByUrl = useYouTubeVideoTitles(videoUrls);
   const uploadSummary =
     selectedFiles.length > 0 || videoUrls.length > 0
-      ? `${videoUrls.length} link YouTube, ${videoFiles.length} video, ${pdfFiles.length} PDF, ${audioFiles.length} MP3${
+      ? `${videoUrls.length} link YouTube, ${videoFiles.length} video, ${pdfFiles.length} PDF, ${audioFiles.length} MP3, ${htmlDocuments.length} HTML${
           selectedFiles.length > 0 ? ` - ${formatTotalSize(selectedFiles)}` : ""
         }`
       : "không có file đính kèm";
@@ -849,6 +861,10 @@ function CreateKaiwaModal({
   }, [audioFiles]);
 
   useEffect(() => {
+    createKaiwaModalSession.htmlDocuments = htmlDocuments;
+  }, [htmlDocuments]);
+
+  useEffect(() => {
     createKaiwaModalSession.isOpen = isOpen;
   }, [isOpen]);
 
@@ -871,6 +887,7 @@ function CreateKaiwaModal({
       videoUrlText.trim().length > 0 ||
       pdfFiles.length > 0 ||
       audioFiles.length > 0 ||
+      htmlDocuments.length > 0 ||
       isSubmitting;
 
     if (!hasSelectedFiles) {
@@ -887,7 +904,7 @@ function CreateKaiwaModal({
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [audioFiles.length, isSubmitting, pdfFiles.length, videoFiles.length, videoUrlText]);
+  }, [audioFiles.length, htmlDocuments.length, isSubmitting, pdfFiles.length, videoFiles.length, videoUrlText]);
 
   function updateForm<K extends keyof CreateKaiwaLessonPayload>(
     key: K,
@@ -964,6 +981,36 @@ function CreateKaiwaModal({
     setFileNotice(files.length > 0 && acceptedFiles.length === 0 ? "Không có MP3 hợp lệ để thêm." : "");
   }
 
+  function addHtmlFiles(files: File[]) {
+    const acceptedFiles = files.filter((item) => {
+      const fileName = item.name.toLowerCase();
+      return (
+        item.type === "text/html" ||
+        fileName.endsWith(".html") ||
+        fileName.endsWith(".htm")
+      );
+    });
+    const rejectedCount = files.length - acceptedFiles.length;
+
+    if (acceptedFiles.length > 0) {
+      setHtmlDocuments((current) => [
+        ...current,
+        ...acceptedFiles.map((file) => ({
+          file,
+          title: file.name.replace(/\.[^.]+$/, ""),
+          description: "",
+        })),
+      ]);
+    }
+
+    if (rejectedCount > 0) {
+      setFileNotice(`Da bo qua ${rejectedCount} file khong phai HTML.`);
+      return;
+    }
+
+    setFileNotice(files.length > 0 && acceptedFiles.length === 0 ? "Khong co HTML hop le de them." : "");
+  }
+
   function handleVideoChange(event: ChangeEvent<HTMLInputElement>) {
     addVideoFiles(Array.from(event.target.files ?? []));
     event.target.value = "";
@@ -976,6 +1023,11 @@ function CreateKaiwaModal({
 
   function handleAudioChange(event: ChangeEvent<HTMLInputElement>) {
     addAudioFiles(Array.from(event.target.files ?? []));
+    event.target.value = "";
+  }
+
+  function handleHtmlChange(event: ChangeEvent<HTMLInputElement>) {
+    addHtmlFiles(Array.from(event.target.files ?? []));
     event.target.value = "";
   }
 
@@ -992,6 +1044,29 @@ function CreateKaiwaModal({
   function handleAudioDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     addAudioFiles(Array.from(event.dataTransfer.files));
+  }
+
+  function handleHtmlDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    addHtmlFiles(Array.from(event.dataTransfer.files));
+  }
+
+  function updateHtmlDocument(
+    index: number,
+    key: "title" | "description",
+    value: string,
+  ) {
+    setHtmlDocuments((current) =>
+      current.map((document, itemIndex) =>
+        itemIndex === index ? { ...document, [key]: value } : document,
+      ),
+    );
+  }
+
+  function removeHtmlDocument(index: number) {
+    setHtmlDocuments((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index),
+    );
   }
 
   async function handleCreate() {
@@ -1043,6 +1118,7 @@ function CreateKaiwaModal({
         videoFiles,
         pdfFiles,
         audioFiles,
+        htmlDocuments,
       });
       setForm(
         getEmptyCreateKaiwaForm(
@@ -1053,6 +1129,7 @@ function CreateKaiwaModal({
       setVideoUrlText("");
       setPdfFiles([]);
       setAudioFiles([]);
+      setHtmlDocuments([]);
       resetCreateKaiwaModalSession();
       window.localStorage.removeItem(KAIWA_CREATE_DRAFT_KEY);
       onCreated(lesson);
@@ -1396,7 +1473,101 @@ function CreateKaiwaModal({
             </div>
           </section>
 
-          <aside className="grid content-start gap-3 rounded-lg border border-white/10 bg-white/[0.045] p-4 xl:sticky xl:top-4 xl:col-start-2 xl:row-span-4 xl:row-start-1">
+          <section className="h-full rounded-lg border border-white/10 bg-white/[0.045] p-4 xl:col-start-1">
+            <StepHeading step="5" title="Tai lieu HTML" />
+            <div className="mt-4 grid content-start gap-4">
+              <label
+                className="grid min-h-[180px] cursor-pointer place-items-center rounded-lg border border-dashed border-emerald-300/70 bg-emerald-500/8 p-4 text-center transition hover:border-emerald-200 hover:bg-emerald-500/12"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={handleHtmlDrop}
+              >
+                <input
+                  type="file"
+                  accept="text/html,.html,.htm"
+                  multiple
+                  className="sr-only"
+                  onChange={handleHtmlChange}
+                />
+                <div>
+                  <CloudUpload className="mx-auto text-emerald-200" size={34} />
+                  <p className="mt-3 text-sm font-bold text-slate-200">
+                    {htmlDocuments.length > 0
+                      ? `${htmlDocuments.length} HTML da chon`
+                      : "Keo & tha file HTML vao day"}
+                  </p>
+                  <p className="mt-2 text-xs font-semibold text-slate-500">
+                    {htmlDocuments.length > 0
+                      ? `${formatTotalSize(htmlFiles)} - co the dat ten va mo ta ben duoi`
+                      : "Ho tro .html/.htm voi format tuy y."}
+                  </p>
+                  <span className="mt-4 inline-flex h-10 rounded-lg bg-emerald-500 px-7 text-sm font-black text-white shadow-[0_14px_30px_rgba(16,185,129,0.20)] transition hover:bg-emerald-400">
+                    <span className="flex h-full items-center justify-center">
+                      {htmlDocuments.length > 0 ? "Them HTML" : "Chon HTML"}
+                    </span>
+                  </span>
+                </div>
+              </label>
+
+              {htmlDocuments.length > 0 ? (
+                <div className="grid max-h-[360px] gap-3 overflow-y-auto rounded-lg border border-white/10 bg-[#101d38] p-3">
+                  {htmlDocuments.map((document, index) => (
+                    <div
+                      key={`${document.file.name}-${document.file.lastModified}-${index}`}
+                      className="grid gap-3 rounded-lg bg-white/[0.045] p-3"
+                    >
+                      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+                        <span className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/15 text-emerald-200">
+                          <FileText size={16} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-200">
+                            {document.file.name}
+                          </p>
+                          <p className="text-xs font-semibold text-slate-500">
+                            {formatFileSize(document.file)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeHtmlDocument(index)}
+                          className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition hover:bg-white/10 hover:text-slate-200"
+                          aria-label={`Xoa ${document.file.name}`}
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                      <input
+                        value={document.title}
+                        onChange={(event) =>
+                          updateHtmlDocument(index, "title", event.target.value)
+                        }
+                        placeholder="Ten tai lieu"
+                        className="h-10 rounded-lg border border-white/10 bg-[#0d1a33] px-3 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-500 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/15"
+                      />
+                      <textarea
+                        rows={2}
+                        value={document.description}
+                        onChange={(event) =>
+                          updateHtmlDocument(index, "description", event.target.value)
+                        }
+                        placeholder="Mo ta tai lieu"
+                        className="min-h-[72px] resize-none rounded-lg border border-white/10 bg-[#0d1a33] px-3 py-2 text-sm font-semibold leading-5 text-slate-100 outline-none placeholder:text-slate-500 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/15"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 grid min-h-[88px] place-items-center rounded-lg border border-white/10 bg-[#101d38] text-center">
+                  <FileText className="mx-auto text-slate-500" size={28} />
+                  <p className="mt-2 text-sm font-semibold text-slate-500">
+                    Chua co HTML nao
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="grid content-start gap-3 rounded-lg border border-white/10 bg-white/[0.045] p-4 xl:sticky xl:top-4 xl:col-start-2 xl:row-span-5 xl:row-start-1">
             <div className="flex items-center gap-3">
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-500/20 text-violet-200">
                 <Eye size={17} />
@@ -1436,6 +1607,9 @@ function CreateKaiwaModal({
                   </span>
                   <span className="rounded-lg border border-white/10 bg-white/10 px-2 py-1">
                     {audioFiles.length} MP3
+                  </span>
+                  <span className="rounded-lg border border-white/10 bg-white/10 px-2 py-1">
+                    {htmlDocuments.length} HTML
                   </span>
                 </div>
               </div>
@@ -1506,6 +1680,29 @@ function CreateKaiwaModal({
                       </p>
                       <p className="truncate text-xs font-semibold text-slate-500">
                         {file ? file.name : "Chưa chọn MP3"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-[#101d38] p-3">
+              <p className="mb-3 text-sm font-black text-slate-200">Tai lieu HTML</p>
+              <div className="grid gap-2">
+                {(htmlDocuments.length ? htmlDocuments : [null]).slice(0, 3).map((document, index) => (
+                  <div
+                    key={document ? `${document.file.name}-${document.file.lastModified}` : "empty-html"}
+                    className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg bg-white/[0.045] px-3 py-2"
+                  >
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/15 text-emerald-200">
+                      <FileText size={16} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-200">
+                        {document ? document.title || document.file.name : `HTML ${index + 1}`}
+                      </p>
+                      <p className="truncate text-xs font-semibold text-slate-500">
+                        {document ? document.file.name : "Chua chon HTML"}
                       </p>
                     </div>
                   </div>
@@ -1862,6 +2059,10 @@ function EditKaiwaModal({
   const [videoUrlText, setVideoUrlText] = useState(() => initialVideoUrls.join("\n"));
   const [pdfUrlText, setPdfUrlText] = useState(() => initialPdfUrls.join("\n"));
   const [audioFiles, setAudioFiles] = useState<File[]>([]);
+  const [htmlDocuments, setHtmlDocuments] = useState<KaiwaHtmlDocument[]>(
+    () => lesson?.htmlDocuments ?? [],
+  );
+  const [htmlFiles, setHtmlFiles] = useState<HtmlDocumentDraft[]>([]);
   const [isSavingMedia, setIsSavingMedia] = useState(false);
   const [mediaError, setMediaError] = useState("");
   useBodyScrollLock(Boolean(lesson));
@@ -1909,6 +2110,56 @@ function EditKaiwaModal({
     addEditAudioFiles(Array.from(event.dataTransfer.files));
   }
 
+  function addEditHtmlFiles(files: File[]) {
+    const acceptedFiles = files.filter((item) => {
+      const fileName = item.name.toLowerCase();
+      return (
+        item.type === "text/html" ||
+        fileName.endsWith(".html") ||
+        fileName.endsWith(".htm")
+      );
+    });
+
+    if (acceptedFiles.length > 0) {
+      setHtmlFiles((current) => [
+        ...current,
+        ...acceptedFiles.map((file) => ({
+          file,
+          title: file.name.replace(/\.[^.]+$/, ""),
+          description: "",
+        })),
+      ]);
+      setMediaError("");
+      return;
+    }
+
+    if (files.length > 0) {
+      setMediaError("Vui long chon file HTML hop le.");
+    }
+  }
+
+  function handleEditHtmlChange(event: ChangeEvent<HTMLInputElement>) {
+    addEditHtmlFiles(Array.from(event.target.files ?? []));
+    event.target.value = "";
+  }
+
+  function handleEditHtmlDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    addEditHtmlFiles(Array.from(event.dataTransfer.files));
+  }
+
+  function updateEditHtmlFile(
+    index: number,
+    key: "title" | "description",
+    value: string,
+  ) {
+    setHtmlFiles((current) =>
+      current.map((document, itemIndex) =>
+        itemIndex === index ? { ...document, [key]: value } : document,
+      ),
+    );
+  }
+
   async function handleSaveEditMedia() {
     if (!lesson) {
       return;
@@ -1916,7 +2167,7 @@ function EditKaiwaModal({
 
     setMediaError("");
 
-    const oversizedFiles = audioFiles.filter(
+    const oversizedFiles = [...audioFiles, ...htmlFiles.map((document) => document.file)].filter(
       (file) => file.size > KAIWA_MAX_UPLOAD_FILE_BYTES,
     );
 
@@ -1953,8 +2204,11 @@ function EditKaiwaModal({
         pdfUrls,
         audioUrls,
         audioFiles,
+        htmlDocuments,
+        htmlFiles,
       });
       setAudioFiles([]);
+      setHtmlFiles([]);
       onUpdated(updatedLesson);
     } catch (error) {
       setMediaError(
@@ -2171,6 +2425,110 @@ function EditKaiwaModal({
               </EditPanel>
             </div>
 
+              <EditPanel step="6" title="Tai lieu HTML">
+                <div className="grid gap-2">
+                  {htmlDocuments.length > 0 ? (
+                    htmlDocuments.map((document, index) => (
+                      <div
+                        key={document.id || document.url}
+                        className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-3"
+                      >
+                        <span className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-500/15 text-emerald-200">
+                          <FileText size={17} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-black text-slate-200">
+                            {document.title || `HTML ${index + 1}`}
+                          </span>
+                          <span className="block truncate text-xs font-semibold text-slate-500">
+                            {document.description || document.fileName || document.url}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setHtmlDocuments((current) =>
+                              current.filter((_, itemIndex) => itemIndex !== index),
+                            )
+                          }
+                          className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition hover:bg-white/10 hover:text-slate-200"
+                          aria-label={`Xoa ${document.title}`}
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-white/10 px-3 py-3 text-xs font-bold text-slate-500">
+                      Chua co tai lieu HTML nao.
+                    </p>
+                  )}
+                </div>
+                <label
+                  className="mt-3 grid min-h-[112px] cursor-pointer place-items-center rounded-lg border border-dashed border-emerald-300/50 bg-emerald-500/[0.055] px-4 text-center transition hover:bg-emerald-500/10"
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={handleEditHtmlDrop}
+                >
+                  <input
+                    type="file"
+                    accept="text/html,.html,.htm"
+                    multiple
+                    className="sr-only"
+                    onChange={handleEditHtmlChange}
+                  />
+                  <span>
+                    <FileText className="mx-auto text-emerald-200" size={30} />
+                    <span className="mt-2 block text-sm font-black text-white">
+                      {htmlFiles.length > 0 ? `${htmlFiles.length} HTML moi` : "Them HTML"}
+                    </span>
+                    <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">
+                      {htmlFiles.length > 0 ? formatTotalSize(htmlFiles.map((document) => document.file)) : "Keo tha hoac click de chon file HTML"}
+                    </span>
+                  </span>
+                </label>
+                {htmlFiles.length > 0 ? (
+                  <div className="mt-3 grid max-h-[300px] gap-3 overflow-y-auto rounded-lg border border-white/10 bg-[#101d38] p-3">
+                    {htmlFiles.map((document, index) => (
+                      <div key={`${document.file.name}-${document.file.lastModified}-${index}`} className="grid gap-2 rounded-lg bg-white/[0.045] p-3">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                          <p className="truncate text-sm font-bold text-slate-200">
+                            {document.file.name}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setHtmlFiles((current) =>
+                                current.filter((_, itemIndex) => itemIndex !== index),
+                              )
+                            }
+                            className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition hover:bg-white/10 hover:text-slate-200"
+                            aria-label={`Xoa ${document.file.name}`}
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
+                        <input
+                          value={document.title}
+                          onChange={(event) =>
+                            updateEditHtmlFile(index, "title", event.target.value)
+                          }
+                          placeholder="Ten tai lieu"
+                          className="h-10 rounded-lg border border-white/10 bg-[#0d1a33] px-3 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-500 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/15"
+                        />
+                        <textarea
+                          rows={2}
+                          value={document.description}
+                          onChange={(event) =>
+                            updateEditHtmlFile(index, "description", event.target.value)
+                          }
+                          placeholder="Mo ta tai lieu"
+                          className="min-h-[72px] resize-none rounded-lg border border-white/10 bg-[#0d1a33] px-3 py-2 text-sm font-semibold leading-5 text-slate-100 outline-none placeholder:text-slate-500 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/15"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </EditPanel>
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.75fr)]">
               <EditPanel step="6" title="Ghi chú nhanh hiển thị dưới bài học">
                 <div className="grid gap-3 md:grid-cols-3">

@@ -158,6 +158,38 @@ export type CreateFlashcardStudySessionInput = {
 
 export async function createFlashcardStudySession(
     input: CreateFlashcardStudySessionInput,
+): Promise<string> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
+    const { data, error } = await supabase
+        .from("flashcard_study_sessions")
+        .insert({
+            user_id: userId,
+            reviewed_count: input.reviewedCount,
+            remembered_count: input.rememberedCount,
+            forgot_count: input.forgotCount,
+            level: input.level === "All" ? null : input.level,
+            book: input.book === "All" ? null : input.book,
+            chapter: input.chapter === "All" ? null : input.chapter,
+            only_difficult: input.onlyDifficult,
+        })
+        .select("id")
+        .single();
+
+    if (error) {
+        throw error;
+    }
+
+    return (data as { id: string }).id;
+}
+
+export async function updateFlashcardStudySession(
+    sessionId: string,
+    input: CreateFlashcardStudySessionInput,
 ): Promise<void> {
     const userId = await getCurrentUserId();
 
@@ -165,16 +197,19 @@ export async function createFlashcardStudySession(
         throw new Error("User is not logged in.");
     }
 
-    const { error } = await supabase.from("flashcard_study_sessions").insert({
-        user_id: userId,
-        reviewed_count: input.reviewedCount,
-        remembered_count: input.rememberedCount,
-        forgot_count: input.forgotCount,
-        level: input.level === "All" ? null : input.level,
-        book: input.book === "All" ? null : input.book,
-        chapter: input.chapter === "All" ? null : input.chapter,
-        only_difficult: input.onlyDifficult,
-    });
+    const { error } = await supabase
+        .from("flashcard_study_sessions")
+        .update({
+            reviewed_count: input.reviewedCount,
+            remembered_count: input.rememberedCount,
+            forgot_count: input.forgotCount,
+            level: input.level === "All" ? null : input.level,
+            book: input.book === "All" ? null : input.book,
+            chapter: input.chapter === "All" ? null : input.chapter,
+            only_difficult: input.onlyDifficult,
+        })
+        .eq("id", sessionId)
+        .eq("user_id", userId);
 
     if (error) {
         throw error;

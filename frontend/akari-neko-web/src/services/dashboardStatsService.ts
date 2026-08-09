@@ -1,6 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId } from "@/services/authService";
-import { countCurrentUserDifficultVocabularies } from "@/services/userVocabularyProgressService";
+import {
+    countCurrentUserDifficultVocabularies,
+    getCurrentUserVocabularyReviewStats,
+} from "@/services/userVocabularyProgressService";
 
 export type VocabularyLevelStat = {
     level: string;
@@ -32,6 +35,12 @@ export type RecentStudySession = {
 
 export type DashboardStats = {
     totalVocabularyCount: number;
+    reviewedVocabularyCount: number;
+    learnedVocabularyCount: number;
+    totalVocabularyReviewCount: number;
+    vocabularyCorrectCount: number;
+    vocabularyWrongCount: number;
+    vocabularyAccuracyPercent: number;
     difficultVocabularyCount: number;
     levelStats: VocabularyLevelStat[];
     recentImportBatches: RecentImportBatch[];
@@ -156,6 +165,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     const [
         vocabularyCountResult,
         difficultVocabularyCount,
+        vocabularyReviewStats,
         vocabularyLevelsResult,
         recentImportBatchesResult,
         todayFlashcardSessionsResult,
@@ -168,6 +178,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         }),
 
         countCurrentUserDifficultVocabularies(),
+
+        getCurrentUserVocabularyReviewStats(),
 
         supabase.from("vocabularies").select("level"),
 
@@ -271,6 +283,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
                 createdAt: row.created_at,
             })),
         totalVocabularyCount: vocabularyCountResult.count ?? 0,
+        reviewedVocabularyCount: vocabularyReviewStats.reviewedVocabularyCount,
+        learnedVocabularyCount: vocabularyReviewStats.learnedVocabularyCount,
+        totalVocabularyReviewCount: vocabularyReviewStats.totalReviewCount,
+        vocabularyCorrectCount: vocabularyReviewStats.correctCount,
+        vocabularyWrongCount: vocabularyReviewStats.wrongCount,
+        vocabularyAccuracyPercent:
+            vocabularyReviewStats.totalReviewCount > 0
+                ? Math.round(
+                    (vocabularyReviewStats.correctCount /
+                        vocabularyReviewStats.totalReviewCount) *
+                    100,
+                )
+                : 0,
         difficultVocabularyCount,
         levelStats: countByLevel(
             (vocabularyLevelsResult.data ?? []) as VocabularyLevelRow[],
