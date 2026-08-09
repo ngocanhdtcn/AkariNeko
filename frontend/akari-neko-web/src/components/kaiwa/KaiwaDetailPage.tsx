@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FileText,
   Lightbulb,
+  Loader2,
   NotebookPen,
   Star,
   Video,
@@ -15,9 +16,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import type { KaiwaLesson } from "@/data/kaiwaData";
+import type { KaiwaHtmlDocument, KaiwaLesson } from "@/data/kaiwaData";
 import { getYouTubeEmbedUrl, getYouTubeVideoId } from "@/lib/youtube";
 import { useYouTubeVideoTitles } from "@/hooks/useYouTubeVideoTitles";
 import { getDisplayFileNameFromUrl } from "@/lib/fileLabels";
@@ -62,6 +63,137 @@ function getPdfViewerUrl(url: string) {
   return `${baseUrl}#${params.toString()}`;
 }
 
+function getDeclaredHtmlCharset(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer.slice(0, 4096));
+  const asciiText = Array.from(bytes, (byte) =>
+    byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : " ",
+  ).join("");
+  const charsetMatch =
+    asciiText.match(/<meta[^>]+charset=["']?\s*([a-z0-9._-]+)/i) ??
+    asciiText.match(/content=["'][^"']*charset=([a-z0-9._-]+)/i);
+
+  return charsetMatch?.[1]?.trim().toLowerCase() || "utf-8";
+}
+
+function decodeHtmlBuffer(buffer: ArrayBuffer) {
+  const declaredCharset = getDeclaredHtmlCharset(buffer);
+
+  try {
+    return new TextDecoder(declaredCharset).decode(buffer);
+  } catch {
+    return new TextDecoder("utf-8").decode(buffer);
+  }
+}
+
+function ensureHtmlDocumentMeta(htmlText: string) {
+  const normalizedText = htmlText.replace(/^\uFEFF/, "");
+
+  if (/<meta[^>]+charset=["']?\s*utf-?8\s*["']?[^>]*>/i.test(normalizedText)) {
+    return normalizedText;
+  }
+
+  const withNormalizedCharset = normalizedText
+    .replace(
+      /<meta([^>]+)charset=["']?\s*[a-z0-9._-]+\s*["']?([^>]*)>/i,
+      '<meta$1charset="utf-8"$2>',
+    )
+    .replace(
+      /<meta([^>]+http-equiv=["']content-type["'][^>]*)content=["'][^"']*["']([^>]*)>/i,
+      '<meta$1content="text/html; charset=utf-8"$2>',
+    );
+
+  if (/<meta[^>]+charset=["']?\s*utf-?8\s*["']?[^>]*>/i.test(withNormalizedCharset)) {
+    return withNormalizedCharset;
+  }
+
+  if (/<head[^>]*>/i.test(withNormalizedCharset)) {
+    return withNormalizedCharset.replace(
+      /<head([^>]*)>/i,
+      '<head$1><meta charset="utf-8">',
+    );
+  }
+
+  if (/<html[^>]*>/i.test(withNormalizedCharset)) {
+    return withNormalizedCharset.replace(
+      /<html([^>]*)>/i,
+      '<html$1><head><meta charset="utf-8"></head>',
+    );
+  }
+
+  return `<!doctype html><html><head><meta charset="utf-8"></head><body>${withNormalizedCharset}</body></html>`;
+}
+
+function HtmlDocumentViewer({ document }: { document: KaiwaHtmlDocument }) {
+  const [html, setHtml] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    queueMicrotask(() => {
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      setHtml("");
+      setError("");
+      setIsLoading(true);
+    });
+
+    fetch(document.url, { signal: abortController.signal })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("HTML request failed.");
+        }
+
+        return response.arrayBuffer();
+      })
+      .then((buffer) => {
+        setHtml(ensureHtmlDocumentMeta(decodeHtmlBuffer(buffer)));
+      })
+      .catch((fetchError: unknown) => {
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+
+        setError("Không thể tải tài liệu HTML để xem trước. Hãy mở ở tab mới.");
+      })
+      .finally(() => {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => abortController.abort();
+  }, [document.url]);
+
+  return (
+    <div className="relative min-h-[560px] bg-white">
+      {isLoading ? (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-white/90">
+          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-600">
+            <Loader2 size={16} className="animate-spin" />
+            Đang tải HTML
+          </span>
+        </div>
+      ) : null}
+      {error ? (
+        <div className="grid min-h-[560px] place-items-center p-6 text-center">
+          <p className="max-w-md text-sm font-bold leading-6 text-slate-600">{error}</p>
+        </div>
+      ) : (
+        <iframe
+          title={document.title}
+          srcDoc={html}
+          sandbox=""
+          className="h-[560px] w-full border-0 bg-white"
+        />
+      )}
+    </div>
+  );
+}
+
 export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
   const [selectedPdfIndex, setSelectedPdfIndex] = useState(0);
@@ -97,6 +229,7 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
       tone: "text-violet-500 bg-violet-50",
     },
   ];
+
   return (
     <AppShell
       topBarLeftContent={
@@ -189,66 +322,66 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.65fr)]">
-          {selectedVideoUrl ? (
-            selectedYouTubeEmbedUrl ? (
-              <iframe
-                title={`Video ${lesson.title}`}
-                src={selectedYouTubeEmbedUrl}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className="aspect-video w-full rounded-[18px] border-0 bg-slate-950"
-              />
+            {selectedVideoUrl ? (
+              selectedYouTubeEmbedUrl ? (
+                <iframe
+                  title={`Video ${lesson.title}`}
+                  src={selectedYouTubeEmbedUrl}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="aspect-video w-full rounded-[18px] border-0 bg-slate-950"
+                />
+              ) : (
+                <video
+                  controls
+                  poster={heroImage}
+                  className="aspect-video w-full rounded-[18px] bg-slate-950 object-contain"
+                  src={selectedVideoUrl}
+                />
+              )
             ) : (
-              <video
-                controls
-                poster={heroImage}
-                className="aspect-video w-full rounded-[18px] bg-slate-950 object-contain"
-                src={selectedVideoUrl}
-              />
-            )
-          ) : (
-            <div className="grid aspect-video place-items-center rounded-[18px] border border-dashed border-pink-200 bg-pink-50/70 p-6 text-center">
-              <div>
-                <p className="text-base font-black text-slate-800">
-                  Chưa gắn video
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Dán link YouTube hoặc upload MP4 lên Supabase, rồi lưu vào cột{" "}
-                  <span className="font-black text-pink-500">video_url/video_urls</span>.
-                </p>
+              <div className="grid aspect-video place-items-center rounded-[18px] border border-dashed border-pink-200 bg-pink-50/70 p-6 text-center">
+                <div>
+                  <p className="text-base font-black text-slate-800">
+                    Chưa gắn video
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Dán link YouTube hoặc upload MP4 lên Supabase, rồi lưu vào cột{" "}
+                    <span className="font-black text-pink-500">video_url/video_urls</span>.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {videoUrls.length > 0 ? (
-            <div className="grid content-start gap-2 rounded-[18px] border border-pink-100 bg-white/70 p-3">
-              {videoUrls.map((videoUrl, index) => (
-                <button
-                  key={videoUrl}
-                  type="button"
-                  onClick={() => setSelectedVideoIndex(index)}
-                  className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
-                    selectedVideoIndex === index
-                      ? "border-rose-200 bg-rose-50"
-                      : "border-pink-100 bg-white hover:bg-pink-50/60"
-                  }`}
-                >
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500 text-white">
-                    <Video size={18} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-black text-slate-800">
-                      {getFileLabelFromUrl(videoUrl, `Video ${index + 1}`, videoTitlesByUrl)}
+            {videoUrls.length > 0 ? (
+              <div className="grid content-start gap-2 rounded-[18px] border border-pink-100 bg-white/70 p-3">
+                {videoUrls.map((videoUrl, index) => (
+                  <button
+                    key={videoUrl}
+                    type="button"
+                    onClick={() => setSelectedVideoIndex(index)}
+                    className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                      selectedVideoIndex === index
+                        ? "border-rose-200 bg-rose-50"
+                        : "border-pink-100 bg-white hover:bg-pink-50/60"
+                    }`}
+                  >
+                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500 text-white">
+                      <Video size={18} />
                     </span>
-                    <span className="block truncate text-xs font-semibold text-slate-500">
-                      {getFileLabelFromUrl(videoUrl, `Video ${index + 1}`, videoTitlesByUrl)}
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-black text-slate-800">
+                        {getFileLabelFromUrl(videoUrl, `Video ${index + 1}`, videoTitlesByUrl)}
+                      </span>
+                      <span className="block truncate text-xs font-semibold text-slate-500">
+                        {getFileLabelFromUrl(videoUrl, `Video ${index + 1}`, videoTitlesByUrl)}
+                      </span>
                     </span>
-                  </span>
-                  <ChevronRight size={17} className="text-slate-400" />
-                </button>
-              ))}
-            </div>
-          ) : null}
+                    <ChevronRight size={17} className="text-slate-400" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div className="mt-3 rounded-2xl border border-pink-100 bg-pink-50/60 px-4 py-3 text-sm font-bold leading-6 text-slate-600">
             <Lightbulb className="mr-2 inline text-amber-500" size={16} />
@@ -356,10 +489,10 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
                 </span>
                 <div>
                   <h2 className="text-lg font-black text-slate-800">
-                    Tai lieu HTML
+                    Tài liệu HTML
                   </h2>
                   <p className="text-sm text-slate-500">
-                    Tai lieu bo sung do admin upload cho bai Kaiwa nay.
+                    Tài liệu bổ sung do admin upload cho bài Kaiwa này.
                   </p>
                 </div>
               </div>
@@ -410,12 +543,7 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
                         </p>
                       ) : null}
                     </div>
-                    <iframe
-                      title={selectedHtmlDocument.title}
-                      src={selectedHtmlDocument.url}
-                      sandbox=""
-                      className="h-[560px] w-full border-0 bg-white"
-                    />
+                    <HtmlDocumentViewer document={selectedHtmlDocument} />
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -426,7 +554,7 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
                     className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-black text-white shadow-[0_12px_24px_rgba(16,185,129,0.18)] transition hover:bg-emerald-600"
                   >
                     <ExternalLink size={16} />
-                    Mo tab moi
+                    Mở tab mới
                   </a>
                   <a
                     href={selectedHtmlDocument.url}
@@ -434,7 +562,7 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
                     className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:bg-pink-50"
                   >
                     <Download size={16} />
-                    Tai xuong
+                    Tải xuống
                   </a>
                 </div>
               </>

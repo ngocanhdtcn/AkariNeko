@@ -135,6 +135,12 @@ function toFriendlyError(error: unknown, fallbackMessage: string) {
     );
   }
 
+  if (/mime type .*not supported|unsupported mime|mime.*not supported/i.test(rawMessage)) {
+    return new Error(
+      "Supabase Storage bucket kaiwa chưa cho phép file HTML. Hãy chạy scripts/add-kaiwa-html-documents.sql để thêm MIME text/html vào bucket.",
+    );
+  }
+
   if (
     rawMessage
   ) {
@@ -275,6 +281,77 @@ function getSafeFileName(file: File, fallbackExtension: string) {
   return `${safeBaseName}-${crypto.randomUUID()}${extension}`;
 }
 
+function getDeclaredHtmlCharset(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer.slice(0, 4096));
+  const asciiText = Array.from(bytes, (byte) =>
+    byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : " ",
+  ).join("");
+  const charsetMatch =
+    asciiText.match(/<meta[^>]+charset=["']?\s*([a-z0-9._-]+)/i) ??
+    asciiText.match(/content=["'][^"']*charset=([a-z0-9._-]+)/i);
+
+  return charsetMatch?.[1]?.trim().toLowerCase() || "utf-8";
+}
+
+function decodeHtmlBuffer(buffer: ArrayBuffer) {
+  const declaredCharset = getDeclaredHtmlCharset(buffer);
+
+  try {
+    return new TextDecoder(declaredCharset).decode(buffer);
+  } catch {
+    return new TextDecoder("utf-8").decode(buffer);
+  }
+}
+
+function ensureUtf8HtmlMeta(htmlText: string) {
+  const normalizedText = htmlText.replace(/^\uFEFF/, "");
+
+  if (/<meta[^>]+charset=["']?\s*utf-?8\s*["']?[^>]*>/i.test(normalizedText)) {
+    return normalizedText;
+  }
+
+  const withNormalizedCharset = normalizedText
+    .replace(
+      /<meta([^>]+)charset=["']?\s*[a-z0-9._-]+\s*["']?([^>]*)>/i,
+      '<meta$1charset="utf-8"$2>',
+    )
+    .replace(
+      /<meta([^>]+http-equiv=["']content-type["'][^>]*)content=["'][^"']*["']([^>]*)>/i,
+      '<meta$1content="text/html; charset=utf-8"$2>',
+    );
+
+  if (/<meta[^>]+charset=["']?\s*utf-?8\s*["']?[^>]*>/i.test(withNormalizedCharset)) {
+    return withNormalizedCharset;
+  }
+
+  if (/<head[^>]*>/i.test(withNormalizedCharset)) {
+    return withNormalizedCharset.replace(
+      /<head([^>]*)>/i,
+      '<head$1><meta charset="utf-8">',
+    );
+  }
+
+  if (/<html[^>]*>/i.test(withNormalizedCharset)) {
+    return withNormalizedCharset.replace(
+      /<html([^>]*)>/i,
+      '<html$1><head><meta charset="utf-8"></head>',
+    );
+  }
+
+  return `<!doctype html><html><head><meta charset="utf-8"></head><body>${withNormalizedCharset}</body></html>`;
+}
+
+async function normalizeHtmlFileForUpload(file: File) {
+  const buffer = await file.arrayBuffer();
+  const htmlText = decodeHtmlBuffer(buffer);
+  const normalizedHtmlText = ensureUtf8HtmlMeta(htmlText);
+
+  return new File([normalizedHtmlText], file.name, {
+    type: "text/html",
+    lastModified: file.lastModified,
+  });
+}
+
 async function uploadKaiwaFile(
   file: File | null | undefined,
   folder: string,
@@ -377,7 +454,8 @@ async function uploadKaiwaHtmlDocuments(
 
   return Promise.all(
     documents.map(async (document) => {
-      const url = await uploadKaiwaFile(document.file, folder, ".html");
+      const htmlFile = await normalizeHtmlFileForUpload(document.file);
+      const url = await uploadKaiwaFile(htmlFile, folder, ".html");
 
       return {
         id: crypto.randomUUID(),

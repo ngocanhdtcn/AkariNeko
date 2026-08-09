@@ -283,8 +283,8 @@ export function PdfViewer({ title, url, openUrl }: PdfViewerProps) {
             onClick={resetFit}
             disabled={!hasManualScale || isLoading}
             className="grid h-10 w-10 place-items-center rounded-xl border border-pink-100 bg-white text-slate-600 transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Vá» cháº¿ Ä‘á»™ vá»«a khung"
-            title="Vá» cháº¿ Ä‘á»™ vá»«a khung"
+            aria-label="Về chế độ vừa khung"
+            title="Về chế độ vừa khung"
           >
             <RotateCcw size={18} />
           </button>
@@ -345,8 +345,8 @@ export function PdfViewer({ title, url, openUrl }: PdfViewerProps) {
                 onClick={goPrevious}
                 disabled={!canGoPrevious || isLoading}
                 className="grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-900 transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
-                aria-label="Trang trÆ°á»›c"
-                title="Trang trÆ°á»›c"
+                aria-label="Trang trước"
+                title="Trang trước"
               >
                 <ChevronLeft size={22} strokeWidth={2.8} />
               </button>
