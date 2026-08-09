@@ -123,13 +123,20 @@ function ensureHtmlDocumentMeta(htmlText: string) {
   return `<!doctype html><html><head><meta charset="utf-8"></head><body>${withNormalizedCharset}</body></html>`;
 }
 
-function HtmlDocumentViewer({ document }: { document: KaiwaHtmlDocument }) {
+function HtmlDocumentViewer({
+  document,
+  onOpenUrlChange,
+}: {
+  document: KaiwaHtmlDocument;
+  onOpenUrlChange?: (url: string) => void;
+}) {
   const [html, setHtml] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const abortController = new AbortController();
+    let objectUrl = "";
 
     queueMicrotask(() => {
       if (abortController.signal.aborted) {
@@ -139,6 +146,7 @@ function HtmlDocumentViewer({ document }: { document: KaiwaHtmlDocument }) {
       setHtml("");
       setError("");
       setIsLoading(true);
+      onOpenUrlChange?.("");
     });
 
     fetch(document.url, { signal: abortController.signal })
@@ -150,13 +158,20 @@ function HtmlDocumentViewer({ document }: { document: KaiwaHtmlDocument }) {
         return response.arrayBuffer();
       })
       .then((buffer) => {
-        setHtml(ensureHtmlDocumentMeta(decodeHtmlBuffer(buffer)));
+        const normalizedHtml = ensureHtmlDocumentMeta(decodeHtmlBuffer(buffer));
+
+        objectUrl = URL.createObjectURL(
+          new Blob([normalizedHtml], { type: "text/html;charset=utf-8" }),
+        );
+        setHtml(normalizedHtml);
+        onOpenUrlChange?.(objectUrl);
       })
       .catch((fetchError: unknown) => {
         if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
           return;
         }
 
+        onOpenUrlChange?.("");
         setError("Không thể tải tài liệu HTML để xem trước. Hãy mở ở tab mới.");
       })
       .finally(() => {
@@ -165,11 +180,17 @@ function HtmlDocumentViewer({ document }: { document: KaiwaHtmlDocument }) {
         }
       });
 
-    return () => abortController.abort();
-  }, [document.url]);
+    return () => {
+      abortController.abort();
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      onOpenUrlChange?.("");
+    };
+  }, [document.url, onOpenUrlChange]);
 
   return (
-    <div className="relative min-h-[560px] bg-white">
+    <div className="relative min-h-[640px] bg-white">
       {isLoading ? (
         <div className="absolute inset-0 z-10 grid place-items-center bg-white/90">
           <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-600">
@@ -179,7 +200,7 @@ function HtmlDocumentViewer({ document }: { document: KaiwaHtmlDocument }) {
         </div>
       ) : null}
       {error ? (
-        <div className="grid min-h-[560px] place-items-center p-6 text-center">
+        <div className="grid min-h-[640px] place-items-center p-6 text-center">
           <p className="max-w-md text-sm font-bold leading-6 text-slate-600">{error}</p>
         </div>
       ) : (
@@ -187,7 +208,7 @@ function HtmlDocumentViewer({ document }: { document: KaiwaHtmlDocument }) {
           title={document.title}
           srcDoc={html}
           sandbox=""
-          className="h-[560px] w-full border-0 bg-white"
+          className="h-[clamp(640px,72vh,860px)] w-full border-0 bg-white"
         />
       )}
     </div>
@@ -212,6 +233,7 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
   const selectedPdfViewerUrl = selectedPdfUrl ? getPdfViewerUrl(selectedPdfUrl) : "";
   const htmlDocuments = lesson.htmlDocuments;
   const selectedHtmlDocument = htmlDocuments[selectedHtmlIndex] ?? null;
+  const [htmlOpenUrl, setHtmlOpenUrl] = useState("");
   const noteGroups = [
     {
       title: "Từ vựng",
@@ -481,13 +503,13 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
         </article>
 
         {htmlDocuments.length > 0 ? (
-          <article className="grid h-full content-start rounded-[28px] border border-pink-100/80 bg-white/90 p-4 shadow-[0_14px_34px_rgba(236,72,153,0.08)] sm:p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+          <article className="grid h-full content-start rounded-[28px] border border-pink-100/80 bg-white/90 p-3 shadow-[0_14px_34px_rgba(236,72,153,0.08)] sm:p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500">
                   <FileText size={20} />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-lg font-black text-slate-800">
                     Tài liệu HTML
                   </h2>
@@ -503,8 +525,8 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
 
             {selectedHtmlDocument ? (
               <>
-                <div className="grid gap-4 lg:grid-cols-[minmax(260px,0.45fr)_minmax(0,1fr)]">
-                  <div className="grid content-start gap-2">
+                {htmlDocuments.length > 1 ? (
+                  <div className="mb-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                     {htmlDocuments.map((document, index) => (
                       <button
                         key={document.id || document.url}
@@ -531,39 +553,32 @@ export function KaiwaDetailPage({ lesson }: KaiwaDetailPageProps) {
                       </button>
                     ))}
                   </div>
+                ) : null}
 
-                  <div className="overflow-hidden rounded-[18px] border border-emerald-100 bg-white">
-                    <div className="border-b border-emerald-100 bg-emerald-50/70 px-4 py-3">
-                      <p className="text-sm font-black text-slate-800">
-                        {selectedHtmlDocument.title}
+                <div className="overflow-hidden rounded-[18px] border border-emerald-100 bg-white">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-emerald-100 bg-emerald-50/70 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-800">
+                        {selectedHtmlDocument.title || selectedHtmlDocument.fileName}
                       </p>
-                      {selectedHtmlDocument.description ? (
-                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                          {selectedHtmlDocument.description}
-                        </p>
-                      ) : null}
+                      <p className="mt-1 truncate text-xs font-semibold leading-5 text-slate-500">
+                        {selectedHtmlDocument.description || selectedHtmlDocument.fileName}
+                      </p>
                     </div>
-                    <HtmlDocumentViewer document={selectedHtmlDocument} />
+                    <a
+                      href={htmlOpenUrl || selectedHtmlDocument.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-black text-white shadow-[0_12px_24px_rgba(16,185,129,0.18)] transition hover:bg-emerald-600"
+                    >
+                      <ExternalLink size={16} />
+                      Mở tab mới
+                    </a>
                   </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <a
-                    href={selectedHtmlDocument.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-black text-white shadow-[0_12px_24px_rgba(16,185,129,0.18)] transition hover:bg-emerald-600"
-                  >
-                    <ExternalLink size={16} />
-                    Mở tab mới
-                  </a>
-                  <a
-                    href={selectedHtmlDocument.url}
-                    download
-                    className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:bg-pink-50"
-                  >
-                    <Download size={16} />
-                    Tải xuống
-                  </a>
+                  <HtmlDocumentViewer
+                    document={selectedHtmlDocument}
+                    onOpenUrlChange={setHtmlOpenUrl}
+                  />
                 </div>
               </>
             ) : null}
