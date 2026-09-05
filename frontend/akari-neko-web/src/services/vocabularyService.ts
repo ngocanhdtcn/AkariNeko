@@ -68,6 +68,7 @@ export type VocabularyFilterOptions = {
 
 const JLPT_LEVEL_ORDER = ["N5", "N4", "N3", "N2", "N1"];
 const VOCABULARY_OPTION_PAGE_SIZE = 1000;
+const VOCABULARY_LIST_DEDUPE_FETCH_PAGE_SIZE = 1000;
 const VOCABULARY_BULK_UPDATE_PAGE_SIZE = 1000;
 const VOCABULARY_FILTER_OPTIONS_CACHE_TTL_MS = 60_000;
 let vocabularyOptionRowsCache:
@@ -99,6 +100,19 @@ function mapVocabularyRow(row: VocabularyRow): VocabularyListItem {
         isLearned: false,
         createdAt: row.created_at,
     };
+}
+
+function normalizeVocabularyDisplayKeyPart(value: string) {
+    return value.trim().toLocaleLowerCase();
+}
+
+function getVocabularyDisplayKey(
+    vocabulary: Pick<VocabularyRow, "kanji" | "hiragana">,
+) {
+    return [
+        normalizeVocabularyDisplayKeyPart(vocabulary.kanji),
+        normalizeVocabularyDisplayKeyPart(vocabulary.hiragana),
+    ].join("|");
 }
 
 type VocabularyOptionRow = {
@@ -218,6 +232,135 @@ function getCachedVocabularyOptionRows(): Promise<VocabularyOptionRow[]> {
     return vocabularyOptionRowsCache.promise;
 }
 
+async function getDedupedStudentVocabularyPage({
+    page,
+    pageSize,
+    searchKeyword,
+    effectiveLevel,
+    book,
+    chapter,
+    chapters,
+    onlyDifficult,
+    difficultVocabularyIds,
+    learnedVocabularyIds,
+    effectiveLearnedFilter,
+    hiddenLearnedCount,
+}: {
+    page: number;
+    pageSize: number;
+    searchKeyword: string;
+    effectiveLevel: string;
+    book: string;
+    chapter: string;
+    chapters?: string[];
+    onlyDifficult: boolean;
+    difficultVocabularyIds: string[];
+    learnedVocabularyIds: string[];
+    effectiveLearnedFilter: VocabularyLearnedFilter;
+    hiddenLearnedCount: number;
+}): Promise<GetVocabulariesResult> {
+    const selectedChapters =
+        chapters?.filter((item) => item && item !== "All") ??
+        (chapter !== "All" ? [chapter] : []);
+    const uniqueRows: VocabularyRow[] = [];
+    const seenDisplayKeys = new Set<string>();
+    let from = 0;
+
+    while (true) {
+        const to = from + VOCABULARY_LIST_DEDUPE_FETCH_PAGE_SIZE - 1;
+        let query = supabase
+            .from("vocabularies")
+            .select(
+                [
+                    "id",
+                    "book",
+                    "level",
+                    "chapter",
+                    "kanji",
+                    "hiragana",
+                    "meaning",
+                    "created_at",
+                ].join(","),
+            )
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to);
+
+        if (effectiveLevel !== "All") {
+            query = query.eq("level", effectiveLevel);
+        }
+
+        if (book !== "All") {
+            query = query.eq("book", book);
+        }
+
+        if (selectedChapters.length > 0) {
+            query = query.in("chapter", selectedChapters);
+        } else if (chapter !== "All") {
+            query = query.eq("chapter", chapter);
+        }
+
+        if (onlyDifficult) {
+            query = query.in("id", difficultVocabularyIds);
+        }
+
+        if (effectiveLearnedFilter === "learned") {
+            query = query.in("id", learnedVocabularyIds);
+        }
+
+        if (searchKeyword.length > 0) {
+            query = query.or(
+                [
+                    `kanji.ilike.%${searchKeyword}%`,
+                    `hiragana.ilike.%${searchKeyword}%`,
+                    `meaning.ilike.%${searchKeyword}%`,
+                    `book.ilike.%${searchKeyword}%`,
+                    `chapter.ilike.%${searchKeyword}%`,
+                ].join(","),
+            );
+        }
+
+        if (effectiveLearnedFilter === "unlearned" && learnedVocabularyIds.length > 0) {
+            query = query.not("id", "in", `(${learnedVocabularyIds.join(",")})`);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            throw error;
+        }
+
+        const pageRows = (data ?? []) as unknown as VocabularyRow[];
+
+        for (const row of pageRows) {
+            const displayKey = getVocabularyDisplayKey(row);
+
+            if (seenDisplayKeys.has(displayKey)) {
+                continue;
+            }
+
+            seenDisplayKeys.add(displayKey);
+            uniqueRows.push(row);
+        }
+
+        if (pageRows.length < VOCABULARY_LIST_DEDUPE_FETCH_PAGE_SIZE) {
+            break;
+        }
+
+        from += VOCABULARY_LIST_DEDUPE_FETCH_PAGE_SIZE;
+    }
+
+    const pageStartIndex = (page - 1) * pageSize;
+    const pageRows = uniqueRows.slice(pageStartIndex, pageStartIndex + pageSize);
+    const items = pageRows.map(mapVocabularyRow);
+
+    return {
+        items: await mergeVocabulariesWithCurrentUserProgress(items),
+        totalCount: uniqueRows.length,
+        hiddenLearnedCount,
+    };
+}
+
 export async function getVocabularies({
     page,
     pageSize,
@@ -269,6 +412,7 @@ export async function getVocabularies({
             { count: "exact" },
         )
         .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
         .range(from, to);
 
     if (effectiveLevel !== "All") {
@@ -358,6 +502,23 @@ export async function getVocabularies({
         }
 
         hiddenLearnedCount = learnedCount ?? 0;
+    }
+
+    if (lockedLevel) {
+        return getDedupedStudentVocabularyPage({
+            page,
+            pageSize,
+            searchKeyword: normalizedSearchKeyword,
+            effectiveLevel,
+            book,
+            chapter,
+            chapters,
+            onlyDifficult,
+            difficultVocabularyIds,
+            learnedVocabularyIds,
+            effectiveLearnedFilter,
+            hiddenLearnedCount,
+        });
     }
 
     const { data, error, count } = await query;
@@ -469,6 +630,7 @@ async function getFilteredVocabularyIds({
                 .from("vocabularies")
                 .select("id")
                 .order("created_at", { ascending: false })
+                .order("id", { ascending: false })
                 .range(from, to),
             {
                 effectiveLevel,
@@ -675,6 +837,7 @@ export async function getRecentVocabularies(
             ].join(","),
         )
         .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
         .limit(limitCount);
 
     if (lockedLevel) {
